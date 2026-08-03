@@ -1,0 +1,4 @@
+# agent-templates: ephemeral pipeline scratch
+.claude/tmp/
+.claude/allow-main-writes
+docs/plans/*.md
