@@ -1,0 +1,265 @@
+# 00-foundation — sub-PRD
+
+> Parent decomposition: [`docs/prd/breakdown-plan.md`](../breakdown-plan.md) §3, §4, §5.1, §6.2, §7, §8.
+> Master spec: [`docs/PRD.md`](../../PRD.md) — AustraliaEmploymentRAG MVP v1.0, revision 2.0, 3 August 2026.
+> Ticket files under `tickets/` are the executable source of truth. Where this README and a ticket
+> disagree, **the ticket wins** (CLAUDE.md, issue #53); where a ticket and the breakdown plan disagree,
+> the ticket wins but the divergence must be written back to the plan.
+
+| Field | Value |
+|---|---|
+| Module | `00-foundation` |
+| Lane | `00-foundation` |
+| Ticket prefix | `FND` |
+| Tickets | 10 (`FND-01` … `FND-10`) |
+| Epics | `E01-REPO`, `E02-CONTRACTS`, `E03-DOMAIN` (PRD §44.2) |
+| Depends on | nothing — this is the root module of the whole PRD DAG |
+| Version | v0.2 |
+
+## Problem
+
+The repository is empty of product code. PRD §20.1 requires a specific monorepo layout, requires that
+"contracts and framework-independent domain rules are centralised", and names the artifacts that
+"require serialised ownership during multi-agent work": *"Lockfiles, canonical enums, OpenAPI roots,
+migration sequence, corpus manifest schema and production deployment files"*. PRD §44.3 repeats the
+list and adds the reason: those artifacts sit on the critical path
+(`contracts/domain → app + corpus schemas → …`) and every other module reads them.
+
+Until they exist, **nothing else in the 236-ticket plan can start**: 24 of the 25 modules are
+transitively blocked on this one. Concretely, four things are missing and have exactly one safe owner:
+
+1. **Toolchain pins and a runnable workspace.** PRD §45.3 lists fourteen entry commands and states
+   *"Exact Node/pnpm/Python/Rust versions belong in committed tool-version files and lockfiles selected
+   in E01, not in human memory. CI and local development use the same pinned versions."* The versions
+   themselves are settled — breakdown plan §8 **Q12 (CONFIRMED)** fixes Node.js `24.18.0`, pnpm
+   `11.4.0`, Rust `1.97.1` and Python `3.14.6` — but no file in the repository records them yet, so
+   `FND-01` commits the pin files and proves a clean bootstrap against them (decision **D17**).
+2. **CI gates.** PRD §20.3 lists nine gate classes that must run before anything merges, plus the
+   release-candidate extras. Without them the pipeline's "tests green" claim is unverifiable.
+3. **Canonical contracts.** PRD §35.1: *"Enumerations use checked text values generated from
+   `packages/contracts`."* PRD §34 preamble: *"The OpenAPI file at `schemas/openapi/openapi.yaml` will
+   be the generated-code source of truth."* PRD §16.1: *"Webhooks carry their own schema version."*
+   A second copy of any of these is a silent product-behaviour fork.
+4. **Framework-free domain rules.** PRD §45.2 gives `packages/domain` *"Pure permissions, state
+   transitions, evidence/budget rules"* and forbids it *"Framework, database or network code"*;
+   PRD §39.1 adds *"`packages/domain` imports no Fastify, React, SQLite driver, provider SDK or
+   Cloudflare/AWS library."* PRD §45.2 also forbids `apps/api` from owning *"Duplicated business
+   rules"* — so the rules must exist before the surfaces that would otherwise re-derive them.
+
+## Scope
+
+In scope for this module, and nowhere else in the repository (breakdown plan §4 write-owns row):
+
+- Root manifests and lockfiles: `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.npmrc`,
+  `.node-version`, `tsconfig.base.json`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`,
+  `pyproject.toml`, `uv.lock`, `.editorconfig`, `README.md`.
+- `tools/**` — **except** the two pre-existing PowerShell scripts, which the plan freezes.
+- `.github/workflows/**`.
+- `packages/contracts/**` — canonical enums, opaque ID conventions, OpenAPI root bindings, event
+  schema bindings, generated output.
+- `packages/domain/**` — access, answers, workflow, budget, legal rule families.
+- `schemas/openapi/**` and `schemas/events/**`.
+
+## Non-goals
+
+Each exclusion names its owner, so no `FND-*` ticket "helpfully" absorbs it:
+
+- **No database schema, migrations, repositories or encryption** — `01-app-data` owns
+  `packages/database/**` (breakdown plan §4; PRD §45.2 gives `packages/database` exactly that scope).
+  `FND-03`'s enum registry is *consumed* by `DATA-01` to generate SQLite check constraints (PRD §35.1);
+  `00-foundation` never writes a migration. The SQLite access layer itself is settled by breakdown plan
+  §8 **Q13 (CONFIRMED)** — Kysely-style repositories over `better-sqlite3`, Drizzle not used, raw `.sql`
+  the only migration authoring format — and is `DATA-01`'s to implement, not this module's to choose.
+- **No HTTP server, route, middleware or SSE transport** — `03-app-runtime` (`RUNT-01` … `RUNT-03`)
+  and the product modules own `apps/api/**`. `FND-04` publishes the contract; it does not serve it.
+- **No corpus schema, corpus manifest or chunker** — `04-corpus-contract` (`CRPS-01`, `CRPS-02`),
+  serial-owned per PRD §44.3 and breakdown plan §4.1.
+- **No retrieval implementation** — `11-retrieval-engine`. `FND-10` supplies the §36.2 eligibility
+  predicate and §36.3 feature order as pure code; `RETR-*` executes them against real indexes.
+- **No PII detection, evidence packs, citation validation or model gateway** — `12-evidence-safety`.
+  `FND-07` decides answer status from validated inputs; it does not validate citations.
+- **No UI components, screens or accessibility work** — `03-app-runtime` (`RUNT-05`, `RUNT-06`) and the
+  product modules. `packages/ui` is explicitly module 03's (breakdown plan §4.2, decision A6).
+- **No notification delivery of any kind** — `16-monitor-alerts` owns the email, in-app and webhook
+  channels. `FND-05` ships the webhook/SSE *contract* only; the transactional email provider is
+  breakdown plan §8 **Q14 (CONFIRMED)** — Resend on its free transactional tier — owned by `WTCH-04`
+  and `WTCH-09`.
+- **No evaluation cases, gold data or runner** — `21-evaluation-600`. Breakdown plan §9 R9 and PRD
+  §45.1 item 6 forbid exposing blind gold to ordinary coding agents; no `FND-*` ticket may read
+  `evals/gold/**`.
+- **No cross-boundary test suites** — `tests/{integration,tenant-isolation,security,e2e}` belong to
+  `23-assurance` (breakdown plan §1.1 "Tests"). Every `FND-*` ticket's tests live inside the package
+  it owns.
+- **No infrastructure, deployment or Compose files** — `18-ops-release` (production, PRD §39.2) and
+  `03-app-runtime`/`RUNT-09` (local/CI Compose). Breakdown plan §2.1 decision A7.
+- **No ADR is authored here by default.** `docs/adr/` is empty; per breakdown plan §1.1 every ticket in
+  this module cites the PRD directly and uses the no-ADR form, and where a breakdown plan §8 register
+  entry settles a choice the ticket cites that entry (D17 for Q12) instead of deciding locally. If a
+  ticket genuinely needs an ADR, ADRs are shared-additive per-file (decision A9) and the ticket claims
+  `docs/adr/NNNN-<slug>.md`; the triggers are the escalation paths named in each ticket's Feedback
+  obligation and the open questions below.
+
+## Decisions
+
+Every decision names its basis: a PRD section, a breakdown-plan section, or a §2.1 ADR candidate.
+None of these are new product rules; where a rule had to be *chosen* rather than transcribed, it is
+flagged and appears in Open questions as well.
+
+| # | Decision | Basis |
+|---|---|---|
+| D1 | `FND-01` is the single wave-1 ticket for the entire PRD and owns every version pin (Node, pnpm, Rust toolchain, Python) plus all three lockfiles. It **commits** the versions fixed by D17; it does not select them. Any later ticket adding a dependency regenerates the lockfile as a build artifact and never hand-merges it. | PRD §45.3 ("selected in E01"); PRD §44.3 serial owners; breakdown plan §4.1 and §7 (whole-PRD wave 1 has width 1); D17 |
+| D2 | `FND-01` also creates the **empty workspace-member skeleton** — one manifest (`package.json` / `Cargo.toml` / `pyproject.toml`), one `tsconfig.json` where applicable and one empty entry file per PRD §20.1 member — after which each member's manifest belongs to the owning module, append-only within that module. | Breakdown plan §1.1 "Package manifests"; extended to the entry file because `pnpm typecheck`, `cargo test --workspace` and `uv run pytest` cannot run on a manifest alone (interpretation — see Open questions Q-F1) |
+| D3 | Root `package.json` scripts are **recursive delegators** (`pnpm -r --if-present run <name>`), and `pnpm-workspace.yaml` uses **globs**, not an enumerated member list. A later module therefore never edits a root file to register itself. | PRD §44.3 (root lockfiles/manifests are serial-owned — the fewer writers the better); breakdown plan §2 (the cut is file ownership) |
+| D4 | The nine PRD §20.3 gate classes each become a **separately named, always-running CI job**, vacuously green where the subject code does not exist yet. A gate is never commented out, skipped or added later. | PRD §20.3; PRD §44.2 E01 exit evidence "Clean bootstrap/build/test" |
+| D5 | Release-candidate-only checks (integration, restore, evaluation, compatibility, rollback) live in a **separate workflow** that does not trigger on `pull_request`. | PRD §20.3 ("Release candidates *additionally* run …") |
+| D6 | **Enum members live in `packages/contracts` (`FND-03`); the rules that consume them live in `packages/domain`.** `FND-03` therefore owns `Role`, `Permission`, `AuthorityLevel`, `ApiScope`, ledger kinds and the async-state set even though those sections are not in its §5.1 "PRD refs" column — its stated goal is *one generated source for every controlled value in the product*. | PRD §35.1; PRD §44.3; breakdown plan §4.2 ("Canonical enums — sole owner `00` (`FND-03`), would have been shared with everything") |
+| D7 | The §34.9 error-code **identifiers** are enums (`FND-03`); their **HTTP status / retryable mapping and response schema** are the OpenAPI root (`FND-04`). `FND-04` is `blocked_by FND-03`, so the ordering holds. | PRD §34.9; PRD §16.1 uniform error shape; breakdown plan §5.1 (`FND-03` refs §34.1, `FND-04` refs §34.1–34.9) |
+| D8 | `schemas/events/**` covers **both** transports: signed webhook envelopes (PRD §34.8) and the SSE event payloads (PRD §34.4). `FND-05`'s §5.1 file-scope is the whole tree and no other module may write it; `RUNT-03` and `WTCH-05` are consumers. | Breakdown plan §5.1 (`FND-05` file-scope `schemas/events/**`, no carve-out); PRD §16.1; PRD §20.1 (`schemas` = "Versioned contract roots") — interpretation, see Q-F2 |
+| D9 | Generated output is segregated by owner: `packages/contracts/src/generated/**` is `FND-04`'s (OpenAPI); event bindings generate into `packages/contracts/src/events/generated/**` (`FND-05`). Both carry a do-not-edit banner and are covered by `pnpm generated:check`. | PRD §20.1 ("Generated OpenAPI/SDK/event/manifest bindings MUST NOT be hand-edited"); DEV-001 |
+| D10 | `packages/domain` is split into **five sibling leaf subtrees** (`access`, `answers`, `workflow`, `budget`, `legal`) that never import one another. Where two families need the same concept, the shared type is an enum in `packages/contracts` and the coupling is **structural**, not an import. | PRD §39.1 dependency rule; breakdown plan §7 (this module's seven-lane wave 3 exists only because the five subtrees are disjoint) |
+| D11 | `FND-07` (answer status) must compare authority levels but must **not** own the hierarchy — it declares a structural port `AuthorityComparator` typed over `AuthorityLevel` (contracts); `FND-10` exports a matching function. Neither imports the other; `12-evidence-safety`/`EVID-05` wires them. | PRD §9.1 (cited by both tickets); D10; breakdown plan §5.1 (FND-10's title carries "authority hierarchy") |
+| D12 | Effective intervals are **closed and inclusive** — `[effective_from, effective_to]`, `effective_to: null` meaning open-ended — and adjacent versions must satisfy `next.effective_from > prev.effective_to`. | PRD §35.2 `document_version` constraint *"non-overlap validation where versions represent consolidated effect"*; PRD §34.2 example payload. **Cross-module semantic** shared with `CRPS-01` — see Q-F4 |
+| D13 | Where two conditions in the PRD §36.8 refusal table hold simultaneously, the **more restrictive** status wins; a status more permissive than any triggered condition is never selected. | PRD §2 ("visible uncertainty and refusal when evidence is insufficient"); PRD §9.4 ("remaining unsupported claims MUST be removed and the answer downgraded/refused") — chosen precedence, see Q-F3 |
+| D14 | Unit and integration tests live inside the owning package, in a directory whose **leaf segment matches the ticket's own source leaf** (`packages/contracts/test/enums/**` for `FND-03`, `packages/domain/test/legal/**` for `FND-10`, …), keeping sibling test scopes disjoint. | Breakdown plan §1.1 "Tests"; the `DATA-02` row in plan §5.1 uses exactly this shape (`packages/database/test/architecture/**`) |
+| D15 | Money is **integer micro-AUD** (`bigint`) everywhere in `packages/domain/src/budget/**`; floating-point money is a test failure, not a review comment. | PRD §34.1 ("Integer micro-AUD for internal cost; never floating point"); PRD §42.6 |
+| D16 | Within this module, `packages/contracts/package.json` and `packages/domain/package.json` are **append-only shared**: a ticket adds only its own script/dependency entries and never reorders or removes another ticket's. Conflicts resolve by re-running the package manager. | Breakdown plan §1.1 "Package manifests" (the same rule PRD §44.3 imposes on root lockfiles) |
+| D17 | **The exact toolchain versions are Node.js `24.18.0`, pnpm `11.4.0`, Rust `1.97.1` and Python `3.14.6`.** This module *implements* that decision; it does not make it. Committed pin files, at minimum: `.node-version`, `package.json#packageManager`, `package.json#engines.node`, `rust-toolchain.toml`, `pyproject.toml#requires-python` and the corresponding lockfiles (`pnpm-lock.yaml`, `Cargo.lock`, `uv.lock`). Binding rules: Node **24 LTS**, not Node 26 while it is still Current; no silent upgrade to a newer patch or major during implementation; CI and local development use the same exact versions (`FND-02` reads the pin files and states no version literal of its own); if `FND-01`'s clean bootstrap proves an accepted version incompatible with a mandatory dependency, the evidence is recorded through `FND-01`'s feedback obligation — this README and the ticket — **before** any version is changed. Developer preference is not a reason to reopen it. | Breakdown plan §8 **Q12 (CONFIRMED)**, owner `00-foundation`, resolving ticket `FND-01`; PRD §45.3 ("committed tool-version files … CI and local development use the same pinned versions"); PRD §18.2 ("Active LTS Node.js pinned to an exact version") |
+
+## Rejected alternatives
+
+| Alternative | Why rejected |
+|---|---|
+| One "contracts" ticket covering enums + OpenAPI + events | Collapses the module's seven-wide wave 3 into a serial chain and contradicts breakdown plan §4.1, which gives canonical enums, the OpenAPI root and the event root three distinct serial-owner rows. |
+| One `packages/domain` ticket | Five unrelated rule families (access, answers, workflow, budget, legal) in one write-set; the §7 lane profile for this module (max useful lanes 7) is a direct consequence of the split. It would also make every downstream module wait on all five. |
+| Fold CI into `FND-01` | `.github/workflows/**` is a separate write-set with a different blast radius, and `FND-01` is already the single wave-1 blocker for 235 tickets. Breakdown plan §5.1 assigns them separately; `RLSE-01` depends on `FND-02` alone, not on the bootstrap. |
+| Let `01-app-data` own the enums (generate contracts from the schema) | PRD §35.1 fixes the direction: *"Enumerations use checked text values generated from `packages/contracts`."* PRD §44.3 puts canonical enums under a serial owner in the foundation. Inverting it would make every product module's controlled values depend on migration order. |
+| Hand-write the TypeScript client instead of generating it | DEV-001's acceptance evidence is literally *"Generated-client diff is clean in CI"*, and PRD §20.1 forbids hand-editing generated bindings. |
+| An enumerated `pnpm-workspace.yaml` member list | Every later module would have to edit a root file that `00-foundation` owns forever — a guaranteed serial bottleneck under parallel lanes (breakdown plan §9 R7 is the same failure mode for lockfiles). |
+| Put SSE payload schemas in `apps/api/src/sse/**` | `RUNT-03`'s file-scope is the transport, not the contract; the schema would then be invisible to the SDKs (`PLTF-02`/`PLTF-03`) and to `23-assurance`. See D8. |
+| Give `FND-07` the authority hierarchy because it cites §9.1 | Would duplicate `FND-10`'s titled scope and create an import between two concurrently-running wave-3 tickets. Resolved by D11's structural port. |
+| Let `FND-01` pick "the latest Active LTS" at bootstrap time | Breakdown plan §8 Q12 already fixed the four versions, and a floating "latest LTS" reintroduces exactly the drift PRD §45.3 forbids ("not in human memory"). `FND-01` commits D17's values; a bootstrap failure is evidence to write back, not licence to choose. |
+
+## Open questions
+
+Each has a named owner, and every one of them is module-local (`Q-F*`) — identified while authoring
+these tickets, not inherited from the breakdown plan.
+
+**No breakdown plan §8 register entry is open for this module.** §8 **Q12** (exact toolchain versions)
+is CONFIRMED and recorded above as decision **D17**. The §8 entries this module's tickets cite inbound
+are settled or deliberately unfixed elsewhere: **Q13** (SQLite access layer — Kysely-style repositories
+over `better-sqlite3`, Drizzle not used, raw `.sql` the only migration authoring format) is CONFIRMED
+and owned by `01-app-data`/`DATA-01`; **Q14** (transactional email provider — Resend, free
+transactional tier) is CONFIRMED and owned by `16-monitor-alerts`/`WTCH-04` and `WTCH-09`; **Q1**
+(hosted model per profile, cited by `FND-09`) and **Q4** (retrieval constants, cited by `FND-10`) are
+**benchmark-selected** — resolved from measured evidence through `GOLD-15` and `RETR-10`/`GOLD-15`
+respectively — and neither blocks any `FND-*` ticket.
+
+| # | Question | Owner | Resolved by | Blocks | Writeback target |
+|---|---|---|---|---|---|
+| Q-F1 | Does the "empty workspace-member skeleton" (breakdown plan §1.1) include one entry file per member, or manifests only? `FND-01` needs entry files for `pnpm typecheck` / `cargo test --workspace` / `uv run pytest` to exit 0. | Builder of `FND-01`; escalates to the Architect if a member needs more than an empty entry file | `FND-01` | Nothing — D2 records the working answer | `docs/prd/breakdown-plan.md` §1.1 "Package manifests" row **and** this README, before writing anything beyond an empty entry file |
+| Q-F2 | Are SSE event payload schemas (PRD §34.4) part of `schemas/events/**`? `FND-05`'s file-scope has no carve-out and no other module may write the tree (D8). | Builder of `FND-05`, confirmed by the Builder of `RUNT-03` when it consumes them | `FND-05`; re-checked at `RUNT-03` | Nothing | This README (D8) and `docs/prd/breakdown-plan.md` §5.1 if `RUNT-03` needs a different split |
+| Q-F3 | Precedence when two PRD §36.8 refusal-table conditions hold at once — the PRD states the conditions but not their order. D13 chooses "most restrictive wins". | **Founder** (a `PRODUCT_AMBIGUITY` classification under PRD §43.4; PRD §45.5 "Product change") | Recorded by `FND-07`; falsifiable by the `21-evaluation-600` refusal cases | Nothing — D13 is buildable today | `docs/prd/00-foundation/README.md` (D13) first, then the ticket; a change in customer-visible refusal behaviour also needs a PRD update per §45.5 |
+| Q-F4 | Is `effective_to` inclusive (D12)? The predicate lives in `FND-10`; the columns live in `CRPS-01` (`04-corpus-contract`), and the two run concurrently. | Builder of `FND-10` records it; Builder of `CRPS-01` must match | `FND-10`, confirmed at `CRPS-01` | Boundary-date correctness for `RETR-*`, `UAT-SRCH-03` | `docs/prd/breakdown-plan.md` §4.2 (a contested *semantic*, not a contested path) plus this README, before either side changes convention |
+| Q-F5 | Per-mode permitted legal-status sets (`CURRENT_LAW` / `HISTORICAL` / `FUTURE_OR_PROPOSED`). PRD §6.7 and §36.2 give the invariants (default = in force at the requested date; future never relabelled current; `STATUS_UNCONFIRMED` never definitive) but not the exact sets. | **Founder** (product ambiguity, PRD §45.5); drafted by the Builder of `FND-10` | `FND-10` records the initial table; validated by `21-evaluation-600` | Nothing — the invariants are hard and buildable | This README + the `FND-10` ticket; a customer-visible change needs founder approval per PRD §45.5 |
+| Q-F6 | No module owns `.github/PULL_REQUEST_TEMPLATE.md` or `.github/ISSUE_TEMPLATE/**` (breakdown plan §4 allocates only `.github/workflows/**`), yet PRD §45.4 requires every PR to state requirement and UAT IDs and the current template has no such section. **Still open** — the §8 decision register does not allocate these paths. | Builder of `FND-02` raises it; the **Architect** decides the allocation | `FND-02` — its PR-contract job must work against the template as it stands | Nothing; the gate degrades to a tolerant check | `docs/prd/breakdown-plan.md` §4 (add the path to a module's write-owns row) — `FND-02` must **not** edit the template unilaterally |
+| Q-F7 | Does `FND-01` need a root file outside plan §4's enumerated list (e.g. a root `conftest.py` so `uv run pytest` exits 0 on an empty tree)? | Builder of `FND-01` | `FND-01` | Nothing | `docs/prd/breakdown-plan.md` §4 `00-foundation` row + this README's Scope section, in the same PR that adds the file |
+
+## Work breakdown
+
+`lane` = `00-foundation` and `agent` = `builder` for all ten tickets (breakdown plan §1.1). File-scopes
+below are write-owns and are disjoint between every pair of tickets that can run concurrently.
+
+| Ticket | Title | Size | Lane | File-scope (write-owns) | Depends on (`blocked_by`) |
+|---|---|:---:|---|---|---|
+| [`FND-01`](tickets/FND-01-monorepo-bootstrap-pinned-toolchains-workspace-skeleton.md) | Monorepo bootstrap, pinned toolchains, workspace skeleton | L | `00-foundation` | root manifests + lockfiles, `tools/**` (excl. the two frozen `.ps1`), `README.md`, the empty PRD §20.1 member skeleton | — |
+| [`FND-02`](tickets/FND-02-ci-gate-pipeline.md) | CI gate pipeline | M | `00-foundation` | `.github/workflows/**` | `FND-01` |
+| [`FND-03`](tickets/FND-03-canonical-enums-and-opaque-id-conventions.md) | Canonical enums and opaque ID conventions | M | `00-foundation` | `packages/contracts/src/{enums,ids}/**`, `packages/contracts/test/{enums,ids}/**` | `FND-01` |
+| [`FND-04`](tickets/FND-04-openapi-root-and-generated-typescript-bindings.md) | OpenAPI root and generated TypeScript bindings | L | `00-foundation` | `schemas/openapi/**`, `packages/contracts/src/{openapi,generated}/**`, `packages/contracts/test/{openapi,generated}/**` | `FND-03` |
+| [`FND-05`](tickets/FND-05-event-and-webhook-schema-root.md) | Event and webhook schema root | M | `00-foundation` | `schemas/events/**`, `packages/contracts/src/events/**`, `packages/contracts/test/events/**` | `FND-03` |
+| [`FND-06`](tickets/FND-06-domain-role-permission-matrix-and-resource-membership.md) | Domain: role/permission matrix and resource membership | M | `00-foundation` | `packages/domain/src/access/**`, `packages/domain/test/access/**` | `FND-03` |
+| [`FND-07`](tickets/FND-07-domain-answer-status-claim-support-citation-role-refusal-table.md) | Domain: answer status, claim support, citation role, refusal table | M | `00-foundation` | `packages/domain/src/answers/**`, `packages/domain/test/answers/**` | `FND-03` |
+| [`FND-08`](tickets/FND-08-domain-record-workflow-state-machine-and-etag-rules.md) | Domain: record workflow state machine and ETag rules | M | `00-foundation` | `packages/domain/src/workflow/**`, `packages/domain/test/workflow/**` | `FND-03` |
+| [`FND-09`](tickets/FND-09-domain-budget-quota-and-funding-ledger-rules.md) | Domain: budget, quota and funding-ledger rules | M | `00-foundation` | `packages/domain/src/budget/**`, `packages/domain/test/budget/**` | `FND-03` |
+| [`FND-10`](tickets/FND-10-domain-temporal-applicability-and-authority-hierarchy.md) | Domain: temporal applicability and authority hierarchy | M | `00-foundation` | `packages/domain/src/legal/**`, `packages/domain/test/legal/**` | `FND-03` |
+
+### Lane shape
+
+Breakdown plan §7: 10 tickets · min waves **3** · max useful lanes **7** · peak lanes **7** · **not
+fully serial**.
+
+```text
+wave 1   FND-01
+wave 2   FND-02 │ FND-03
+wave 3   FND-04 │ FND-05 │ FND-06 │ FND-07 │ FND-08 │ FND-09 │ FND-10
+```
+
+The serialisation that does exist is intrinsic: nothing can be typechecked before the toolchain is
+pinned (`FND-01`), and no controlled value can be referenced before it is declared once (`FND-03`,
+serial-owned per PRD §44.3).
+
+### Outbound edges (breakdown plan §6.2)
+
+Every ticket's `blocks` list is the exact inverse of the plan's ticket DAG, including cross-module
+dependents:
+
+| Ticket | Blocks |
+|---|---|
+| `FND-01` | `FND-02`, `FND-03`, `LNCH-01` |
+| `FND-02` | `RLSE-01` |
+| `FND-03` | `FND-04`, `FND-05`, `FND-06`, `FND-07`, `FND-08`, `FND-09`, `FND-10`, `DATA-01`, `RUNT-06`, `RUNT-07`, `CRPS-01`, `EVID-01`, `EVID-07`, `GOLD-01` |
+| `FND-04` | `RUNT-01`, `RUNT-05`, `RETR-09`, `PLTF-01`, `PLTF-02`, `PLTF-03` |
+| `FND-05` | `WTCH-05`, `PLTF-02`, `PLTF-03` |
+| `FND-06` | `DATA-02`, `RUNT-02` |
+| `FND-07` | `EVID-04` |
+| `FND-08` | `WTCH-03`, `RCRD-04` |
+| `FND-09` | `RUNT-02`, `EVID-08` |
+| `FND-10` | `EVID-05` |
+
+## Acceptance — what makes this module done
+
+The module is done when all ten tickets are delivered and the following hold. Every item names the PRD
+requirement ID or epic exit evidence it discharges.
+
+1. **`E01-REPO` exit evidence — "Clean bootstrap/build/test" (PRD §44.2).** All fourteen PRD §45.3 entry
+   commands exist and exit 0 from a clean clone running the **D17** pins — Node.js `24.18.0`, pnpm
+   `11.4.0`, Rust `1.97.1`, Python `3.14.6` — and `corepack pnpm install --frozen-lockfile` leaves the
+   lockfile unchanged. (`FND-01`)
+2. **PRD §20.3 gates run on every PR.** Each of the nine gate classes is a named, always-running CI job;
+   the release-candidate extras run in their own workflow and not on `pull_request`; and CI resolves the
+   same D17 versions from the pin files rather than restating them (PRD §45.3). (`FND-02`)
+3. **`E02-CONTRACTS` exit evidence — "No generated diff; schema tests" (PRD §44.2).**
+   `pnpm generate && pnpm generated:check` produces no diff, and every enum set, endpoint and event
+   schema matches a fixture transcribed from the PRD. (`FND-03`, `FND-04`, `FND-05`)
+4. **`DEV-001` — "OpenAPI drives TypeScript/Python generated cores"; acceptance evidence "Generated-client
+   diff is clean in CI".** Discharged for the TypeScript core here; the Python core is
+   `20-developer-platform`/`PLTF-03` against this same root. (`FND-04`, gated by `FND-02`)
+5. **`E03-DOMAIN` exit evidence — "Unit/property tests" (PRD §44.2).** Every rule family ships property
+   tests, not only examples, and `packages/domain` imports nothing but `packages/contracts` and Node
+   built-ins (PRD §39.1, §45.2). (`FND-06` … `FND-10`)
+6. **`AUTH-003` — "Owner, Admin, Researcher, Viewer and Developer permissions are enforced … Permission
+   matrix in §38 passes"** is decidable in pure code, and **`SEC-001`**'s cross-tenant rule is a domain
+   invariant before any repository exists. (`FND-06`; enforcement at the boundary is `DATA-02`/`RUNT-02`)
+7. **`ANS-005` — "Every material claim has validated source evidence or is removed/downgraded"** has its
+   status/support/refusal decision in code rather than in a prompt. (`FND-07`; the validator itself is
+   `EVID-05`)
+8. **`REC-004` — "Workflow transitions enforce actor, ETag and audit"**: only the PRD §32.6 transitions
+   are representable, and a stale ETag can never apply one. (`FND-08`; the 409 mapping is `RCRD-04`)
+9. **`OPS-003` — "Founder-funded monthly spend stops at A$50 and search remains usable … 90% warning and
+   100% hard-stop tests pass"** is arithmetic in `packages/domain`, in integer micro-AUD. (`FND-09`; the
+   circuit breaker is `EVID-08`)
+10. **PRD §36.2's eligibility predicate and §36.3's feature order exist as pure, tested code**, including
+    the §9.1 rule that guidance never outranks legislation or an operative instrument. No requirement ID
+    of its own — it is the shared predicate behind `SRCH-002`, `SRCH-005` and `ANS-005`, owned downstream
+    by modules 11, 12 and 14. (`FND-10`)
+11. **PRD §45.4 PR contract** items are stated on every merged PR in this module: requirement/UAT IDs,
+    user-visible change and non-goals, schema/API/event compatibility impact, tenant/PII/security impact,
+    source/licence impact, tests run, cost/memory/latency impact, rollback path, known gaps.
+12. **No writes outside the breakdown plan §4 `00-foundation` row**, and no `FND-*` ticket has read
+    `evals/gold/**` (PRD §45.1 item 6; breakdown plan §9 R9).
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v0.1 | 2026-08-03 | Initial decomposition of `00-foundation` from `docs/prd/breakdown-plan.md` §5.1 — 10 tickets, `FND-01` … `FND-10`. |
+| v0.2 | 2026-08-03 | Aligned with the breakdown plan §8 decision register. **Q12 CONFIRMED** and transcribed as decision **D17** (Node.js `24.18.0`, pnpm `11.4.0`, Rust `1.97.1`, Python `3.14.6`, the pin-file set and the no-silent-upgrade rules); Q12 removed from Open questions; `FND-01` now commits the pins instead of choosing them and `FND-02` resolves the same versions from those files. Inherited §8 references updated: **Q13 CONFIRMED** (Kysely-style repositories over `better-sqlite3`, Drizzle not used, raw `.sql` migrations — `DATA-01`) in Non-goals and `FND-01`; **Q14 CONFIRMED** (Resend, free transactional tier — `WTCH-04`/`WTCH-09`) in Non-goals and `FND-05`; **Q1** and **Q4** relabelled **benchmark-selected** with their resolving tickets (`GOLD-15`, `RETR-10`) in `FND-09` and `FND-10`. `Q-F1`…`Q-F7` unchanged and still open — `Q-F6` (unallocated `.github/PULL_REQUEST_TEMPLATE.md` / `ISSUE_TEMPLATE/**`) is **not** settled by the register. Plan-size figures refreshed after the same round added `WTCH-09` to `16-monitor-alerts` (the plan is now **236** tickets and module 16 has **9**): the Problem section now reads 236-ticket plan, and the *Fold CI into `FND-01`* rejected-alternative row now reads 235 tickets, matching the 235 transitive dependents of `FND-01` in the ticket DAG. The 24-of-25-modules figure is unchanged — `16-monitor-alerts` was already transitively blocked on `FND-01`. |
