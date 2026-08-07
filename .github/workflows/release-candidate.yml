@@ -1,0 +1,81 @@
+name: Release candidate
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Integration suite
+        run: pnpm test:integration
+
+  restore:
+    name: Restore tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Restore suite
+        run: pnpm -r --if-present run rc:restore
+
+  evaluation:
+    name: Evaluation tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Evaluation suite
+        run: pnpm -r --if-present run rc:evaluation
+
+  compatibility:
+    name: Compatibility tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Compatibility suite
+        run: pnpm -r --if-present run rc:compatibility
+
+  rollback:
+    name: Rollback tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Rollback suite
+        run: pnpm -r --if-present run rc:rollback
+
+  release-artifact:
+    name: Immutable release artifact
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Build the immutable app artifact
+        run: pnpm -r --if-present run release:artifact

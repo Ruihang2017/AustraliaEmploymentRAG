@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ts-type-unit:
+    name: TypeScript type/unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Typecheck every workspace member
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test
+      - name: Workflow gate-list replay (PRD 20.3)
+        run: node --test .github/workflows/checks/workflows.test.mjs
+
+  openapi-compat:
+    name: API/OpenAPI compatibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Regenerate the bindings and prove the diff is clean
+        run: pnpm generate && pnpm generated:check
+      - name: OpenAPI compatibility suite
+        run: pnpm -r --if-present run test:openapi-compat
+
+  migration-schema:
+    name: Migration and tenant-schema validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Migration and tenant-schema suite
+        run: pnpm -r --if-present run test:migrations
+
+  tenant-auth:
+    name: Tenant isolation, auth and permission tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Tenant isolation, auth and permission suite
+        run: pnpm -r --if-present run test:tenant
+
+  pii-citation:
+    name: PII and citation validation suites
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: PII and citation validation suite
+        run: pnpm -r --if-present run test:pii-citation
+
+  rust-build-test:
+    name: Rust builds/tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+      - name: Cargo build and test
+        run: cargo build --workspace && cargo test --workspace
+
+  python-build-test:
+    name: Python builds/tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: uv sync and pytest
+        run: uv sync --frozen && uv run pytest
+
+  retrieval-eval-smoke:
+    name: Retrieval/evaluation smoke set
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Retrieval and evaluation smoke set
+        run: pnpm eval:smoke
+
+  supply-chain-scan:
+    name: Dependency, secret, container and artifact scans
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/workflows/actions/setup
+      - name: Dependency audit and lockfile integrity
+        run: |
+          corepack pnpm audit --audit-level=high
+          cargo metadata --locked --format-version 1 > /dev/null
+          uv lock --check
+      - name: Secret scan
+        run: node .github/workflows/checks/secret-scan.mjs
+      - name: Container image scan
+        run: pnpm -r --if-present run scan:container
+      - name: Artifact and licence scan
+        run: pnpm -r --if-present run scan:licence

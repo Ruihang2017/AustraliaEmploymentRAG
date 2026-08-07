@@ -1,0 +1,81 @@
+{
+  "$comment": [
+    "PRD section 20.3 'CI gates' transcribed verbatim from docs/PRD.md.",
+    "A paraphrase is a defective fixture: .github/workflows/checks/workflows.test.mjs re-reads",
+    "docs/PRD.md and asserts these strings are byte-identical to its bullet list, in order.",
+    "The `workflow`/`jobs` columns are the FND-02 deliverable-3 mapping: every gate class has its",
+    "own always-running job (sub-PRD D4), and the replay asserts the mapping is 1:1 in both",
+    "directions - a job that maps to no gate fails just as loudly as a gate with no job.",
+    "To change the mapping, follow the FND-02 ticket's Feedback obligation 1 FIRST: this ticket's",
+    "deliverable-3 table, then this fixture, then docs/prd/00-foundation/README.md D4."
+  ],
+  "source": "docs/PRD.md section 20.3 CI gates",
+  "gates": [
+    {
+      "id": "ts-type-unit",
+      "prd": "TypeScript type/unit tests.",
+      "workflow": "ci.yml",
+      "jobs": ["ts-type-unit"]
+    },
+    {
+      "id": "openapi-compat",
+      "prd": "API/OpenAPI compatibility.",
+      "workflow": "ci.yml",
+      "jobs": ["openapi-compat"]
+    },
+    {
+      "id": "migration-schema",
+      "prd": "Migration and tenant-schema validation.",
+      "workflow": "ci.yml",
+      "jobs": ["migration-schema"]
+    },
+    {
+      "id": "tenant-auth",
+      "prd": "Tenant isolation, auth and permission tests.",
+      "workflow": "ci.yml",
+      "jobs": ["tenant-auth"]
+    },
+    {
+      "id": "pii-citation",
+      "prd": "PII and citation validation suites.",
+      "workflow": "ci.yml",
+      "jobs": ["pii-citation"]
+    },
+    {
+      "id": "rust-python",
+      "prd": "Rust and Python builds/tests.",
+      "workflow": "ci.yml",
+      "jobs": ["rust-build-test", "python-build-test"]
+    },
+    {
+      "id": "retrieval-eval-smoke",
+      "prd": "Retrieval/evaluation smoke set.",
+      "workflow": "ci.yml",
+      "jobs": ["retrieval-eval-smoke"]
+    },
+    {
+      "id": "supply-chain-scan",
+      "prd": "Dependency, secret, container and artifact scans.",
+      "workflow": "ci.yml",
+      "jobs": ["supply-chain-scan"]
+    },
+    {
+      "id": "release-candidate-extras",
+      "prd": "Release candidates additionally run integration, restore, evaluation, compatibility and rollback tests.",
+      "workflow": "release-candidate.yml",
+      "jobs": ["integration", "restore", "evaluation", "compatibility", "rollback"]
+    }
+  ],
+  "artifactParagraph": "CI builds one immutable app artifact containing Web/server/worker/search/migrations/OpenAPI/SBOM/manifests. Production MUST verify and run it without floating installs or builds.",
+  "artifactJob": {
+    "workflow": "release-candidate.yml",
+    "job": "release-artifact"
+  },
+  "nonGateJobs": [
+    {
+      "workflow": "pr-contract.yml",
+      "job": "pr-contract",
+      "why": "PRD section 45.4 pull-request contract, not a section 20.3 gate class (FND-02 deliverable 5)"
+    }
+  ]
+}

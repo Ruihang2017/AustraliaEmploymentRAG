@@ -1,0 +1,27 @@
+name: PR contract
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-contract:
+    name: PRD 45.4 pull-request contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Assert the PRD 45.4 pull-request contract
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .github/workflows/checks/pr-contract.mjs
