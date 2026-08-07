@@ -12,7 +12,7 @@
 | Decomposition phase | **First** (`prd-phase.mjs context` → `phase: 1`, `append: false`, `usedIds: []`, `existingFiles: ['.gitkeep']`) |
 | Plan date | 2026-08-03 |
 | Modules | **25** |
-| Tickets | **236** |
+| Tickets | **237** |
 | Module prefix range | `00` … `24` (`nextPrefix: "00"`) |
 | ADRs available | none — `docs/adr/` is empty, so every ticket cites the PRD directly |
 | Graph validated with | `.claude/scripts/dag-core.mjs` (`buildPlan`, `intraModuleDeps`, `laneProfile`, `globalSchedule`) over a generated fixture tree: no duplicate ids, no dangling `blocked_by`, no module cycle, no intra-module cycle, **no fully-serial module** |
@@ -23,7 +23,7 @@
 |---|---|
 | Ticket id | `<MODSHORT>-<NN>`, zero-padded (`FND-01`, `SLEG-07`, `GOLD-14`). `MODSHORT` is fixed per module in §3 and is deliberately distinct from every PRD §30.1 requirement-ID family (`AUTH- SRCH- ANS- COV- CMP- REC- MON- EXP- DEV- ADM- COR- PII- SEC- OPS- EVAL-`), so a ticket id can never be read as a requirement id. Globally unique and stable; never reused. |
 | `lane` | Always the module directory name. Modules own disjoint trees (§4), so two lanes are always safe to run concurrently. Stated per module in §5. |
-| `agent` | `builder` for all 236 tickets. Standing "Why `builder`" line: *"a bounded change inside one module's declared file-scope against a fixed contract — not a new subsystem decision."* |
+| `agent` | `builder` for all 237 tickets. Standing "Why `builder`" line: *"a bounded change inside one module's declared file-scope against a fixed contract — not a new subsystem decision."* |
 | `status` / `date` | `draft` / `2026-08-03`. |
 | `blocked_by` / `blocks` | Exactly the edges in §5; `blocks` is the inverse and must be filled (`publish-tickets.mjs` renders both onto the issue, issue #52). |
 | ADR reference form | Use the template's no-ADR form: **"No ADR — the decision is already made in PRD §X; this is build ticket n of m against it."** Where §8's decision register already settles the choice, cite the register entry (`Q1`…`Q14`) and the ticket named there as carrying the ADR decision input. A ticket that hits a genuinely new hard-to-reverse choice raises it as a new §8 register entry instead of inventing the decision locally. |
@@ -84,7 +84,7 @@ lower-numbered modules, which keeps `dag-core.buildPlan`'s module-level `topoSor
 
 | Module | Short | Purpose | PRD epics | Requirement families | Tickets | Depends on |
 |---|---|---|---|---|---:|---|
-| `00-foundation` | `FND` | Monorepo skeleton, pinned toolchains, CI gates, canonical enums/IDs, OpenAPI + event schema roots, framework-free domain rules | E01–E03 | DEV-001; underpins all | 10 | — |
+| `00-foundation` | `FND` | Monorepo skeleton, pinned toolchains, CI gates, canonical enums/IDs, OpenAPI + event schema roots, framework-free domain rules | E01–E03 | DEV-001; underpins all | 11 | — |
 | `01-app-data` | `DATA` | `app.sqlite`/`ephemeral.sqlite` schema, migration order, TenantContext repositories, field encryption, job/outbox/usage/audit tables, `packages/jobs` | E04 | SEC-001, REC-001, ANS-003/004, OPS-003 | 9 | 00 |
 | `02-auth-core` | `AUTC` | `packages/auth`: Better Auth adapter, session/cookie policy, MFA, SSO connectors, machine-credential and widget-token primitives | E05, E28 | AUTH-001…006, DEV-002 | 5 | 01 |
 | `03-app-runtime` | `RUNT` | The three process shells (Fastify bootstrap + admission middleware + SSE; worker lease loops; web app shell), `packages/ui`, `packages/observability`, local Compose | E06, E30 (obs) | SEC-001, OPS-002, ANS-003 | 9 | 00, 01, 02 |
@@ -188,11 +188,11 @@ declares a `blocked_by` edge on the owner's ticket.
 
 ## 5. Ticket inventory
 
-236 tickets. For every module below: **`lane` = the module directory name, `agent` = `builder`** for
+237 tickets. For every module below: **`lane` = the module directory name, `agent` = `builder`** for
 all of its tickets (§1.1). File-scopes are write-owns and are disjoint from sibling tickets except
 where a `blocked_by` edge orders them. "PRD refs" are mandatory reading for the ticket author.
 
-### 5.1 `00-foundation` — lane `00-foundation` · agent `builder` · 10 tickets
+### 5.1 `00-foundation` — lane `00-foundation` · agent `builder` · 11 tickets
 
 | id | title | size | file-scope (write-owns) | blocked_by | PRD refs | goal |
 |---|---|---|---|---|---|---|
@@ -206,6 +206,7 @@ where a `blocked_by` edge orders them. "PRD refs" are mandatory reading for the 
 | FND-08 | Domain: record workflow state machine and ETag rules | M | `packages/domain/src/workflow/**` | FND-03 | §8.7, §32.6, §34.1, REC-004, E03 | Only PRD §32.6 transitions are representable. |
 | FND-09 | Domain: budget, quota and funding-ledger rules | M | `packages/domain/src/budget/**` | FND-03 | §24.1, §24.4, §38.5, §42.6, OPS-003, E03 | Admission arithmetic that stops before the A$50 ceiling. |
 | FND-10 | Domain: temporal applicability and authority hierarchy | M | `packages/domain/src/legal/**` | FND-03 | §6.6, §6.7, §9.1, §15.2, §36.2, §36.3, E03 | The §36.2 eligibility predicate as pure, tested code. |
+| FND-11 | Repair the repo-wide frozen-path guard | S | `tools/tests/frozen-paths.test.mjs` | FND-01 | §20.3, §44.3, §45.3, plan §4, E01 | The guard enforces plan §4 on every branch: it fails only on frozen or unallocated paths, never on a module's own allocated ones. |
 
 ### 5.2 `01-app-data` — lane `01-app-data` · agent `builder` · 9 tickets
 
@@ -622,13 +623,13 @@ flowchart LR
 
 ### 6.2 Ticket-level DAG
 
-All 521 edges from §5, written as `blocker --> dependents` (one line per blocker, `&`-joined). It is
+All 522 edges from §5, written as `blocker --> dependents` (one line per blocker, `&`-joined). It is
 acyclic and every referenced id exists in §5 — both verified with `dag-core.buildPlan`. The
 authoritative rendering is `docs/prd/dag.html`, produced by `dag-report.mjs` after wave B.
 
 ```mermaid
 flowchart LR
-  FND-01 --> FND-02 & FND-03 & LNCH-01
+  FND-01 --> FND-02 & FND-03 & FND-11 & LNCH-01
   FND-02 --> RLSE-01
   FND-03 --> FND-04 & FND-05 & FND-06 & FND-07 & FND-08 & FND-09 & FND-10 & DATA-01 & RUNT-06 & RUNT-07 & CRPS-01 & EVID-01 & EVID-07 & GOLD-01
   FND-04 --> RUNT-01 & RUNT-05 & RETR-09 & PLTF-01 & PLTF-02 & PLTF-03
@@ -850,7 +851,7 @@ already reaches the module's minimum wave count.
 
 | Module | Tickets | Min waves | Max useful lanes | Peak lanes | Fully serial? |
 |---|---:|---:|---:|---:|---|
-| `00-foundation` | 10 | 3 | 7 | 7 | no |
+| `00-foundation` | 11 | 3 | 7 | 7 | no |
 | `01-app-data` | 9 | 6 | 2 | 2 | no |
 | `02-auth-core` | 5 | 3 | 3 | 3 | no |
 | `03-app-runtime` | 9 | 2 | 5 | 5 | no |
@@ -897,9 +898,13 @@ are two-lane, and each of those has an intrinsic reason:
   chain does not get longer — but reaching those four waves now needs **three** lanes rather than two
   (nine tickets cannot fit into four waves at concurrency 2). Waves:
   `[WTCH-01, WTCH-02] → [WTCH-03, WTCH-07] → [WTCH-04, WTCH-05, WTCH-08] → [WTCH-06, WTCH-09]`.
+- `00-foundation` absorbed `FND-11` without changing its shape: measured again at eleven tickets it
+  is still **3 min waves / 7 max useful lanes / 7 peak lanes**, because `FND-11` is blocked only by
+  `FND-01` and therefore joins the existing wave 2 —
+  `[FND-01] → [FND-02, FND-03, FND-11] → [FND-04 … FND-10]`.
 
 Across the whole PRD the flat DAG has a **critical path of 17 waves** with wave widths
-`1, 3, 12, 11, 10, 6, 13, 13, 19, 53, 52, 24, 8, 5, 3, 2, 1` — the two 50-wide waves are the 52
+`1, 4, 12, 11, 10, 6, 13, 13, 19, 53, 52, 24, 8, 5, 3, 2, 1` — the two 50-wide waves are the 52
 source adapters (PRD §44.3's "safe parallel work units"). `dag-core.scheduleProfile` puts the lowest
 concurrency that still reaches 17 waves at **38**; realistically 22 rounds at concurrency 16 and 19
 at 24. `dag-report.mjs` computes the authoritative `recommended concurrency` after wave B writes the
@@ -909,7 +914,7 @@ concurrent token spend (CLAUDE.md).
 ## 8. Decision register
 
 The Founder has ruled on Q1–Q14. The identifiers are unchanged so that existing cross-references from
-the 25 sub-PRDs and 236 tickets still resolve; what changed is that every entry now carries an
+the 25 sub-PRDs and 237 tickets still resolve; what changed is that every entry now carries an
 explicit **status**, and where the decision is settled it carries the decision itself rather than the
 question. Each entry is written to be self-contained: this register is what a sub-PRD or a ticket
 cites, so it must be readable without this plan's history.
@@ -1184,7 +1189,7 @@ plan and the affected sub-PRD(s) first**, then the code — never silently.
 |---|---|---|---|
 | R1 | **Route/handler autoload (A1) proves impractical** — a framework or bundler needs a central manifest after all. Every product module would then contend on one file, and the vertical cut collapses into a serial lane. | `RUNT-01` cannot register a route directory without editing a shared index. | `RUNT-01` raises an ADR under `docs/adr/`, this plan's §4.2 gains a "route manifest owned by `03-app-runtime`" row, and every product module's first route ticket becomes `blocked_by` a manifest-registration ticket in `03`. |
 | R2 | **Adapters need more shared code than `_shared/{legislation,rates,caselaw,future}` provides.** State registers differ enough that a common parser is tempting; a shared file written by 52 concurrent tickets is the worst contention in the repo. | Two adapter tickets both want to change `_shared/legislation`. | The shared primitive stays owned by `SLEG-01`/`SINS-01`/`SCAS-01`/`SFUT-01`; a new sibling ticket is added there and the adapters are `blocked_by` it. Never copy the helper into two adapter directories. |
-| R3 | **The 52 adapter tickets are the throughput knob and may be too fine.** Each is a full PRD §40.8 twelve-item DoD, and 236 tickets × four pipeline stages is a large agent budget (PRD §25.1 assumes overnight multi-agent runs). | Adapter tickets bounce repeatedly or the run does not finish overnight. | Merging 2–3 *sibling* groups into one ticket is a **plan** change, not a spec change — but PRD §44.4 forbids dropping a group. Update §5 and re-run `dag-report.mjs`; never collapse to a single "build all adapters" ticket. |
+| R3 | **The 52 adapter tickets are the throughput knob and may be too fine.** Each is a full PRD §40.8 twelve-item DoD, and 237 tickets × four pipeline stages is a large agent budget (PRD §25.1 assumes overnight multi-agent runs). | Adapter tickets bounce repeatedly or the run does not finish overnight. | Merging 2–3 *sibling* groups into one ticket is a **plan** change, not a spec change — but PRD §44.4 forbids dropping a group. Update §5 and re-run `dag-report.mjs`; never collapse to a single "build all adapters" ticket. |
 | R4 | **`packages/database` (A3) becomes a bottleneck.** It owns every table for six product modules; if a product module discovers a missing column mid-build it must wait on `01-app-data`. | A product ticket wants to add a migration. | Add a ticket to `01-app-data` and make the product ticket `blocked_by` it. Do **not** let a product module write `packages/database/migrations/**` — PRD §44.3 and §45.2 both forbid it. |
 | R5 | **`03-app-runtime` shell scope creeps.** "Shell" is a judgement call; admission middleware and `packages/ui` can absorb product logic and become an implicit second owner of every surface. | A `RUNT-*` ticket starts encoding answer, records or monitor rules. | PRD §45.2 is the test: `apps/api` owns "HTTP auth/admission/DTO mapping/SSE" and must not own "Duplicated business rules". Move the logic to `packages/domain` (`00-foundation`) or the owning product module. |
 | R6 | **Cross-module edges accumulate into a module cycle.** `dag-scan.mjs` exits 1 on a module cycle and `/start-all` refuses to run — a late discovery is expensive. | A new `blocked_by` points at a higher-numbered module. | Module numbering is a topological order by construction (§3). A dependency on a higher-numbered module means the ticket is in the wrong module: move the ticket, or move the shared artifact into a lower module, then re-run `dag-scan.mjs`. |
@@ -1196,3 +1201,4 @@ plan and the affected sub-PRD(s) first**, then the code — never silently.
 
 - v0.2 — 2026-08-03 — §8 replaced by the decision register; Q6/Q7/Q8/Q10/Q11/Q12/Q13/Q14 confirmed; A8 accepted; WTCH-09 added (236 tickets).
 - v0.3 — 2026-08-07 — §4: `.gitignore` added to the `00-foundation` write-owns row. Raised by `FND-01`'s Feedback obligation 2 / sub-PRD open question **Q-F7**: the first bootstrap creates `node_modules/`, `target/`, `.venv/`, `.pytest_cache/` and `__pycache__/`, which must be ignored or a later agent commits build output into the repository. Root `conftest.py` was **not** needed — `uv run pytest` exits 0 on the empty tree via a plugin under the already-owned `tools/**` (`tools/pytest_exit_zero_when_empty.py`), so §4's row is otherwise unchanged.
+- v0.4 — 2026-08-08 — FND-11 added (237 tickets): repairs `tools/tests/frozen-paths.test.mjs`, which encoded FND-01's file-scope as a repo-wide invariant and blocked every later ticket. §5.1 gains the `FND-11` row, §6.2 gains the `FND-01 --> FND-11` edge (522 edges), §1/§3/§7 counts refreshed and §7's whole-PRD wave-width vector updated (wave 2 widens from 3 to 4; `00-foundation` stays 3 waves / 7 lanes). *(Version numbered v0.4 rather than the v0.3 named in the change request, because v0.3 was already taken by the 2026-08-07 `.gitignore` allocation above.)*
