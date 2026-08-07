@@ -1,6 +1,9 @@
-#!/usr/bin/env node
 /**
  * FND-01 deliverable 2 — the root script wrapper.
+ *
+ * Deliberately has **no shebang**: it is always invoked as `node tools/workspace-script.mjs <name>`,
+ * and on a Windows checkout (`core.autocrlf=true`) a `#!...\r\n` first line makes Vite's transform
+ * fail with "SyntaxError: Invalid or unexpected token" when the test suite imports this module.
  *
  * Every root `scripts` entry in package.json is `node tools/workspace-script.mjs <name>`. For a
  * given name this:

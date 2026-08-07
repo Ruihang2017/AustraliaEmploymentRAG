@@ -1,6 +1,8 @@
-#!/usr/bin/env node
 /**
  * FND-01 deliverable 9 — offline workspace verification.
+ *
+ * No shebang, for the reason documented in tools/workspace-script.mjs: always run it as
+ * `node tools/check-workspace.mjs`.
  *
  *   (a) asserts the PRD section 20.1 tree against tools/fixtures/prd-20-1-layout.json;
  *   (b) asserts the five pin fields against tools/fixtures/toolchain-pins.json;

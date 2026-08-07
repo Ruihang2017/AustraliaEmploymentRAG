@@ -66,4 +66,21 @@ describe('committed line endings and encoding', () => {
     for (const file of files) assertLfNoBom(file);
     if (files.length > 0) expect(files).toContain('tools/workspace-script.mjs');
   });
+
+  // Regression guard. On a Windows checkout a `#!...` line ends with CRLF, and Vite's transform then
+  // fails with "SyntaxError: Invalid or unexpected token" the moment the suite imports the module —
+  // a failure that is invisible in a working tree where the file was written with LF.
+  it('starts no importable tools/*.mjs with a shebang', () => {
+    const listed = spawnSync('git', ['ls-files', 'tools/*.mjs', 'tools/**/*.mjs'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+    const files = listed.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
+    expect(files).toContain('tools/workspace-script.mjs');
+    for (const file of files) {
+      const blob = committedBlob(file);
+      if (blob === null) continue;
+      expect(blob.subarray(0, 2).toString('utf8'), `${file} starts with a shebang`).not.toBe('#!');
+    }
+  });
 });
