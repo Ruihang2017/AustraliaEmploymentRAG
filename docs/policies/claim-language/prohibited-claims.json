@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "version": "0.1",
+  "description": "Machine-readable claim-language rules for static policy and marketing copy under docs/policies/**. LNCH-02 (in-product legal feature) and LNCH-03 (public static site) consume this file and do not invent their own list. These rules do NOT apply to generated answer content — refusal, status and 'no unsupported definitive claim' behaviour is FND-07, EVID-05 and ASSR-04. No rule may be deleted or narrowed to fix a false positive; add an allowed_negations entry instead (LNCH-01 Feedback obligation 2).",
+  "rules": [
+    {
+      "id": "definite-compliance",
+      "pattern": "(?:is|are|was|were|will\\s+be|remains?|stays?|becomes?)\\s+(?:now\\s+|already\\s+|fully\\s+|definitely\\s+|completely\\s+|entirely\\s+|certainly\\s+|totally\\s+)*compliant|guarantee(?:s|d|ing)?\\s+(?:your\\s+|full\\s+|ongoing\\s+)?compliance|ensur(?:e|es|ed|ing)\\s+(?:your\\s+|full\\s+|ongoing\\s+)?compliance|(?:makes?|keeps?|renders?)\\s+(?:you|your\\s+organisation|your\\s+organization|your\\s+business)\\s+compliant|certif(?:y|ies|ied|ying)\\s+(?:your\\s+)?compliance",
+      "rationale": "The product may not assert that a customer is, will be or is guaranteed compliant, nor that it ensures compliance.",
+      "prd_ref": "§11.2",
+      "prd_sentence": "It MUST NOT state that a customer is definitely compliant.",
+      "severity": "error"
+    },
+    {
+      "id": "legal-representation",
+      "pattern": "legal\\s+advice|legal\\s+representation|your\\s+lawyer|we\\s+represent\\s+you|acts?\\s+as\\s+your\\s+(?:lawyer|solicitor|counsel)|legal\\s+counsel\\s+for\\s+you",
+      "rationale": "The product is information, evidence-grounded research and conditional guidance, not legal representation, and may not offer or imply legal advice.",
+      "prd_ref": "§11.2",
+      "prd_sentence": "The product provides information, evidence-grounded research and conditional guidance, not legal representation.",
+      "severity": "error"
+    },
+    {
+      "id": "government-endorsement",
+      "pattern": "endorsed\\s+by\\s+(?:the\\s+|a\\s+|any\\s+)?(?:government|Commonwealth|ATO|Fair\\s+Work|regulator|Parliament)|official\\s+government\\s+(?:product|service|tool|source|application|site)|government[-\\s]approved|government[-\\s]backed|(?:have|has|carry|carries|with)\\s+government\\s+endorsement",
+      "rationale": "The product may not imply government endorsement of itself or of its reproduction of official material.",
+      "prd_ref": "§11.1",
+      "prd_sentence": "The product MUST NOT reproduce third-party commercial headnotes or imply government endorsement.",
+      "severity": "error"
+    },
+    {
+      "id": "sla-promise",
+      "pattern": "guarantee(?:s|d|ing)?\\s+(?:uptime|availability)|uptime\\s+guarantee|(?:contractual|binding|enforceable|guaranteed)\\s+SLA|SLA[-\\s]backed|24\\s*/\\s*7\\s+support|24x7\\s+support|round[-\\s]the[-\\s]clock\\s+support|phone\\s+support",
+      "rationale": "99.5% is an internal objective, not a contractual service-level agreement, and there is no phone or 24/7 support.",
+      "prd_ref": "§13.2",
+      "prd_sentence": "Availability | 99.5% internal objective; no contractual SLA. Support: No phone or 24/7 support.",
+      "severity": "error"
+    },
+    {
+      "id": "unlimited-capacity",
+      "pattern": "\\bunlimited\\b|any\\s+volume|no\\s+limits?\\s+on\\s+(?:usage|volume|queries|searches|answers)|as\\s+many\\s+(?:searches|answers|queries|exports)\\s+as\\s+you\\s+(?:like|want|need)",
+      "rationale": "The tested capacity baseline is a system baseline, not a per-customer entitlement or an unlimited-capacity promise.",
+      "prd_ref": "§13.4",
+      "prd_sentence": "This is a tested system baseline, not a single-customer entitlement or unlimited-capacity promise.",
+      "severity": "error"
+    },
+    {
+      "id": "complete-coverage",
+      "pattern": "all\\s+Australian\\s+law|complete\\s+coverage|comprehensive\\s+coverage|full\\s+coverage\\s+of|every\\s+(?:Australian\\s+)?(?:source|authority|jurisdiction)\\b|covers\\s+all\\s+(?:Australian\\s+)?(?:law|sources|authorities)|entire\\s+(?:Australian\\s+)?corpus",
+      "rationale": "A source category that is not implemented may never be described as covered; coverage limits must stay visible.",
+      "prd_ref": "§44.4",
+      "prd_sentence": "It is not permitted to silently call an unimplemented source category covered.",
+      "severity": "error"
+    }
+  ],
+  "allowed_negations": [
+    {
+      "id": "neg-does-not-state-definitely-compliant",
+      "pattern": "(?:does|do|will|must|may|shall)\\s+not\\s+state\\s+that\\s+(?:a|any)?\\s*(?:customer|organisation|organization|user)?\\s*(?:is|are|will\\s+be)\\s+definitely\\s+compliant",
+      "why": "PRD §11.2 requires the product to say it does NOT state that a customer is definitely compliant. The required denial necessarily contains the phrasing the definite-compliance rule bans.",
+      "covers": ["definite-compliance"]
+    },
+    {
+      "id": "neg-not-legal-representation",
+      "pattern": "(?:is\\s+)?not\\s+legal\\s+representation",
+      "why": "PRD §11.2 sentence 1 is transcribed verbatim as '... conditional guidance, not legal representation'. The denial contains the banned phrase.",
+      "covers": ["legal-representation"]
+    },
+    {
+      "id": "neg-no-use-as-legal-representation",
+      "pattern": "no\\s+use\\s+as\\s+legal\\s+representation",
+      "why": "PRD §11.2 sentence 1 ('... conditional guidance, not legal representation') is the basis for the Acceptable Use Policy section title fixed by the LNCH-01 ticket, Deliverable 3, which is literally 'No use as legal representation'.",
+      "covers": ["legal-representation"]
+    },
+    {
+      "id": "neg-no-contractual-sla",
+      "pattern": "(?:is\\s+|there\\s+is\\s+)?no\\s+contractual\\s+SLA",
+      "why": "PRD §13.2 fixes the service position as '99.5% internal objective; no contractual SLA'. Stating the position requires the banned token.",
+      "covers": ["sla-promise"]
+    },
+    {
+      "id": "neg-no-phone-or-24-7-support",
+      "pattern": "no\\s+phone\\s+or\\s+24\\s*/\\s*7\\s+support",
+      "why": "PRD §13.3 fixes the support position as 'No phone or 24/7 support'. Disclosing it requires the banned token.",
+      "covers": ["sla-promise"]
+    },
+    {
+      "id": "neg-not-unlimited-capacity-promise",
+      "pattern": "not\\s+a\\s+single-customer\\s+entitlement\\s+or\\s+unlimited-capacity\\s+promise",
+      "why": "PRD §13.4 requires the tested baseline to be described as 'not a single-customer entitlement or unlimited-capacity promise'. The denial contains 'unlimited'.",
+      "covers": ["unlimited-capacity"]
+    }
+  ]
+}

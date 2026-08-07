@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "version": "0.1",
+  "notice": "Standing LEGAL_REVIEW_PENDING risk register (PRD §11.2, §26, §27). No ticket may set a row status to anything other than OPEN. Changing a status is a Founder action, recorded in docs/policies/CHANGELOG.md. This file is the machine view and the source; legal-review-register.md is the human view and is cross-checked against it by check-policies.mjs (rule register-drift). This register is an INTERNAL disclosure and is never rendered on a customer surface.",
+  "rows": [
+    {
+      "id": "LRP-DOC-TERMS-OF-SERVICE",
+      "subject": "terms-of-service.md",
+      "risk": "The Terms of Service ship without paid legal review. Warranty, liability, indemnity, governing law and change-of-terms positions are unwritten, so a paying pilot customer would contract on incomplete terms and the founder would carry uncapped, unadvised exposure.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §26, §27",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-PRIVACY-POLICY",
+      "subject": "privacy-policy.md",
+      "risk": "The Privacy Policy ships without paid legal review. Lawful basis, breach-notification commitments and the confirmed subprocessor and cross-border list are unwritten, so the disclosure PRD §10.2 requires may be incomplete and the Australian Privacy Principles position is unverified.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§10.2, §11.2, §19.2, §26",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-ACCEPTABLE-USE-POLICY",
+      "subject": "acceptable-use-policy.md",
+      "risk": "The Acceptable Use Policy ships without paid legal review. Its restrictions are transcribed product facts with no reviewed enforcement or remedy wording, and the coordinated-disclosure address for security testing does not yet exist.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §21.1, §26",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-DISCLAIMER",
+      "subject": "disclaimer.md",
+      "risk": "The disclaimer copy, including the short_form and export_form strings every surface renders, ships without paid legal review. If the wording is legally insufficient, every rendered surface inherits the defect at once because all of them read these two fields.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §8.9, §8.10, §26",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-WEB-APP",
+      "subject": "web-app",
+      "risk": "PRD §11.2 requires a clear disclaimer in the Web app. The rendered text is unreviewed draft copy, so a customer may read a research answer as advice on the surface where the most reading happens.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §26",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-WIDGET",
+      "subject": "widget",
+      "risk": "PRD §11.2 requires a clear disclaimer in the widget, which renders inside a third-party site where the product's identity is least obvious. Unreviewed copy on an embedded surface carries the highest risk of being read as the host's own advice.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §8.10, §26",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-EXPORTS",
+      "subject": "exports",
+      "risk": "PRD §11.2 requires a clear disclaimer in exports. An export is a detached artifact that outlives its context and may be forwarded to a third party, so unreviewed export_form copy travels furthest and cannot be corrected in place.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2, §8.9, §26",
+      "first_recorded": "2026-08-03"
+    }
+  ]
+}

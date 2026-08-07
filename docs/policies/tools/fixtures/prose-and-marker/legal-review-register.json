@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "version": "0.1",
+  "notice": "Checker fixture register. Not a real risk record.",
+  "rows": [
+    {
+      "id": "LRP-DOC-TERMS-OF-SERVICE",
+      "subject": "terms-of-service.md",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-PRIVACY-POLICY",
+      "subject": "privacy-policy.md",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-ACCEPTABLE-USE-POLICY",
+      "subject": "acceptable-use-policy.md",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-DOC-DISCLAIMER",
+      "subject": "disclaimer.md",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-WEB-APP",
+      "subject": "web-app",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-WIDGET",
+      "subject": "widget",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    },
+    {
+      "id": "LRP-SURFACE-EXPORTS",
+      "subject": "exports",
+      "risk": "Fixture row: unreviewed draft copy on this subject.",
+      "status": "OPEN",
+      "owner": "Founder",
+      "review_trigger": "when revenue permits",
+      "disclosure": "INTERNAL_ONLY",
+      "prd_ref": "§11.2",
+      "first_recorded": "2026-08-03"
+    }
+  ]
+}
