@@ -32,7 +32,11 @@ function runEntryCommands() {
   const fixture = loadFixture('entry-commands.json', REPO_ROOT);
   const rows = [];
   for (const entry of fixture.commands) {
-    const result = spawnSync(entry.command, {
+    // `run` is what is executed; it defaults to the verbatim PRD 45.3 string and may differ only
+    // where the fixture records a `deviation` (FND-01 v1.1 / D18). A non-zero exit is a failure for
+    // every entry without exception — the fixture may not carry a waiver.
+    const invocation = entry.run ?? entry.command;
+    const result = spawnSync(invocation, {
       cwd: REPO_ROOT,
       shell: true,
       encoding: 'utf8',
@@ -44,10 +48,10 @@ function runEntryCommands() {
       (result.stderr || '').split(/\r?\n/).find((line) => line.trim().length > 0) ??
       '';
     rows.push({
-      command: entry.command,
+      command: invocation,
       status,
       firstLine: firstLine.slice(0, 100),
-      expectedFailure: entry.known_failing ?? null,
+      deviation: entry.deviation ?? null,
     });
   }
   return rows;
@@ -97,15 +101,15 @@ function main() {
   const rows = runEntryCommands();
   const width = Math.max(...rows.map((row) => row.command.length));
   for (const row of rows) {
-    const flag = row.status === 0 ? 'ok  ' : row.expectedFailure ? 'KNOWN' : 'FAIL';
+    const flag = row.status === 0 ? 'ok  ' : 'FAIL';
     process.stdout.write(
       `${flag} ${row.command.padEnd(width)}  exit=${String(row.status).padStart(2)}  ${row.firstLine}\n`,
     );
+    if (row.deviation) {
+      process.stdout.write(`       ^ deviates from the verbatim PRD 45.3 string: ${row.deviation.argument}\n`);
+      process.stdout.write(`         ${row.deviation.authorisedBy}\n`);
+    }
     if (row.status !== 0) {
-      if (row.expectedFailure) {
-        process.stdout.write(`       ^ ${row.expectedFailure.reason}\n`);
-        process.stdout.write(`         ${row.expectedFailure.openQuestion}\n`);
-      }
       problems.push(`entry command exited ${row.status}: ${row.command}`);
     }
   }

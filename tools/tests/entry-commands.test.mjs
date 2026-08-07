@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -28,14 +29,79 @@ describe('PRD 45.3 entry commands', () => {
     }
   });
 
-  it('records the one known-failing command with its open question rather than dropping it', () => {
-    const known = fixture.commands.filter((entry) => entry.known_failing);
-    expect(known.map((entry) => entry.command)).toEqual([
+  // ---------------------------------------------------------------------------------------------
+  // Regression guards for the review bounce on FND-01 v1.0 (2026-08-07).
+  //
+  // v1.0 shipped the PRD validation command as a `known_failing` fixture entry: the sweep printed
+  // exit 1 as "KNOWN" and the suite asserted the *presence* of that annotation, so `pnpm test` stayed
+  // green forever while the ticket's unconditional acceptance item 2 ("all fourteen ... exit 0") was
+  // unmet. v1.1 makes the `-Path docs/PRD.md` invocation spec (sub-PRD D18) and forbids the waiver.
+  // These three tests are what stop the mask from coming back.
+  // ---------------------------------------------------------------------------------------------
+
+  const WAIVER_FIELDS = [
+    'known_failing',
+    'knownFailing',
+    'expected_failure',
+    'expectedFailure',
+    'allow_failure',
+    'allowFailure',
+    'xfail',
+    'skip',
+  ];
+
+  it('carries no failure waiver on any entry — a red command escalates, it is not annotated', () => {
+    for (const entry of fixture.commands) {
+      for (const field of WAIVER_FIELDS) {
+        expect(
+          Object.hasOwn(entry, field),
+          `${entry.command} carries "${field}"; FND-01 v1.1 deliverable 10 forbids failure waivers — ` +
+            'a command that cannot exit 0 is a red acceptance item, not a fixture annotation',
+        ).toBe(false);
+      }
+    }
+    // Belt and braces: the waiver must not reappear anywhere in the fixture, at any nesting depth.
+    const raw = readFileSync(join(REPO_ROOT, 'tools/fixtures/entry-commands.json'), 'utf8');
+    for (const field of WAIVER_FIELDS.filter((f) => f !== 'skip')) {
+      expect(raw, `entry-commands.json mentions "${field}"`).not.toContain(`"${field}"`);
+    }
+  });
+
+  it('executes the verbatim §45.3 string unless a documented deviation says otherwise', () => {
+    const deviating = fixture.commands.filter((entry) => (entry.run ?? entry.command) !== entry.command);
+    // Exactly one deviation is authorised today: FND-01 v1.1 / D18.
+    expect(deviating.map((entry) => entry.command)).toEqual([
       'powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1',
     ]);
-    expect(known[0].known_failing.openQuestion).toContain('OQ-1');
-    expect(known[0].known_failing.reason).toContain('docs/PRD.md');
+    for (const entry of deviating) {
+      expect(entry.deviation, `${entry.command} changes its invocation without a deviation record`).toBeTruthy();
+      // The executed form must be the normative string plus the recorded argument — nothing else.
+      expect(entry.run).toBe(`${entry.command} ${entry.deviation.argument}`);
+      expect(entry.deviation.reason).toContain('docs/PRD.md');
+      expect(entry.deviation.authorisedBy).toContain('FND-01 v1.1');
+      expect(entry.deviation.authorisedBy).toContain('D18');
+      expect(entry.deviation.durableFix).toBeTruthy();
+    }
+    // A `deviation` may never appear on an entry that does not actually deviate — that would be a
+    // waiver wearing a different name.
+    for (const entry of fixture.commands) {
+      if (!deviating.includes(entry)) expect(entry.deviation, entry.command).toBeUndefined();
+    }
   });
+
+  it('runs the PRD validation entry command for real and exits 0 (acceptance item 2)', () => {
+    const entry = fixture.commands.find((candidate) => candidate.command.includes('validate-prd.ps1'));
+    const result = spawnSync(entry.run ?? entry.command, {
+      cwd: REPO_ROOT,
+      shell: true,
+      encoding: 'utf8',
+    });
+    expect(
+      result.status,
+      `\`${entry.run ?? entry.command}\` exited ${result.status}:\n${result.stdout}\n${result.stderr}`,
+    ).toBe(0);
+    expect(`${result.stdout}`).toContain('PASS');
+  }, 120_000);
 });
 
 describe('uv workspace empty-suite handling', () => {

@@ -30,8 +30,16 @@ describe('root README (PRD 45.3 "document platform prerequisites in the root REA
     }
   });
 
-  it('invokes tools/validate-prd.ps1 exactly as PRD 45.3 spells it', () => {
-    expect(text).toContain('powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1');
+  it('shows tools/validate-prd.ps1 both as PRD 45.3 spells it and as it is actually invoked', () => {
+    const entry = entryCommands.commands.find((candidate) => candidate.command.includes('validate-prd.ps1'));
+    // The normative string, verbatim (FND-01 deliverable 8).
+    expect(text).toContain(entry.command);
+    // …and the -Path invocation the sweep runs, with its reason (FND-01 v1.1 / sub-PRD D18).
+    expect(text, 'README does not show the -Path docs/PRD.md invocation').toContain(entry.run);
+    const flat = text.replace(/\s+/g, ' ');
+    expect(flat, 'README does not explain why -Path is required').toMatch(
+      /default `?-Path`?.{0,120}?repo-root `?PRD\.md`?/i,
+    );
   });
 
   it('states each pinned version alongside the file it lives in', () => {
@@ -77,10 +85,12 @@ describe('root README (PRD 45.3 "document platform prerequisites in the root REA
     expect(flat).toContain('no credentials** are required at any step');
   });
 
-  it('records the known-failing entry command instead of hiding it', () => {
-    const known = entryCommands.commands.filter((entry) => entry.known_failing);
-    expect(known).toHaveLength(1);
+  it('claims no green entry command that the fixture records as failing', () => {
+    // Regression guard (review bounce, FND-01 v1.0 → v1.1): the README used to advertise a
+    // "known failing" command in its §4 table while acceptance item 2 demanded all fourteen exit 0.
+    expect(text).not.toMatch(/known failing/i);
+    expect(entryCommands.commands.some((entry) => entry.known_failing)).toBe(false);
+    // Known gaps stays — it lists the seven owner-line scripts and the remaining escalations.
     expect(text).toContain('Known gaps');
-    expect(text).toContain('OQ-1');
   });
 });

@@ -90,7 +90,7 @@ and exits 0, and PRD §45.3 is normative, so none may be deleted from this list.
 | Command | What it does | Owner, if not implemented yet |
 |---|---|---|
 | `corepack pnpm install --frozen-lockfile` | Install the pnpm workspace from the committed lockfile without rewriting it. | — |
-| `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` | Validate `docs/PRD.md` structure and invariants. | — (**known failing**, see §7) |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` | Validate `docs/PRD.md` structure and invariants. Run it with the `-Path` argument below. | — |
 | `pnpm dev` | Run the local development processes. | `RUNT-01/RUNT-05`, module `03-app-runtime` |
 | `pnpm lint` | Lint the repository — the PRD §20.3 gate. | — |
 | `pnpm typecheck` | TypeScript type-check every workspace member. | — |
@@ -106,6 +106,22 @@ and exits 0, and PRD §45.3 is normative, so none may be deleted from this list.
 
 The command strings live once, in `tools/fixtures/entry-commands.json`, which both the verification
 sweep and the README test read — so this table cannot drift from what actually runs.
+
+**One command carries an argument PRD §45.3 does not spell.** `tools/validate-prd.ps1` resolves its
+default `-Path` to `(Split-Path $PSScriptRoot -Parent)/PRD.md` — a repo-root `PRD.md` — but this
+repository's PRD lives at `docs/PRD.md`, so the bare command throws `PRD not found` and exits 1. The
+script is frozen (breakdown plan §4) and so is `docs/PRD.md`, so the invocation carries the path
+explicitly:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1 -Path docs/PRD.md
+```
+
+That is what the sweep runs and what you should run; it exits 0 (`Result : PASS`). The difference is
+recorded as a `deviation` on that one fixture entry — **not** a failure waiver, which the fixture
+forbids and `tools/tests/entry-commands.test.mjs` asserts is absent. Made spec by `FND-01` v1.1 /
+sub-PRD `00-foundation` decision **D18**; the durable fix (the script's default path, or the PRD §45.3
+text) is escalated to the Architect and is outside this ticket's file-scope.
 
 Root `package.json` scripts are thin: each is `node tools/workspace-script.mjs <name>`, which runs the
 root implementation (if any), then `pnpm -r --if-present run <name>`, and falls back to the owner line
@@ -180,12 +196,11 @@ runs all fourteen §45.3 commands and reports every non-zero exit — it masks n
 
 ## 7. Known gaps
 
-- **`powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` exits 1** as PRD §45.3
-  spells it. The script defaults `-Path` to a repo-root `PRD.md`, but the PRD lives at `docs/PRD.md`;
-  with `-Path docs/PRD.md` it exits 0. `tools/validate-prd.ps1` is **frozen** by breakdown plan §4 and
-  `FND-01` may not modify it, and PRD §45.3 is normative about the command string, so there is no
-  in-scope fix. Recorded as `FND-01` plan open question **OQ-1**, awaiting an Architect ticket edit.
-  The sweep reports the real exit code and labels it `KNOWN`.
+- **The PRD validation command needs `-Path docs/PRD.md`** — see §4. All fourteen entry commands exit 0
+  as documented; what is still open is the *durable* fix, which is outside `FND-01`'s file-scope:
+  either breakdown plan §4 unfreezes `tools/validate-prd.ps1` for a one-line default-path change, or
+  PRD §45.3's command string is amended. Escalated to the Architect/founder; recorded as sub-PRD
+  `00-foundation` decision **D18**.
 - Seven root scripts print an owner line instead of doing work; see §4.
 - No CI workflow yet — `FND-02`, blocked on this ticket.
 - **Line endings are enforced on the committed blob, not the working tree.** Everything here is stored
