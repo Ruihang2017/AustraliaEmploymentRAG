@@ -1,0 +1,43 @@
+{
+  "$comment": [
+    "The fourteen PRD section 45.3 'Target local commands', transcribed verbatim from docs/PRD.md.",
+    "Single source of truth for the entry-command sweep (tools/check-workspace.mjs) and for the README test.",
+    "`known_failing` records a command that does not exit 0 today together with the open question that owns it;",
+    "the sweep reports its real exit code and never masks it."
+  ],
+  "commands": [
+    {
+      "command": "corepack pnpm install --frozen-lockfile",
+      "description": "Install the pnpm workspace from the committed lockfile without rewriting it."
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1",
+      "description": "Validate docs/PRD.md structure and invariants.",
+      "known_failing": {
+        "exit": 1,
+        "reason": "The frozen script defaults -Path to repo-root PRD.md; the PRD lives at docs/PRD.md. With -Path docs/PRD.md it exits 0.",
+        "openQuestion": "FND-01 plan OQ-1 — awaiting an Architect ticket edit; tools/validate-prd.ps1 is frozen by breakdown plan section 4."
+      }
+    },
+    { "command": "pnpm dev", "description": "Run the local development processes.", "owner": "dev" },
+    { "command": "pnpm lint", "description": "Lint the repository (PRD section 20.3 gate)." },
+    { "command": "pnpm typecheck", "description": "TypeScript type-check every workspace member." },
+    { "command": "pnpm test", "description": "Run the TypeScript unit/workspace test suite." },
+    {
+      "command": "pnpm test:integration",
+      "description": "Run the cross-boundary integration suite.",
+      "owner": "test:integration"
+    },
+    {
+      "command": "pnpm generate && pnpm generated:check",
+      "description": "Regenerate contract bindings and assert the generated tree is clean.",
+      "owner": "generate"
+    },
+    { "command": "cargo test --workspace", "description": "Build and test the Rust workspace." },
+    { "command": "uv sync --frozen", "description": "Sync the Python workspace from the committed uv.lock." },
+    { "command": "uv run pytest", "description": "Run the Python test suite." },
+    { "command": "pnpm eval:smoke", "description": "Run the evaluation smoke subset.", "owner": "eval:smoke" },
+    { "command": "pnpm stack:up", "description": "Start the local stack.", "owner": "stack:up" },
+    { "command": "pnpm stack:down", "description": "Stop the local stack.", "owner": "stack:down" }
+  ]
+}

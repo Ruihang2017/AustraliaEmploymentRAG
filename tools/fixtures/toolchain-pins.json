@@ -1,0 +1,59 @@
+{
+  "$comment": [
+    "Breakdown plan section 8 Q12 (CONFIRMED) / sub-PRD 00-foundation decision D17, transcribed verbatim.",
+    "A different-but-valid version must FAIL the pin test. Q12 is a confirmed decision: a newer patch",
+    "release, a nicer toolchain or developer preference is never sufficient reason to change a value here.",
+    "To change a pin, follow the FND-01 ticket's Feedback obligation 3 first."
+  ],
+  "decision": "breakdown-plan.md section 8 Q12 (CONFIRMED); sub-PRD 00-foundation D17",
+  "versions": {
+    "node": "24.18.0",
+    "pnpm": "11.4.0",
+    "rust": "1.97.1",
+    "python": "3.14.6"
+  },
+  "pins": [
+    {
+      "id": "node-version-file",
+      "tool": "node",
+      "file": ".node-version",
+      "field": "<file contents>",
+      "expected": "24.18.0"
+    },
+    {
+      "id": "package-manager",
+      "tool": "pnpm",
+      "file": "package.json",
+      "field": "packageManager",
+      "expected": "pnpm@11.4.0"
+    },
+    {
+      "id": "engines-node",
+      "tool": "node",
+      "file": "package.json",
+      "field": "engines.node",
+      "expected": "24.18.0"
+    },
+    {
+      "id": "rust-toolchain-channel",
+      "tool": "rust",
+      "file": "rust-toolchain.toml",
+      "field": "toolchain.channel",
+      "expected": "1.97.1"
+    },
+    {
+      "id": "requires-python",
+      "tool": "python",
+      "file": "pyproject.toml",
+      "field": "project.requires-python",
+      "expected": "==3.14.6"
+    }
+  ],
+  "rangeMarkersForbidden": ["^", "~", "*", ">=", "<", "latest", "x"],
+  "runtimeChecks": [
+    { "tool": "node", "command": "node -v", "expected": "24.18.0" },
+    { "tool": "pnpm", "command": "pnpm -v", "expected": "11.4.0" },
+    { "tool": "rust", "command": "rustc --version", "expected": "1.97.1" },
+    { "tool": "python", "command": "uv run python --version", "expected": "3.14.6" }
+  ]
+}
