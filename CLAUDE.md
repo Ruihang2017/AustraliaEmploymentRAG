@@ -8,7 +8,7 @@
 
 ## Delivery pipeline — three-agent Architect / Builder / Reviewer
 
-**Operating mode: `supervised`** <!-- switch to `autonomous` once the pattern holds on this repo -->
+**Operating mode: `autonomous`** <!-- switched from `supervised` on 2026-08-07 by Founder decision, ahead of the first /start-all run -->
 **Tracker: `gh`** <!-- gh (GitHub) or glab (GitLab); set by adopt.mjs from the origin remote. Commands and workflows read the platform from THIS line — correct it if adopt guessed wrong. -->
 
 - `supervised` — issue **creation** is authorized by the `/start-milestone` sign-off itself. On each CLEAR the runner **opens a PR/MR** (carrying the plan, `Closes #N`, and the Reviewer's CLEAR verdict as a comment) and stops for the human to review + merge — re-run `/start-milestone` to continue (closed issues are skipped). Use for a fresh adoption.

@@ -2,7 +2,7 @@
 name: triage
 description: Nightly triage stage. Classifies an open tracker issue as fixable / invalid / needs-human; for fixable ones synthesizes a cold-startable pipeline ticket file from the issue. Never fixes code, never touches the tracker.
 model: claude-sonnet-5
-effort: xhigh
+effort: medium
 tools: Read, Glob, Grep, Bash, Write
 ---
 
