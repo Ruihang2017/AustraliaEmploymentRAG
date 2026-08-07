@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schemas/policy-frontmatter.json",
+  "title": "taxrag policy document frontmatter",
+  "description": "Frontmatter contract for the four PRD §11.2 documents under docs/policies/. Validated by docs/policies/tools/check-policies.mjs with a hand-written subset validator (no JSON Schema library — sub-PRD D11). Only the keywords listed in docs/policies/README.md § Schema subset may appear here; an unsupported keyword is a checker violation, never a silently ignored constraint.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "version",
+    "status",
+    "effective_date",
+    "owner",
+    "legal_review",
+    "last_reviewed",
+    "applies_to",
+    "prd_basis"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": [
+        "terms-of-service",
+        "privacy-policy",
+        "acceptable-use-policy",
+        "disclaimer"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT_PENDING_FOUNDER_CONTENT",
+        "DRAFT_FOUNDER_APPROVED",
+        "PUBLISHED"
+      ]
+    },
+    "effective_date": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "owner": {
+      "type": "string",
+      "const": "Founder"
+    },
+    "legal_review": {
+      "type": "string",
+      "const": "LEGAL_REVIEW_PENDING"
+    },
+    "last_reviewed": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "applies_to": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["web-app", "widget", "exports", "public-site", "api"]
+      }
+    },
+    "prd_basis": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^§\\d+(\\.\\d+)?$"
+      }
+    },
+    "short_form": {
+      "type": "string",
+      "minLength": 1
+    },
+    "export_form": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "if": {
+    "properties": {
+      "id": {
+        "const": "disclaimer"
+      }
+    },
+    "required": ["id"]
+  },
+  "then": {
+    "required": ["short_form", "export_form"]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "version": "0.1",
+  "description": "The inverse of prohibited-claims.json: what each surface MUST carry. Every entry has the same shape so LNCH-02 and LNCH-03 need one code path. source_field is either a reference into disclaimer.md frontmatter (disclaimer.short_form, disclaimer.export_form) or one of the PRD §8.10 non-removable elements (product-source-indicator, citations-present). No surface composes its own disclaimer wording.",
+  "source_field_kinds": [
+    "disclaimer.short_form",
+    "disclaimer.export_form",
+    "product-source-indicator",
+    "citations-present"
+  ],
+  "entries": [
+    {
+      "id": "web-app-disclaimer",
+      "surface": "web-app",
+      "source_field": "disclaimer.short_form",
+      "must_be_visible": true,
+      "prd_ref": "§11.2"
+    },
+    {
+      "id": "widget-disclaimer",
+      "surface": "widget",
+      "source_field": "disclaimer.short_form",
+      "must_be_visible": true,
+      "prd_ref": "§11.2"
+    },
+    {
+      "id": "public-site-disclaimer",
+      "surface": "public-site",
+      "source_field": "disclaimer.short_form",
+      "must_be_visible": true,
+      "prd_ref": "§11.2"
+    },
+    {
+      "id": "exports-disclaimer",
+      "surface": "exports",
+      "source_field": "disclaimer.export_form",
+      "must_be_visible": true,
+      "prd_ref": "§8.9"
+    },
+    {
+      "id": "web-app-product-source-indicator",
+      "surface": "web-app",
+      "source_field": "product-source-indicator",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    },
+    {
+      "id": "widget-product-source-indicator",
+      "surface": "widget",
+      "source_field": "product-source-indicator",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    },
+    {
+      "id": "exports-product-source-indicator",
+      "surface": "exports",
+      "source_field": "product-source-indicator",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    },
+    {
+      "id": "web-app-citations-present",
+      "surface": "web-app",
+      "source_field": "citations-present",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    },
+    {
+      "id": "widget-citations-present",
+      "surface": "widget",
+      "source_field": "citations-present",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    },
+    {
+      "id": "exports-citations-present",
+      "surface": "exports",
+      "source_field": "citations-present",
+      "must_be_visible": true,
+      "prd_ref": "§8.10"
+    }
+  ]
+}
