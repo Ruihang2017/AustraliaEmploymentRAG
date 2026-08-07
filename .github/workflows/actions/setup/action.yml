@@ -1,0 +1,44 @@
+name: Setup the pinned toolchain
+description: >-
+  Installs Node, pnpm, Rust and Python at exactly the versions FND-01 committed, resolved from the
+  pin files themselves, then verifies what the runner actually resolved (PRD section 45.3).
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .node-version
+
+    - name: Enable corepack and install the pinned pnpm
+      shell: bash
+      env:
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      run: |
+        corepack enable pnpm
+        corepack install
+
+    - name: Install the pinned Rust toolchain from rust-toolchain.toml
+      shell: bash
+      run: |
+        rustup show active-toolchain || rustup toolchain install
+        rustc --version
+
+    - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      with:
+        enable-cache: true
+        cache-dependency-glob: uv.lock
+
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.local/share/pnpm/store
+        key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-${{ runner.os }}-
+
+    - name: Install the pnpm workspace
+      shell: bash
+      run: corepack pnpm install --frozen-lockfile
+
+    - name: Verify the resolved toolchain equals the pin files
+      shell: bash
+      run: node .github/workflows/checks/verify-toolchain.mjs
