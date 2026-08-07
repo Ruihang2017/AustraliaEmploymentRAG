@@ -1,0 +1,311 @@
+{
+  "$comment": [
+    "FND-03 deliverable 5. Every family below is transcribed VERBATIM from docs/PRD.md at the cited",
+    "section — spelling, underscores and order are the spec, and this file, not the implementation, is",
+    "the assertion target. Renaming or removing a member is a breaking change requiring /v2 (PRD §16.1)",
+    "and a PRD update (PRD §45.5), not a refactor.",
+    "`provenance` is present for exactly the four families whose identifiers are coined or normalised",
+    "here (Role, Permission, AuthorityLevel, EvidenceQualifier) and absent everywhere else; a test",
+    "asserts that, so provenance cannot quietly be dropped later."
+  ],
+  "families": {
+    "LegalStatus": {
+      "prdSection": "§6.7",
+      "values": [
+        "IN_FORCE",
+        "ENACTED_NOT_IN_FORCE",
+        "BILL_NOT_ENACTED",
+        "DRAFT_OR_CONSULTATION",
+        "REPEALED",
+        "SUPERSEDED",
+        "STATUS_UNCONFIRMED"
+      ]
+    },
+    "AnswerStatus": {
+      "prdSection": "§8.4",
+      "values": [
+        "SUPPORTED",
+        "CONDITIONAL",
+        "INSUFFICIENT_EVIDENCE",
+        "CONFLICTING_SOURCES",
+        "OUT_OF_SCOPE",
+        "SOURCE_NOT_CURRENT"
+      ]
+    },
+    "CoverageCandidateStatus": {
+      "prdSection": "§8.5",
+      "values": [
+        "CONFIRMED_FROM_STATED_FACTS",
+        "LIKELY",
+        "POSSIBLE",
+        "UNLIKELY",
+        "EXCLUDED",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "RecordWorkflowState": {
+      "prdSection": "§8.7",
+      "values": ["DRAFT", "IN_REVIEW", "CUSTOMER_REVIEWED", "REVIEW_REQUIRED", "ARCHIVED"]
+    },
+    "LicenceAssessmentState": {
+      "prdSection": "§11.1",
+      "values": [
+        "PERMITTED",
+        "PERMITTED_WITH_ATTRIBUTION",
+        "METADATA_AND_LINK_ONLY",
+        "UNCLEAR_RESTRICTED",
+        "PROHIBITED",
+        "REVIEW_REQUIRED"
+      ]
+    },
+    "ClaimSupport": {
+      "prdSection": "§15.5",
+      "values": [
+        "DIRECTLY_SUPPORTED",
+        "SUPPORTED_BY_INFERENCE",
+        "CONDITIONAL",
+        "CONTRADICTED",
+        "NOT_SUPPORTED"
+      ]
+    },
+    "CitationRole": {
+      "prdSection": "§15.5",
+      "values": ["SUPPORTS", "QUALIFIES", "CONTRADICTS", "DEFINES", "BACKGROUND_ONLY"]
+    },
+    "IndexTier": {
+      "prdSection": "§17.2",
+      "values": [
+        "TIER_1_FULL_SEMANTIC",
+        "TIER_2_LEXICAL_AND_SELECTIVE_SEMANTIC",
+        "TIER_3_METADATA_AND_ON_DEMAND",
+        "EXCLUDED_LICENSING",
+        "QUARANTINED_QUALITY"
+      ]
+    },
+    "SourceCoverageStatus": {
+      "prdSection": "§7",
+      "values": [
+        "PLANNED_NOT_ACTIVE",
+        "METADATA_AND_LINK_ACTIVE",
+        "FRESHNESS_LIMITED",
+        "LICENSING_RESTRICTED",
+        "SOURCE_UNAVAILABLE"
+      ]
+    },
+    "SsoConnectionState": {
+      "prdSection": "§16.3",
+      "values": ["DRAFT", "TESTING", "ACTIVE", "ERROR", "DISABLED"]
+    },
+    "Role": {
+      "prdSection": "§8.1",
+      "values": ["OWNER", "ADMIN", "RESEARCHER", "VIEWER", "DEVELOPER"],
+      "provenance": [
+        { "value": "OWNER", "prdSpelling": "Owner" },
+        { "value": "ADMIN", "prdSpelling": "Admin" },
+        { "value": "RESEARCHER", "prdSpelling": "Researcher" },
+        { "value": "VIEWER", "prdSpelling": "Viewer" },
+        { "value": "DEVELOPER", "prdSpelling": "Developer" }
+      ]
+    },
+    "Permission": {
+      "prdSection": "§38.1",
+      "values": [
+        "CORPUS_SEARCH_READ",
+        "ANSWER_CREATE",
+        "RESEARCH_RECORD_READ_WRITE_OWN",
+        "RESEARCH_RECORD_REVIEW_COMMENT",
+        "EXPORT_CREATE",
+        "WATCHLIST_CREATE",
+        "MEMBERSHIP_MANAGE",
+        "MEMBERSHIP_ROLE_CHANGE",
+        "ORGANIZATION_RETENTION_CONFIGURE",
+        "ORGANIZATION_SECURITY_CONFIGURE",
+        "SERVICE_ACCOUNT_MANAGE",
+        "USAGE_VIEW",
+        "AUDIT_EVENT_VIEW",
+        "INTERNAL_ADMIN"
+      ],
+      "provenance": [
+        { "value": "CORPUS_SEARCH_READ", "prdText": "Search/read public corpus" },
+        { "value": "ANSWER_CREATE", "prdText": "Create Answer/Coverage/Compare" },
+        { "value": "RESEARCH_RECORD_READ_WRITE_OWN", "prdText": "Create/read own Research Records" },
+        { "value": "RESEARCH_RECORD_REVIEW_COMMENT", "prdText": "Review/comment shared records" },
+        { "value": "EXPORT_CREATE", "prdText": "Export accessible records" },
+        { "value": "WATCHLIST_CREATE", "prdText": "Create watchlists" },
+        { "value": "MEMBERSHIP_MANAGE", "prdText": "Manage members/invitations" },
+        { "value": "MEMBERSHIP_ROLE_CHANGE", "prdText": "Change roles/remove members" },
+        { "value": "ORGANIZATION_RETENTION_CONFIGURE", "prdText": "Configure retention/closure" },
+        { "value": "ORGANIZATION_SECURITY_CONFIGURE", "prdText": "Configure SSO/enforce MFA" },
+        {
+          "value": "SERVICE_ACCOUNT_MANAGE",
+          "prdText": "Manage service accounts/webhooks/widget"
+        },
+        { "value": "USAGE_VIEW", "prdText": "View organisation usage" },
+        { "value": "AUDIT_EVENT_VIEW", "prdText": "View audit/security events" },
+        { "value": "INTERNAL_ADMIN", "prdText": "Internal source/release/incident admin" }
+      ]
+    },
+    "ApiScope": {
+      "prdSection": "§16.3",
+      "values": [
+        "search:read",
+        "answers:create",
+        "records:read",
+        "records:write",
+        "coverage:create",
+        "monitor:read",
+        "monitor:write",
+        "exports:create",
+        "usage:read"
+      ]
+    },
+    "FundingLedger": {
+      "prdSection": "§24.4",
+      "values": ["FOUNDER_PLATFORM_BUDGET", "CUSTOMER_PREPAID_OR_BYOK"]
+    },
+    "AsyncState": {
+      "prdSection": "§31.3",
+      "values": [
+        "IDLE",
+        "VALIDATING",
+        "QUEUED",
+        "RUNNING",
+        "WAITING_FOR_CLARIFICATION",
+        "CANCELLING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "EXPIRED"
+      ]
+    },
+    "ErrorCode": {
+      "prdSection": "§34.9",
+      "values": [
+        "INVALID_REQUEST",
+        "INVALID_LEGAL_DATE",
+        "INVALID_ABN",
+        "AUTHENTICATION_REQUIRED",
+        "MFA_REQUIRED",
+        "RECENT_AUTH_REQUIRED",
+        "RESOURCE_NOT_FOUND",
+        "IDEMPOTENCY_CONFLICT",
+        "CONCURRENT_MODIFICATION",
+        "EPHEMERAL_CONTENT_EXPIRED",
+        "EMPLOYEE_PII_DETECTED",
+        "RATE_LIMITED",
+        "CREDIT_LIMIT_REACHED",
+        "GENERATION_UNAVAILABLE",
+        "SOURCE_NOT_CURRENT",
+        "CORPUS_INCOMPATIBLE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "SseEventType": {
+      "prdSection": "§34.4",
+      "values": [
+        "job.started",
+        "stage.changed",
+        "clarification.required",
+        "answer.section",
+        "citation.added",
+        "job.completed",
+        "job.failed",
+        "job.cancelled",
+        "heartbeat"
+      ]
+    },
+    "AuthorityLevel": {
+      "prdSection": "§9.1",
+      "ordered": true,
+      "values": [
+        "CONSTITUTION_AND_LEGISLATION",
+        "REGULATIONS_AND_LEGISLATIVE_INSTRUMENTS",
+        "BINDING_JUDICIAL_AUTHORITY",
+        "OPERATIVE_FWC_INSTRUMENTS_AND_DECISIONS",
+        "PERSUASIVE_DECISIONS",
+        "OFFICIAL_REGULATOR_GUIDANCE",
+        "EXPLANATORY_AND_INTERPRETIVE_MATERIALS",
+        "BILLS_AND_NON_OPERATIVE_FUTURE_MATERIALS"
+      ],
+      "provenance": [
+        {
+          "value": "CONSTITUTION_AND_LEGISLATION",
+          "prdText": "Constitution and applicable legislation."
+        },
+        {
+          "value": "REGULATIONS_AND_LEGISLATIVE_INSTRUMENTS",
+          "prdText": "Regulations and legislative instruments."
+        },
+        { "value": "BINDING_JUDICIAL_AUTHORITY", "prdText": "Binding judicial authority." },
+        {
+          "value": "OPERATIVE_FWC_INSTRUMENTS_AND_DECISIONS",
+          "prdText": "FWC orders, approved agreements, modern awards and decisions with operative effect."
+        },
+        {
+          "value": "PERSUASIVE_DECISIONS",
+          "prdText": "Persuasive court, tribunal and FWC decisions."
+        },
+        {
+          "value": "OFFICIAL_REGULATOR_GUIDANCE",
+          "prdText": "Official regulator guidance, rulings, decision summaries and impact materials."
+        },
+        {
+          "value": "EXPLANATORY_AND_INTERPRETIVE_MATERIALS",
+          "prdText": "Explanatory memoranda and interpretive materials."
+        },
+        {
+          "value": "BILLS_AND_NON_OPERATIVE_FUTURE_MATERIALS",
+          "prdText": "Bills, consultations and non-operative future materials."
+        }
+      ]
+    },
+    "EvidenceQualifier": {
+      "prdSection": "§9.2",
+      "values": ["TREATMENT_NOT_CONFIRMED", "MODEL_SUGGESTED"],
+      "provenance": [
+        { "value": "TREATMENT_NOT_CONFIRMED", "prdSection": "§9.2" },
+        { "value": "MODEL_SUGGESTED", "prdSection": "§9.3" }
+      ]
+    },
+    "ChangeType": {
+      "prdSection": "§8.8",
+      "values": [
+        "AMENDMENT",
+        "COMMENCEMENT",
+        "RATE",
+        "REPLACEMENT",
+        "APPEAL",
+        "GUIDANCE",
+        "SOURCE_REMOVAL",
+        "FRESHNESS"
+      ]
+    }
+  },
+  "intentionalCrossFamilyMembers": [
+    {
+      "member": "INSUFFICIENT_EVIDENCE",
+      "families": ["AnswerStatus", "CoverageCandidateStatus"],
+      "prdSections": ["§8.4", "§8.5"]
+    },
+    {
+      "member": "CONDITIONAL",
+      "families": ["AnswerStatus", "ClaimSupport"],
+      "prdSections": ["§8.4", "§15.5"]
+    },
+    {
+      "member": "SOURCE_NOT_CURRENT",
+      "families": ["AnswerStatus", "ErrorCode"],
+      "prdSections": ["§8.4", "§34.9"]
+    },
+    {
+      "member": "REVIEW_REQUIRED",
+      "families": ["RecordWorkflowState", "LicenceAssessmentState"],
+      "prdSections": ["§8.7", "§11.1"]
+    },
+    {
+      "member": "DRAFT",
+      "families": ["RecordWorkflowState", "SsoConnectionState"],
+      "prdSections": ["§8.7", "§16.3"]
+    }
+  ]
+}
