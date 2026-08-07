@@ -75,7 +75,9 @@ if (!ticketsDirOk) {
   process.exit(1)
 }
 
-const run = (bin, args, opts = {}) => execFileSync(bin, args, { encoding: 'utf8', ...opts })
+// issue-list JSON carries full ticket bodies and outgrows Node's 1 MB default;
+// that failure was a swallowed throw that looked like a tracker outage.
+const run = (bin, args, opts = {}) => execFileSync(bin, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...opts })
 
 // GH_BIN / GLAB_BIN env overrides (precedent: fx-eye-tracking's GLAB_BIN) for
 // non-PATH binaries and test doubles. The value may include leading args, e.g.
