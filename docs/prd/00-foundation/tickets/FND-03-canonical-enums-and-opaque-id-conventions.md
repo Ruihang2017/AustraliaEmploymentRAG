@@ -223,8 +223,21 @@ by no other ticket in the entire 236-ticket plan (breakdown plan §4.2).
       (PRD §30.1: *"A pull request implementing a requirement MUST name its IDs"* — the same traceability
       discipline applied to controlled values).
 - [ ] `[machine]` No duplicate member within a family, and no two families silently share a member
-      name where the PRD spells them differently (`INSUFFICIENT_EVIDENCE` legitimately appears in both
-      §8.4 and §8.5 — assert this is the only intentional overlap and that the two are separate types).
+      name where the PRD spells them differently. Transcribing the twenty families produces **exactly
+      five** cross-family member collisions, every one of them spelled by the PRD itself; the test
+      asserts the observed overlap set equals exactly this declared set, so a *sixth* collision (a
+      member accidentally re-used across families) fails:
+      | Member | Family A | Family B |
+      |---|---|---|
+      | `INSUFFICIENT_EVIDENCE` | `AnswerStatus` (§8.4) | `CoverageCandidateStatus` (§8.5) |
+      | `CONDITIONAL` | `AnswerStatus` (§8.4) | `ClaimSupport` (§15.5) |
+      | `SOURCE_NOT_CURRENT` | `AnswerStatus` (§8.4) | `ErrorCode` (§34.9) |
+      | `REVIEW_REQUIRED` | `RecordWorkflowState` (§8.7) | `LicenceAssessmentState` (§11.1) |
+      | `DRAFT` | `RecordWorkflowState` (§8.7) | `SsoConnectionState` (§16.3) |
+      Each colliding pair stays **separate named types**: the two family types are mutually
+      non-assignable as wholes and each family's runtime guard rejects the other family's non-shared
+      members. (A shared *literal* is necessarily the same literal type in both derived unions; the
+      assertion is about the named families, not the literal.)
 - [ ] `[machine]` `newId(kind)` produces `<prefix>_<uuid>` where the UUID has version nibble `7` and
       RFC-variant bits, and 10,000 successive ids from a fixed clock are strictly increasing
       lexicographically (PRD §34.1 "Opaque resource-prefixed UUIDv7 strings").
