@@ -1,0 +1,4 @@
+[toolchain]
+# Breakdown plan section 8 Q12 (CONFIRMED) / sub-PRD D17: exact pin, never `stable`, never a range.
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]

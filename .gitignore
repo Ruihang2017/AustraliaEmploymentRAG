@@ -2,3 +2,11 @@
 .claude/tmp/
 .claude/allow-main-writes
 docs/plans/*.md
+
+# FND-01: build artifacts of the three workspaces. Lockfiles are committed; installed trees are not.
+node_modules/
+target/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/

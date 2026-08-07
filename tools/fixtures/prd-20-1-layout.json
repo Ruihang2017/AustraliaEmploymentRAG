@@ -1,0 +1,92 @@
+{
+  "$comment": [
+    "PRD section 20.1 'Monorepo layout' transcribed verbatim from docs/PRD.md (the fenced text block).",
+    "`source` keeps the original brace notation line by line; `directories` is that notation expanded.",
+    "The layout test reads the FILESYSTEM, not the git index, so renaming a directory in the worktree fails it."
+  ],
+  "source": [
+    "apps/{web,api,worker,admin,widget}",
+    "services/search-rs",
+    "packages/{contracts,domain,database,auth,retrieval-client,model-gateway,pii,citations,jobs,observability,ui,sdk-typescript}",
+    "pipelines/{ingestion,adapters,corpus-builder,embeddings,evaluation}",
+    "sdk/python",
+    "schemas/{openapi,events,corpus-manifest,evaluation}",
+    "evals/{cases,gold,splits,reports}",
+    "infra/{compose,cloudflare,aws,backup,deploy,recovery}",
+    "docs/{discovery,archive,adr,runbooks,api}",
+    "tests/{integration,tenant-isolation,security,e2e}"
+  ],
+  "directories": [
+    "apps/web",
+    "apps/api",
+    "apps/worker",
+    "apps/admin",
+    "apps/widget",
+    "services/search-rs",
+    "packages/contracts",
+    "packages/domain",
+    "packages/database",
+    "packages/auth",
+    "packages/retrieval-client",
+    "packages/model-gateway",
+    "packages/pii",
+    "packages/citations",
+    "packages/jobs",
+    "packages/observability",
+    "packages/ui",
+    "packages/sdk-typescript",
+    "pipelines/ingestion",
+    "pipelines/adapters",
+    "pipelines/corpus-builder",
+    "pipelines/embeddings",
+    "pipelines/evaluation",
+    "sdk/python",
+    "schemas/openapi",
+    "schemas/events",
+    "schemas/corpus-manifest",
+    "schemas/evaluation",
+    "evals/cases",
+    "evals/gold",
+    "evals/splits",
+    "evals/reports",
+    "infra/compose",
+    "infra/cloudflare",
+    "infra/aws",
+    "infra/backup",
+    "infra/deploy",
+    "infra/recovery",
+    "docs/discovery",
+    "docs/archive",
+    "docs/adr",
+    "docs/runbooks",
+    "docs/api",
+    "tests/integration",
+    "tests/tenant-isolation",
+    "tests/security",
+    "tests/e2e"
+  ],
+  "topLevelFromLayout": [
+    "apps",
+    "services",
+    "packages",
+    "pipelines",
+    "sdk",
+    "schemas",
+    "evals",
+    "infra",
+    "docs",
+    "tests"
+  ],
+  "topLevelPreexistingAllowed": {
+    "$comment": "Tracked top-level directories that predate FND-01 and are outside PRD section 20.1.",
+    "entries": [".claude", ".github", "templates", "tools"]
+  },
+  "topLevelIgnored": {
+    "$comment": "Untracked build/tooling artifacts; all are git-ignored, none may be committed.",
+    "entries": [".git", "node_modules", "target", ".venv", ".pytest_cache", ".ruff_cache"]
+  },
+  "doNotRead": {
+    "$comment": "PRD section 45.1 item 6 / breakdown plan section 9 R9: blind gold. FND-01 creates the directory and never reads its contents.",
+    "entries": ["evals/gold"]
+  }
+}

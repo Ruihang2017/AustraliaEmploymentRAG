@@ -6,7 +6,8 @@ lane: 00-foundation
 size: L
 agent: builder
 status: draft
-date: 2026-08-03
+version: 1.1
+date: 2026-08-07
 blocked_by: []
 blocks: [FND-02, FND-03, LNCH-01]
 ---
@@ -138,6 +139,23 @@ append-only shared, and conflicts resolve by re-running the package manager."*
 - `tools/validate-prd.ps1` and `tools/export-visible-transcript.ps1` already exist and are **frozen**
   by breakdown plan §4 ("the two pre-existing `tools/*.ps1`"). This ticket documents the first as an
   entry command and must not modify either.
+- **Entry command 2 requires an explicit `-Path docs/PRD.md` (v1.1, measured).** As PRD §45.3 spells
+  it — `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` — the command
+  **exits 1**: the frozen script defaults `-Path` to `(Split-Path $PSScriptRoot -Parent)/PRD.md`, i.e.
+  repo-root `PRD.md`, while this repository's PRD lives at `docs/PRD.md`
+  (`throw "PRD not found: …\taxrag\PRD.md"`). With `-Path docs/PRD.md` the same script exits **0**
+  (`Result : PASS`, 3409 lines, 45 numbered sections, 52 requirements). Neither the script (frozen,
+  breakdown plan §4) nor `docs/PRD.md` (frozen) is in this ticket's file-scope, so the argument is the
+  only in-scope resolution and it is hereby **part of the spec**: the entry command this ticket makes
+  real, sweeps and documents is
+  `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1 -Path docs/PRD.md`.
+  The §45.3 string still appears verbatim in the README and in the entry-command fixture — nothing is
+  deleted from the normative list — and the difference is recorded as a **`deviation` field on that one
+  fixture entry**, never as a failure waiver. **Escalation, non-blocking:** the durable fix is either
+  the frozen script's default path or the PRD §45.3 text; both are outside this module. Raised for the
+  Architect/founder against **breakdown plan §4** (unfreeze `tools/validate-prd.ps1` for a one-line
+  default-path change) and **PRD §45.3**; until one lands, the `-Path` argument stands and the
+  acceptance item below is **green, not waived**.
 - The existing root `README.md` is a UTF-16 stub; it is replaced (UTF-8, LF).
 
 ## Goal
@@ -267,8 +285,9 @@ ticket and have disjoint scopes from each other, so wave 2 is contention-free.
    (Node.js `24.18.0`, pnpm `11.4.0`, Rust `1.97.1`, Python `3.14.6`) and the file each is recorded in,
    the PRD §20.1 layout with each directory's owning module from breakdown plan §4, the
    fourteen PRD §45.3 entry commands each with a one-line description and — where not yet implemented —
-   its owning ticket, `tools/validate-prd.ps1` invoked exactly as PRD §45.3 spells it, and PRD §20.2's
-   rule that no entry command requires a production credential.
+   its owning ticket, `tools/validate-prd.ps1` spelled exactly as PRD §45.3 spells it **and, next to it,
+   the `-Path docs/PRD.md` invocation the sweep actually runs with the one-line reason from the caveat
+   above** (v1.1), and PRD §20.2's rule that no entry command requires a production credential.
 9. **`tools/**`**: a verification script (name at the Builder's discretion, e.g.
    `tools/check-workspace.mjs`) that (a) asserts the §20.1 tree against the committed fixture, (b) asserts
    the five pin fields against `tools/fixtures/toolchain-pins.json`, and (c) runs each of the fourteen
@@ -279,7 +298,14 @@ ticket and have disjoint scopes from each other, so wave 2 is contention-free.
       deliverable 9 and by the acceptance checklist;
     - `tools/fixtures/toolchain-pins.json` — the breakdown plan §8 Q12 values transcribed verbatim
       (`node: "24.18.0"`, `pnpm: "11.4.0"`, `rust: "1.97.1"`, `python: "3.14.6"`) with the file and field
-      each must appear in, so a version drift is a failing test rather than a review comment.
+      each must appear in, so a version drift is a failing test rather than a review comment;
+    - the entry-command fixture backing deliverable 9's sweep and the README table carries, per entry,
+      the PRD §45.3 string verbatim plus the invocation actually executed. The two may differ **only**
+      where a `deviation` field states the reason and the ticket section authorising it (today: entry
+      command 2's `-Path docs/PRD.md`, v1.1). **A fixture entry may never carry a failure waiver** — no
+      `known_failing`, `expected_failure` or equivalent field that lets a non-zero exit read as
+      expected. A command that cannot exit 0 is a red acceptance item and an escalation, not a fixture
+      annotation; a test asserts the absence of such fields so the mask cannot be reintroduced.
 
 Ordering constraint: deliverables 1–6 must land before 7, and 7 before 8–10, because the README and the
 verification script assert the state produced by the earlier steps.
@@ -288,8 +314,10 @@ verification script assert the state produced by the earlier steps.
 
 - [ ] `[machine]` `corepack pnpm install --frozen-lockfile` succeeds from a clean clone and leaves
       `pnpm-lock.yaml` byte-identical (PRD §45.3; PRD §44.3 root-lockfile serial ownership).
-- [ ] `[machine]` All fourteen PRD §45.3 entry commands exist and exit 0; the four not-yet-implemented
-      ones each print exactly one owner-naming line (PRD §45.3; `E01-REPO` exit evidence).
+- [ ] `[machine]` All fourteen PRD §45.3 entry commands exist and exit 0 — entry command 2 as the
+      `-Path docs/PRD.md` invocation fixed by the v1.1 caveat in Background, every other one verbatim;
+      the four not-yet-implemented ones each print exactly one owner-naming line (PRD §45.3;
+      `E01-REPO` exit evidence). **Unconditional: no command may be excused by a fixture waiver.**
 - [ ] `[fixture]` The five pin fields carry the breakdown plan §8 **Q12** values, asserted against the
       literal strings in `tools/fixtures/toolchain-pins.json`: `.node-version` = `24.18.0`,
       `package.json#packageManager` = `pnpm@11.4.0`, `package.json#engines.node` = `24.18.0`,
@@ -415,3 +443,10 @@ the issue from the ticket (`publish-tickets.mjs --sync`) before continuing.
 platforms, that falsifies PRD §18.2 and §45.3 — a team-level decision, not a local fix. Stop, raise an
 ADR under `docs/adr/`, and escalate to the human. Never swap the package manager, the workspace model or
 the language toolchain silently inside this ticket.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-07 | **Entry command 2 resolved under Feedback obligation 5.** Implementation measured `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` exiting **1** as PRD §45.3 spells it — the frozen script defaults `-Path` to repo-root `PRD.md` while the PRD lives at `docs/PRD.md`; with `-Path docs/PRD.md` it exits 0. Neither the script nor the PRD is in this ticket's file-scope, so the argument is now spec: Background gains the measured caveat and the (non-blocking) escalation against breakdown plan §4 / PRD §45.3; deliverable 8 requires the README to show both spellings; deliverable 10 requires the entry-command fixture to carry the verbatim §45.3 string plus the executed invocation with a `deviation` field, and **forbids any failure-waiver field**; acceptance item 2 restated as unconditional (fourteen commands exit 0, no waiver). Recorded as sub-PRD decision **D18**. Nothing is deleted from the normative §45.3 list. |

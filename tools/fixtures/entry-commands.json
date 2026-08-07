@@ -1,0 +1,50 @@
+{
+  "$comment": [
+    "The fourteen PRD section 45.3 'Target local commands', transcribed verbatim from docs/PRD.md.",
+    "Single source of truth for the entry-command sweep (tools/check-workspace.mjs) and for the README test.",
+    "`command` is always the verbatim section 45.3 string. `run` is what the sweep executes; it defaults",
+    "to `command` and may differ ONLY where a `deviation` states the reason and the ticket section that",
+    "made it spec (FND-01 v1.1, sub-PRD decision D18).",
+    "A failure waiver is forbidden: no entry may carry `known_failing`, `expected_failure`, `allow_failure`",
+    "or any equivalent. Every entry must exit 0 (FND-01 acceptance item 2, unconditional); a command that",
+    "cannot is a red acceptance item and an escalation, never a fixture annotation. Asserted by",
+    "tools/tests/entry-commands.test.mjs."
+  ],
+  "commands": [
+    {
+      "command": "corepack pnpm install --frozen-lockfile",
+      "description": "Install the pnpm workspace from the committed lockfile without rewriting it."
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1",
+      "description": "Validate docs/PRD.md structure and invariants.",
+      "run": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1 -Path docs/PRD.md",
+      "deviation": {
+        "argument": "-Path docs/PRD.md",
+        "reason": "The frozen script defaults -Path to (Split-Path $PSScriptRoot -Parent)/PRD.md, i.e. repo-root PRD.md, while this repository's PRD lives at docs/PRD.md. Without the argument it throws 'PRD not found' and exits 1; with it, it exits 0 (Result: PASS).",
+        "authorisedBy": "FND-01 v1.1 — Background 'Accepted caveats', deliverables 8 and 10, acceptance item 2; sub-PRD 00-foundation decision D18",
+        "durableFix": "Escalated (non-blocking) to the Architect/founder: either unfreeze tools/validate-prd.ps1 in breakdown plan section 4 for a one-line default-path change, or amend the PRD section 45.3 text. Both are outside FND-01's file-scope."
+      }
+    },
+    { "command": "pnpm dev", "description": "Run the local development processes.", "owner": "dev" },
+    { "command": "pnpm lint", "description": "Lint the repository (PRD section 20.3 gate)." },
+    { "command": "pnpm typecheck", "description": "TypeScript type-check every workspace member." },
+    { "command": "pnpm test", "description": "Run the TypeScript unit/workspace test suite." },
+    {
+      "command": "pnpm test:integration",
+      "description": "Run the cross-boundary integration suite.",
+      "owner": "test:integration"
+    },
+    {
+      "command": "pnpm generate && pnpm generated:check",
+      "description": "Regenerate contract bindings and assert the generated tree is clean.",
+      "owner": "generate"
+    },
+    { "command": "cargo test --workspace", "description": "Build and test the Rust workspace." },
+    { "command": "uv sync --frozen", "description": "Sync the Python workspace from the committed uv.lock." },
+    { "command": "uv run pytest", "description": "Run the Python test suite." },
+    { "command": "pnpm eval:smoke", "description": "Run the evaluation smoke subset.", "owner": "eval:smoke" },
+    { "command": "pnpm stack:up", "description": "Start the local stack.", "owner": "stack:up" },
+    { "command": "pnpm stack:down", "description": "Stop the local stack.", "owner": "stack:down" }
+  ]
+}

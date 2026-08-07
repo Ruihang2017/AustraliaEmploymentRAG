@@ -2,7 +2,7 @@
 name: architect
 description: Architect (Planner) stage of the three-agent pattern. Reads the ticket and the codebase, produces the implementation plan at docs/plans/<ticket-id>.md. Exploration/tool-call heavy. Writes NO production code.
 model: claude-opus-5
-effort: max
+effort: high
 tools: Read, Glob, Grep, Bash, Write
 ---
 

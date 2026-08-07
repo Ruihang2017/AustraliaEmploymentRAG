@@ -122,7 +122,7 @@ Read access is unrestricted; only writes are allocated.
 
 | Module | Write-owns |
 |---|---|
-| `00-foundation` | Root manifests/lockfiles (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.npmrc`, `.node-version`, `tsconfig.base.json`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `pyproject.toml`, `uv.lock`, `.editorconfig`, `README.md`) · `tools/**` · `.github/workflows/**` · `packages/contracts/**` · `packages/domain/**` · `schemas/openapi/**` · `schemas/events/**` |
+| `00-foundation` | Root manifests/lockfiles (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.npmrc`, `.node-version`, `tsconfig.base.json`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `pyproject.toml`, `uv.lock`, `.editorconfig`, `README.md`, `.gitignore`) · `tools/**` · `.github/workflows/**` · `packages/contracts/**` · `packages/domain/**` · `schemas/openapi/**` · `schemas/events/**` |
 | `01-app-data` | `packages/database/**` (schema, `migrations/**`, tenant repositories, encryption, ephemeral store, invariants) · `packages/jobs/**` |
 | `02-auth-core` | `packages/auth/**` |
 | `03-app-runtime` | `apps/api/{package.json,tsconfig.json}`, `apps/api/src/{server.ts,app.ts,bootstrap,plugins,middleware,errors,sse}/**`, `apps/api/src/routes/{health,system-status}/**` · `apps/worker/{package.json,tsconfig.json}`, `apps/worker/src/{main.ts,runtime,queues}/**`, `apps/worker/src/handlers/maintenance/**` · `apps/web/{package.json,tsconfig.json,index.html,vite.config.ts}`, `apps/web/src/{app,shell,lib}/**`, `apps/web/src/features/home/**` · `packages/ui/**` · `packages/observability/**` · `infra/compose/**` |
@@ -1195,3 +1195,4 @@ plan and the affected sub-PRD(s) first**, then the code — never silently.
 ## 10. Changelog
 
 - v0.2 — 2026-08-03 — §8 replaced by the decision register; Q6/Q7/Q8/Q10/Q11/Q12/Q13/Q14 confirmed; A8 accepted; WTCH-09 added (236 tickets).
+- v0.3 — 2026-08-07 — §4: `.gitignore` added to the `00-foundation` write-owns row. Raised by `FND-01`'s Feedback obligation 2 / sub-PRD open question **Q-F7**: the first bootstrap creates `node_modules/`, `target/`, `.venv/`, `.pytest_cache/` and `__pycache__/`, which must be ignored or a later agent commits build output into the repository. Root `conftest.py` was **not** needed — `uv run pytest` exits 0 on the empty tree via a plugin under the already-owned `tools/**` (`tools/pytest_exit_zero_when_empty.py`), so §4's row is otherwise unchanged.
