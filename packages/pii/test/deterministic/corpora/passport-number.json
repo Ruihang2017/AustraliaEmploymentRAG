@@ -1,0 +1,309 @@
+{
+  "category": "PASSPORT_NUMBER",
+  "prdRow": "TFN, bank/card details, Medicare/passport/licence number",
+  "positives": [
+    {
+      "id": "passport-p-01",
+      "field": "question",
+      "value": "They sent a photo of the document showing PA1234567 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "two-letter prefix, fires without context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-02",
+      "field": "question",
+      "value": "They sent a photo of the document showing PA１２３４５６７ for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-03",
+      "field": "question",
+      "value": "They sent a photo of the document showing PA12​34567 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-04",
+      "field": "question",
+      "value": "They sent a photo of the document showing PB2345678 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "two-letter prefix, fires without context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-05",
+      "field": "question",
+      "value": "They sent a photo of the document showing PB２３４５６７８ for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-06",
+      "field": "question",
+      "value": "They sent a photo of the document showing PB23​45678 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-07",
+      "field": "question",
+      "value": "They sent a photo of the document showing PC3456789 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "two-letter prefix, fires without context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-08",
+      "field": "question",
+      "value": "They sent a photo of the document showing PC３４５６７８９ for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-09",
+      "field": "question",
+      "value": "They sent a photo of the document showing PC34​56789 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-10",
+      "field": "question",
+      "value": "They sent a photo of the document showing PD4567890 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "two-letter prefix, fires without context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-11",
+      "field": "question",
+      "value": "They sent a photo of the document showing PD４５６７８９０ for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-12",
+      "field": "question",
+      "value": "They sent a photo of the document showing PD45​67890 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-13",
+      "field": "question",
+      "value": "They sent a photo of the document showing PE5678901 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "two-letter prefix, fires without context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-14",
+      "field": "question",
+      "value": "They sent a photo of the document showing PE５６７８９０１ for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-15",
+      "field": "question",
+      "value": "They sent a photo of the document showing PE56​78901 for the visa check.",
+      "expected": [
+        {
+          "start": 42,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-16",
+      "field": "question",
+      "value": "Their passport number is N1234567 as shown on the visa record.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 33
+        }
+      ],
+      "note": "one-letter prefix, requires an explicit passport context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-17",
+      "field": "question",
+      "value": "Their passport number is N2345678 as shown on the visa record.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 33
+        }
+      ],
+      "note": "one-letter prefix, requires an explicit passport context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-18",
+      "field": "question",
+      "value": "Their passport number is E3456789 as shown on the visa record.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 33
+        }
+      ],
+      "note": "one-letter prefix, requires an explicit passport context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-19",
+      "field": "question",
+      "value": "Their passport number is E4567890 as shown on the visa record.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 33
+        }
+      ],
+      "note": "one-letter prefix, requires an explicit passport context",
+      "synthetic": true
+    },
+    {
+      "id": "passport-p-20",
+      "field": "question",
+      "value": "Their passport number is M5678901 as shown on the visa record.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 33
+        }
+      ],
+      "note": "one-letter prefix, requires an explicit passport context",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "passport-n-01",
+      "field": "question",
+      "value": "The reference N1234567 appears on the purchase order.",
+      "note": "a one-letter reference with no passport context",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "passport-n-02",
+      "field": "question",
+      "value": "The worker holds a subclass 482 visa for the role.",
+      "note": "a visa class is not a passport number",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "passport-n-03",
+      "field": "question",
+      "value": "Documents were checked at induction as the policy requires.",
+      "note": "a process description with no number",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "passport-n-04",
+      "field": "question",
+      "value": "The decision reference is [2024] FWC 1234 in the register.",
+      "note": "a citation, not a travel document",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "passport-n-05",
+      "field": "question",
+      "value": "Their qualification certificate number is 12345 from TAFE.",
+      "note": "a five-digit certificate number",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

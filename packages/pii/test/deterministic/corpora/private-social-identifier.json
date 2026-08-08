@@ -1,0 +1,309 @@
+{
+  "category": "PRIVATE_SOCIAL_IDENTIFIER",
+  "prdRow": "Personal email, phone or private social identifier",
+  "positives": [
+    {
+      "id": "social-p-01",
+      "field": "question",
+      "value": "They posted about the roster from @quiet_worker_91 last night.",
+      "expected": [
+        {
+          "start": 34,
+          "end": 50
+        }
+      ],
+      "note": "plain handle",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-02",
+      "field": "question",
+      "value": "The account is ＠quiet_worker_91 according to the complaint.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 31
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-03",
+      "field": "question",
+      "value": "They posted about the roster from @j.doe.melb last night.",
+      "expected": [
+        {
+          "start": 34,
+          "end": 45
+        }
+      ],
+      "note": "plain handle",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-04",
+      "field": "question",
+      "value": "The account is ＠j.doe.melb according to the complaint.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 26
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-05",
+      "field": "question",
+      "value": "They posted about the roster from @nightshift_sam last night.",
+      "expected": [
+        {
+          "start": 34,
+          "end": 49
+        }
+      ],
+      "note": "plain handle",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-06",
+      "field": "question",
+      "value": "The account is ＠nightshift_sam according to the complaint.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 30
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-07",
+      "field": "question",
+      "value": "They posted about the roster from @rp_patel last night.",
+      "expected": [
+        {
+          "start": 34,
+          "end": 43
+        }
+      ],
+      "note": "plain handle",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-08",
+      "field": "question",
+      "value": "The account is ＠rp_patel according to the complaint.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 24
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-09",
+      "field": "question",
+      "value": "They posted about the roster from @kn_worker last night.",
+      "expected": [
+        {
+          "start": 34,
+          "end": 44
+        }
+      ],
+      "note": "plain handle",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-10",
+      "field": "question",
+      "value": "The account is ＠kn_worker according to the complaint.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 25
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-11",
+      "field": "question",
+      "value": "Their profile is linkedin.com/in/jane-doe-91 if you need to check.",
+      "expected": [
+        {
+          "start": 17,
+          "end": 44
+        }
+      ],
+      "note": "profile URL without a scheme",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-12",
+      "field": "question",
+      "value": "See https://www.linkedin.com/in/jane-doe-91 for the post in question.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 43
+        }
+      ],
+      "note": "profile URL with scheme and www",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-13",
+      "field": "question",
+      "value": "Their profile is facebook.com/quiet.worker.91 if you need to check.",
+      "expected": [
+        {
+          "start": 17,
+          "end": 45
+        }
+      ],
+      "note": "profile URL without a scheme",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-14",
+      "field": "question",
+      "value": "See https://www.facebook.com/quiet.worker.91 for the post in question.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 44
+        }
+      ],
+      "note": "profile URL with scheme and www",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-15",
+      "field": "question",
+      "value": "Their profile is instagram.com/nightshift_sam if you need to check.",
+      "expected": [
+        {
+          "start": 17,
+          "end": 45
+        }
+      ],
+      "note": "profile URL without a scheme",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-16",
+      "field": "question",
+      "value": "See https://www.instagram.com/nightshift_sam for the post in question.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 44
+        }
+      ],
+      "note": "profile URL with scheme and www",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-17",
+      "field": "question",
+      "value": "Their profile is x.com/rp_patel if you need to check.",
+      "expected": [
+        {
+          "start": 17,
+          "end": 31
+        }
+      ],
+      "note": "profile URL without a scheme",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-18",
+      "field": "question",
+      "value": "See https://www.x.com/rp_patel for the post in question.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 30
+        }
+      ],
+      "note": "profile URL with scheme and www",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-19",
+      "field": "question",
+      "value": "Their profile is t.me/kn_worker if you need to check.",
+      "expected": [
+        {
+          "start": 17,
+          "end": 31
+        }
+      ],
+      "note": "profile URL without a scheme",
+      "synthetic": true
+    },
+    {
+      "id": "social-p-20",
+      "field": "question",
+      "value": "See https://www.t.me/kn_worker for the post in question.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 30
+        }
+      ],
+      "note": "profile URL with scheme and www",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "social-n-01",
+      "field": "question",
+      "value": "The company page is linkedin.com/company/example-widgets for anyone to see.",
+      "note": "a company page is public business information",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "social-n-02",
+      "field": "question",
+      "value": "The decision is published at fwc.gov.au/decisions for the public.",
+      "note": "a public institutional URL",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "social-n-03",
+      "field": "question",
+      "value": "Staff were told about the change at the team meeting.",
+      "note": "no identifier of any kind",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "social-n-04",
+      "field": "question",
+      "value": "The employer trades as Example Widgets Pty Ltd in Victoria.",
+      "note": "a public employer name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "social-n-05",
+      "field": "question",
+      "value": "We advertised the role on a jobs board in March.",
+      "note": "a hiring fact with no handle",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

@@ -205,9 +205,20 @@ sole declared blocker, `FND-03`, is `00-foundation` wave 2 and lands first.
    `PRIVATE_CONTACT_EMAIL`, `PRIVATE_CONTACT_PHONE`, `PRIVATE_SOCIAL_IDENTIFIER`,
    `HOME_ADDRESS_OR_PRECISE_LOCATION`, `TAX_FILE_NUMBER`, `BANK_OR_CARD_DETAIL`, `MEDICARE_NUMBER`,
    `PASSPORT_NUMBER`, `DRIVER_LICENCE_NUMBER`, `EMPLOYEE_OR_PAYROLL_IDENTIFIER`,
-   `PAYSLIP_OR_PERSONNEL_EXTRACT`, `EXACT_DATE_OF_BIRTH`, `IDENTIFYING_COMBINATION`. Each member
-   carries a doc comment quoting the §37.1 row it comes from. A test asserts every §37.1 "Blocked" row
-   maps to at least one member.
+   `PAYSLIP_OR_PERSONNEL_EXTRACT`, `EXACT_DATE_OF_BIRTH`, `IDENTIFYING_COMBINATION`, plus exactly one
+   member that is **not** a §37.1 row: `REQUEST_LIMIT_EXCEEDED`. Each §37.1-derived member carries a
+   doc comment quoting the row it comes from. A test asserts every §37.1 "Blocked" row maps to at
+   least one member **and** that every member other than `REQUEST_LIMIT_EXCEEDED` cites a row.
+
+   **Amendment (2026-08-08, `EVID-01` implementation).** `REQUEST_LIMIT_EXCEEDED` was added because
+   deliverable 6 makes exceeding a limit *"a `REJECT` with a limit finding"*, deliverable 2 fixes
+   `PiiFinding.category` as a `PiiCategory`, and deliverable 4 fixes the result shape as
+   `{ decision, findings }` with no other channel — so a limit rejection was otherwise
+   unrepresentable. The alternatives (a second finding type, a third result variant) were rejected
+   because they change the deliverable-4 result shape, which is this ticket's most load-bearing type.
+   The member names no PII category, says nothing about the content of a request, and is excluded
+   from the §37.1 recall table. Recorded in `docs/prd/12-evidence-safety/README.md` **Q-EVID-6** so
+   the promotion of this vocabulary into `packages/contracts` inherits the decision.
 4. **`src/contract/result.ts` — a result with no third state.**
    `PiiAdmissionResult = { decision: 'ACCEPT'; sanitizedPayload: SanitizedPayload; findings: readonly PiiFinding[] }
    | { decision: 'REJECT'; findings: readonly PiiFinding[] }`. A `REJECT` carries **no** payload, and
@@ -307,8 +318,19 @@ sole declared blocker, `FND-03`, is `00-foundation` wave 2 and lands first.
       `SanitizedPayload` is constructible only inside this module. (PRD §10.1; `PII-001`)
 - [ ] `[fixture]` **Synthetic corpus replay**: the corpus in deliverable 11 replays with per-category
       recall/precision recorded in `recall-report.json`; checksum-verifiable categories are at 100%
-      recall; every §37.1 "Blocked" row has at least one passing positive case. (PRD §37.1; `PII-001`
-      *"Synthetic PII suite meets configured recall"*; Q-EVID-2)
+      recall; every §37.1 "Blocked" row has at least one passing positive case — **except**
+      `IDENTIFYING_COMBINATION`, whose positive cases are authored here, replayed as `deferred` with
+      an owner and a reason, and reported at **0%** until `EVID-02` implements the combination stage.
+      (PRD §37.1; `PII-001` *"Synthetic PII suite meets configured recall"*; Q-EVID-2)
+
+      **Amendment (2026-08-08, `EVID-01` implementation).** §37.1 blocked row 7 (*"Identifying
+      combination of rare role + tiny workplace + personal event"*) is out of reach of stages 1-3: it
+      **is** the combination/risk rule PRD §37.2 places after entity recognition, which this ticket's
+      Non-goals assign to `EVID-02`. Deleting the row's cases, or demoting a case the detectors miss,
+      would hide the gap; `deferred` reports it on every run instead. Rows 1 and 2 and the
+      social-identifier third of row 3 ARE reachable deterministically and are shipped here
+      (`labelled-name.ts`, `address.ts`, `social-identifier.ts`) — pattern-plus-context detectors, not
+      entity recognition, since deliverable 7's table is a stated minimum ("Required detectors").
 - [ ] `[fixture]` **Allowed inputs are not blocked**: every PRD §37.1 "Allowed" row replays as
       `ACCEPT` — public employer name, valid ABN, state-level location, anonymous role/duties, public
       case party, age band, "Employee A", approximate wage facts. (PRD §37.1; `UAT-PII-02`)

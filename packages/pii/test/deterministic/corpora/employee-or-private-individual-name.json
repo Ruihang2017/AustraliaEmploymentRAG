@@ -1,0 +1,335 @@
+{
+  "category": "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME",
+  "prdRow": "Employee or private individual name",
+  "positives": [
+    {
+      "id": "name-p-01",
+      "field": "question",
+      "value": "The employee name: Jane Doe and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 27
+        }
+      ],
+      "note": "employee name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-02",
+      "field": "question",
+      "value": "My name is Jane Doe and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 19
+        }
+      ],
+      "note": "first-person label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-03",
+      "field": "question",
+      "value": "The worker's name is Jane Doe and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 29
+        }
+      ],
+      "note": "possessive worker label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-04",
+      "field": "question",
+      "value": "Full name: Jane Doe and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 19
+        }
+      ],
+      "note": "full name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-05",
+      "field": "question",
+      "value": "The employee name: Samuel O-Connor and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 34
+        }
+      ],
+      "note": "employee name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-06",
+      "field": "question",
+      "value": "My name is Samuel O-Connor and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 26
+        }
+      ],
+      "note": "first-person label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-07",
+      "field": "question",
+      "value": "The worker's name is Samuel O-Connor and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 36
+        }
+      ],
+      "note": "possessive worker label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-08",
+      "field": "question",
+      "value": "Full name: Samuel O-Connor and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 26
+        }
+      ],
+      "note": "full name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-09",
+      "field": "question",
+      "value": "The employee name: Rina Patel and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 29
+        }
+      ],
+      "note": "employee name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-10",
+      "field": "question",
+      "value": "My name is Rina Patel and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "first-person label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-11",
+      "field": "question",
+      "value": "The worker's name is Rina Patel and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 31
+        }
+      ],
+      "note": "possessive worker label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-12",
+      "field": "question",
+      "value": "Full name: Rina Patel and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "full name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-13",
+      "field": "question",
+      "value": "The employee name: Kim Nguyen and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 29
+        }
+      ],
+      "note": "employee name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-14",
+      "field": "question",
+      "value": "My name is Kim Nguyen and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "first-person label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-15",
+      "field": "question",
+      "value": "The worker's name is Kim Nguyen and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 31
+        }
+      ],
+      "note": "possessive worker label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-16",
+      "field": "question",
+      "value": "Full name: Kim Nguyen and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "full name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-17",
+      "field": "question",
+      "value": "The employee name: Alex Fairweather and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 35
+        }
+      ],
+      "note": "employee name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-18",
+      "field": "question",
+      "value": "My name is Alex Fairweather and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 27
+        }
+      ],
+      "note": "first-person label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-19",
+      "field": "question",
+      "value": "The worker's name is Alex Fairweather and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 37
+        }
+      ],
+      "note": "possessive worker label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-20",
+      "field": "question",
+      "value": "Full name: Alex Fairweather and the dismissal was in March.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 27
+        }
+      ],
+      "note": "full name label",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-21",
+      "field": "question",
+      "value": "Name of the employee: Jane​ Doe as recorded on the file.",
+      "expected": [
+        {
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "note": "zero-width space inside the name",
+      "synthetic": true
+    },
+    {
+      "id": "name-p-22",
+      "field": "question",
+      "value": "The client's name is Rina Patel and she lodged the claim.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 31
+        }
+      ],
+      "note": "client label",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "name-n-01",
+      "field": "question",
+      "value": "Employee A was rostered on the night shift for six months.",
+      "note": "the PRD §37.1 synthetic placeholder itself",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-n-02",
+      "field": "question",
+      "value": "The employer name is Example Widgets Pty Ltd in Geelong.",
+      "note": "a public employer name uses a different label and is allowed",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-n-03",
+      "field": "question",
+      "value": "The worker was employed as a level 3 cleaner for two years.",
+      "note": "an anonymous role description",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-n-04",
+      "field": "question",
+      "value": "The matter is Smith v Example Widgets Pty Ltd [2024] FWC 123.",
+      "note": "a public case party in a citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-n-05",
+      "field": "question",
+      "value": "The applicant was represented at the conciliation conference.",
+      "note": "a role, not a name",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

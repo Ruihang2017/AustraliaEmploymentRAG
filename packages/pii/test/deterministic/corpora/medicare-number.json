@@ -1,0 +1,335 @@
+{
+  "category": "MEDICARE_NUMBER",
+  "prdRow": "TFN, bank/card details, Medicare/passport/licence number",
+  "positives": [
+    {
+      "id": "medicare-p-01",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123456701 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "plain, valid check digit",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-02",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123 456701 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-03",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123-456701 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-04",
+      "field": "question",
+      "value": "They emailed me a scan showing ２１２３４５６７０１ for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-05",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123456702 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "plain, valid check digit",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-06",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123 456702 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-07",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123-456702 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-08",
+      "field": "question",
+      "value": "They emailed me a scan showing ２１２３４５６７０２ for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-09",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123456703 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "plain, valid check digit",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-10",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123 456703 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-11",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123-456703 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-12",
+      "field": "question",
+      "value": "They emailed me a scan showing ２１２３４５６７０３ for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-13",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123456704 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "plain, valid check digit",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-14",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123 456704 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-15",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123-456704 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-16",
+      "field": "question",
+      "value": "They emailed me a scan showing ２１２３４５６７０４ for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-17",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123456705 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "plain, valid check digit",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-18",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123 456705 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-19",
+      "field": "question",
+      "value": "They emailed me a scan showing 2123-456705 for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 42
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-20",
+      "field": "question",
+      "value": "They emailed me a scan showing ２１２３４５６７０５ for the workers compensation claim.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 41
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-21",
+      "field": "question",
+      "value": "Medicare card 21234​56701 was attached to the form.",
+      "expected": [
+        {
+          "start": 14,
+          "end": 25
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-p-22",
+      "field": "question",
+      "value": "The claim form lists 21234‍56702 as the card number.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 32
+        }
+      ],
+      "note": "zero-width joiner inside the number",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "medicare-n-01",
+      "field": "question",
+      "value": "The roster covers 1234567890 minutes across the quarter.",
+      "note": "ten-digit run failing the Medicare check digit and the leading-digit rule",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-n-02",
+      "field": "question",
+      "value": "Our purchase order 7123456789 was raised for the training.",
+      "note": "ten-digit run with a leading digit outside 2-6",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-n-03",
+      "field": "question",
+      "value": "The enterprise agreement code is AG2024/123 in the register.",
+      "note": "no ten or eleven digit run at all",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-n-04",
+      "field": "question",
+      "value": "Payroll processed 2123456701234 cents in allowances.",
+      "note": "thirteen-digit run: maximality prevents a ten-digit prefix match",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "medicare-n-05",
+      "field": "question",
+      "value": "The site employs about 30 people across two shifts.",
+      "note": "ordinary workforce facts with no card number",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

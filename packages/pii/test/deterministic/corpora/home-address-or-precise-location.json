@@ -1,0 +1,309 @@
+{
+  "category": "HOME_ADDRESS_OR_PRECISE_LOCATION",
+  "prdRow": "Home address or precise private location",
+  "positives": [
+    {
+      "id": "address-p-01",
+      "field": "question",
+      "value": "They live at 12 Wattle Street, Northbridge NSW 2063 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 51
+        }
+      ],
+      "note": "plain postcode-anchored address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-02",
+      "field": "question",
+      "value": "They live at １２ Wattle Street, Northbridge NSW ２０６３ and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 51
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-03",
+      "field": "question",
+      "value": "They live at 12 Wattle Street, N​orthbridge NSW 2063 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 52
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-04",
+      "field": "question",
+      "value": "They live at 12 Wattle Street Northbridge NSW 2063 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 50
+        }
+      ],
+      "note": "comma removed",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-05",
+      "field": "question",
+      "value": "They live at Unit 4/18 Bunya Road, Kew VIC 3101 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 47
+        }
+      ],
+      "note": "plain postcode-anchored address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-06",
+      "field": "question",
+      "value": "They live at Unit ４/１８ Bunya Road, Kew VIC ３１０１ and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 47
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-07",
+      "field": "question",
+      "value": "They live at Unit 4/18 Bunya R​oad, Kew VIC 3101 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 48
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-08",
+      "field": "question",
+      "value": "They live at Unit 4/18 Bunya Road Kew VIC 3101 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 46
+        }
+      ],
+      "note": "comma removed",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-09",
+      "field": "question",
+      "value": "They live at 7A Kookaburra Crescent, Redland QLD 4165 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 53
+        }
+      ],
+      "note": "plain postcode-anchored address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-10",
+      "field": "question",
+      "value": "They live at ７A Kookaburra Crescent, Redland QLD ４１６５ and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 53
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-11",
+      "field": "question",
+      "value": "They live at 7A Kookaburra Cresce​nt, Redland QLD 4165 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 54
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-12",
+      "field": "question",
+      "value": "They live at 7A Kookaburra Crescent Redland QLD 4165 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 52
+        }
+      ],
+      "note": "comma removed",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-13",
+      "field": "question",
+      "value": "They live at 221 Marlin Parade, Semaphore SA 5019 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 49
+        }
+      ],
+      "note": "plain postcode-anchored address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-14",
+      "field": "question",
+      "value": "They live at ２２１ Marlin Parade, Semaphore SA ５０１９ and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 49
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-15",
+      "field": "question",
+      "value": "They live at 221 Marlin Parade,​ Semaphore SA 5019 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 50
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-16",
+      "field": "question",
+      "value": "They live at 221 Marlin Parade Semaphore SA 5019 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 48
+        }
+      ],
+      "note": "comma removed",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-17",
+      "field": "question",
+      "value": "They live at 9 Karri Court, Bunbury WA 6230 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 43
+        }
+      ],
+      "note": "plain postcode-anchored address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-18",
+      "field": "question",
+      "value": "They live at ９ Karri Court, Bunbury WA ６２３０ and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 43
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-19",
+      "field": "question",
+      "value": "They live at 9 Karri Court, ​Bunbury WA 6230 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 44
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "address-p-20",
+      "field": "question",
+      "value": "They live at 9 Karri Court Bunbury WA 6230 and travel to the site daily.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 42
+        }
+      ],
+      "note": "comma removed",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "address-n-01",
+      "field": "question",
+      "value": "The site is in regional NSW, about an hour from the depot.",
+      "note": "a state-level location is allowed",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "address-n-02",
+      "field": "question",
+      "value": "Most of the crew work across Sydney metro on rotation.",
+      "note": "a non-precise work location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "address-n-03",
+      "field": "question",
+      "value": "The employer runs three warehouses in Victoria.",
+      "note": "a state reference with no street or postcode",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "address-n-04",
+      "field": "question",
+      "value": "The hearing was listed in the Brisbane registry in May.",
+      "note": "a public venue, not a home address",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "address-n-05",
+      "field": "question",
+      "value": "The depot is 12 kilometres from the QLD border.",
+      "note": "a distance and a state, with no street type or postcode",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

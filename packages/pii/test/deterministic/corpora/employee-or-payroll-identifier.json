@@ -1,0 +1,309 @@
+{
+  "category": "EMPLOYEE_OR_PAYROLL_IDENTIFIER",
+  "prdRow": "Employee/payroll ID, payslip content or personnel-file extract",
+  "positives": [
+    {
+      "id": "empid-p-01",
+      "field": "question",
+      "value": "Employee no 12345 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 17
+        }
+      ],
+      "note": "employee no label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-02",
+      "field": "question",
+      "value": "Payroll id: 12345 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 17
+        }
+      ],
+      "note": "payroll id label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-03",
+      "field": "question",
+      "value": "Staff number = 12345 is the one on the roster.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 20
+        }
+      ],
+      "note": "staff number label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-04",
+      "field": "question",
+      "value": "Emp # 12345 is the one on the roster.",
+      "expected": [
+        {
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "note": "emp hash label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-05",
+      "field": "question",
+      "value": "Employee no E-90210 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 19
+        }
+      ],
+      "note": "employee no label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-06",
+      "field": "question",
+      "value": "Payroll id: E-90210 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 19
+        }
+      ],
+      "note": "payroll id label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-07",
+      "field": "question",
+      "value": "Staff number = E-90210 is the one on the roster.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "note": "staff number label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-08",
+      "field": "question",
+      "value": "Emp # E-90210 is the one on the roster.",
+      "expected": [
+        {
+          "start": 6,
+          "end": 13
+        }
+      ],
+      "note": "emp hash label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-09",
+      "field": "question",
+      "value": "Employee no AB1234 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "employee no label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-10",
+      "field": "question",
+      "value": "Payroll id: AB1234 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "payroll id label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-11",
+      "field": "question",
+      "value": "Staff number = AB1234 is the one on the roster.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 21
+        }
+      ],
+      "note": "staff number label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-12",
+      "field": "question",
+      "value": "Emp # AB1234 is the one on the roster.",
+      "expected": [
+        {
+          "start": 6,
+          "end": 12
+        }
+      ],
+      "note": "emp hash label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-13",
+      "field": "question",
+      "value": "Employee no 778899 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "employee no label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-14",
+      "field": "question",
+      "value": "Payroll id: 778899 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "payroll id label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-15",
+      "field": "question",
+      "value": "Staff number = 778899 is the one on the roster.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 21
+        }
+      ],
+      "note": "staff number label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-16",
+      "field": "question",
+      "value": "Emp # 778899 is the one on the roster.",
+      "expected": [
+        {
+          "start": 6,
+          "end": 12
+        }
+      ],
+      "note": "emp hash label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-17",
+      "field": "question",
+      "value": "Employee no P-4455 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "employee no label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-18",
+      "field": "question",
+      "value": "Payroll id: P-4455 is the one on the roster.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "payroll id label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-19",
+      "field": "question",
+      "value": "Staff number = P-4455 is the one on the roster.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 21
+        }
+      ],
+      "note": "staff number label",
+      "synthetic": true
+    },
+    {
+      "id": "empid-p-20",
+      "field": "question",
+      "value": "Emp # P-4455 is the one on the roster.",
+      "expected": [
+        {
+          "start": 6,
+          "end": 12
+        }
+      ],
+      "note": "emp hash label",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "empid-n-01",
+      "field": "question",
+      "value": "The employee worked 12345 minutes of overtime this quarter.",
+      "note": "a number after \"employee\" with no identifier label",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "empid-n-02",
+      "field": "question",
+      "value": "We employ 250 staff across three states.",
+      "note": "a headcount, not an identifier",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "empid-n-03",
+      "field": "question",
+      "value": "Clause 15.3 of the award covers the overtime rate.",
+      "note": "a clause reference",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "empid-n-04",
+      "field": "question",
+      "value": "The payroll system was upgraded in March last year.",
+      "note": "the word payroll with no identifier",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "empid-n-05",
+      "field": "question",
+      "value": "Staff turnover was about 12 per cent last year.",
+      "note": "a percentage, not an identifier",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

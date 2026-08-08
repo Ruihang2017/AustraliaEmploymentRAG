@@ -1,0 +1,309 @@
+{
+  "category": "EXACT_DATE_OF_BIRTH",
+  "prdRow": "Exact date of birth unless public case material",
+  "positives": [
+    {
+      "id": "dob-p-01",
+      "field": "question",
+      "value": "The employee was born on 12/03/1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 35
+        }
+      ],
+      "note": "dd/mm/yyyy, born context",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-02",
+      "field": "question",
+      "value": "DOB 12/03/1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "note": "dd/mm/yyyy, DOB label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-03",
+      "field": "question",
+      "value": "Their date of birth is 12/03/1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 33
+        }
+      ],
+      "note": "dd/mm/yyyy, date of birth label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-04",
+      "field": "question",
+      "value": "Birthdate: 12/03/1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "dd/mm/yyyy, birthdate label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-05",
+      "field": "question",
+      "value": "The employee was born on 1990-03-12 according to the personnel file.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 35
+        }
+      ],
+      "note": "yyyy-mm-dd, born context",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-06",
+      "field": "question",
+      "value": "DOB 1990-03-12 according to the personnel file.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "note": "yyyy-mm-dd, DOB label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-07",
+      "field": "question",
+      "value": "Their date of birth is 1990-03-12 according to the personnel file.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 33
+        }
+      ],
+      "note": "yyyy-mm-dd, date of birth label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-08",
+      "field": "question",
+      "value": "Birthdate: 1990-03-12 according to the personnel file.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "yyyy-mm-dd, birthdate label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-09",
+      "field": "question",
+      "value": "The employee was born on 12 March 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 38
+        }
+      ],
+      "note": "d Month yyyy, born context",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-10",
+      "field": "question",
+      "value": "DOB 12 March 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 17
+        }
+      ],
+      "note": "d Month yyyy, DOB label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-11",
+      "field": "question",
+      "value": "Their date of birth is 12 March 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 36
+        }
+      ],
+      "note": "d Month yyyy, date of birth label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-12",
+      "field": "question",
+      "value": "Birthdate: 12 March 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 24
+        }
+      ],
+      "note": "d Month yyyy, birthdate label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-13",
+      "field": "question",
+      "value": "The employee was born on March 12, 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 39
+        }
+      ],
+      "note": "Month d, yyyy, born context",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-14",
+      "field": "question",
+      "value": "DOB March 12, 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 18
+        }
+      ],
+      "note": "Month d, yyyy, DOB label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-15",
+      "field": "question",
+      "value": "Their date of birth is March 12, 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 37
+        }
+      ],
+      "note": "Month d, yyyy, date of birth label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-16",
+      "field": "question",
+      "value": "Birthdate: March 12, 1990 according to the personnel file.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 25
+        }
+      ],
+      "note": "Month d, yyyy, birthdate label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-17",
+      "field": "question",
+      "value": "The employee was born on 05-11-1984 according to the personnel file.",
+      "expected": [
+        {
+          "start": 25,
+          "end": 35
+        }
+      ],
+      "note": "dd-mm-yyyy, born context",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-18",
+      "field": "question",
+      "value": "DOB 05-11-1984 according to the personnel file.",
+      "expected": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "note": "dd-mm-yyyy, DOB label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-19",
+      "field": "question",
+      "value": "Their date of birth is 05-11-1984 according to the personnel file.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 33
+        }
+      ],
+      "note": "dd-mm-yyyy, date of birth label",
+      "synthetic": true
+    },
+    {
+      "id": "dob-p-20",
+      "field": "question",
+      "value": "Birthdate: 05-11-1984 according to the personnel file.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "dd-mm-yyyy, birthdate label",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "dob-n-01",
+      "field": "question",
+      "value": "The employee is aged 30-39 which is relevant to the claim.",
+      "note": "an age band is explicitly allowed",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    },
+    {
+      "id": "dob-n-02",
+      "field": "question",
+      "value": "She is in her 40s and has worked here for a decade.",
+      "note": "an approximate age",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    },
+    {
+      "id": "dob-n-03",
+      "field": "question",
+      "value": "The dismissal took effect on 12/03/2024 after the meeting.",
+      "note": "a dismissal date is not a birth date",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "dob-n-04",
+      "field": "question",
+      "value": "The award commenced on 1 January 2010 for this industry.",
+      "note": "an instrument commencement date",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "dob-n-05",
+      "field": "question",
+      "value": "Workers over 55 are covered by the transition provisions.",
+      "note": "an age threshold, not a birth date",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

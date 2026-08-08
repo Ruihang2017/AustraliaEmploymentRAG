@@ -1,0 +1,335 @@
+{
+  "category": "PRIVATE_CONTACT_PHONE",
+  "prdRow": "Personal email, phone or private social identifier",
+  "positives": [
+    {
+      "id": "phone-p-01",
+      "field": "question",
+      "value": "They said to call them on 0412345678 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "note": "plain mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-02",
+      "field": "question",
+      "value": "They said to call them on 0412 345 678 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "space-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-03",
+      "field": "question",
+      "value": "They said to call them on 0412-345-678 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "hyphen-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-04",
+      "field": "question",
+      "value": "They said to call them on +61 412 345 678 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 41
+        }
+      ],
+      "note": "+61 international form",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-05",
+      "field": "question",
+      "value": "They said to call them on 0423987654 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "note": "plain mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-06",
+      "field": "question",
+      "value": "They said to call them on 0423 987 654 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "space-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-07",
+      "field": "question",
+      "value": "They said to call them on 0423-987-654 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "hyphen-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-08",
+      "field": "question",
+      "value": "They said to call them on +61 423 987 654 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 41
+        }
+      ],
+      "note": "+61 international form",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-09",
+      "field": "question",
+      "value": "They said to call them on 0455112233 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "note": "plain mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-10",
+      "field": "question",
+      "value": "They said to call them on 0455 112 233 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "space-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-11",
+      "field": "question",
+      "value": "They said to call them on 0455-112-233 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "hyphen-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-12",
+      "field": "question",
+      "value": "They said to call them on +61 455 112 233 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 41
+        }
+      ],
+      "note": "+61 international form",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-13",
+      "field": "question",
+      "value": "They said to call them on 0466778899 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "note": "plain mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-14",
+      "field": "question",
+      "value": "They said to call them on 0466 778 899 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "space-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-15",
+      "field": "question",
+      "value": "They said to call them on 0466-778-899 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "hyphen-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-16",
+      "field": "question",
+      "value": "They said to call them on +61 466 778 899 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 41
+        }
+      ],
+      "note": "+61 international form",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-17",
+      "field": "question",
+      "value": "They said to call them on 0477334455 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "note": "plain mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-18",
+      "field": "question",
+      "value": "They said to call them on 0477 334 455 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "space-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-19",
+      "field": "question",
+      "value": "They said to call them on 0477-334-455 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 38
+        }
+      ],
+      "note": "hyphen-separated mobile",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-20",
+      "field": "question",
+      "value": "They said to call them on +61 477 334 455 after the shift.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 41
+        }
+      ],
+      "note": "+61 international form",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-21",
+      "field": "question",
+      "value": "Their home number is (02) 9876 5432 if that matters.",
+      "expected": [
+        {
+          "start": 21,
+          "end": 35
+        }
+      ],
+      "note": "parenthesised landline",
+      "synthetic": true
+    },
+    {
+      "id": "phone-p-22",
+      "field": "question",
+      "value": "Ring ０４１２３４５６７８ to confirm the roster.",
+      "expected": [
+        {
+          "start": 5,
+          "end": 15
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "phone-n-01",
+      "field": "question",
+      "value": "The Fair Work Infoline is 13 13 94 for general advice.",
+      "note": "a published 13 business line is not private contact detail",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "phone-n-02",
+      "field": "question",
+      "value": "Call the head office on 1300 123 456 during business hours.",
+      "note": "a published 1300 business line",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "phone-n-03",
+      "field": "question",
+      "value": "The union hotline is 1800 555 000 for members.",
+      "note": "a published 1800 business line",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "phone-n-04",
+      "field": "question",
+      "value": "The shift runs 0600 to 1400 on weekdays.",
+      "note": "times, not phone numbers",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "phone-n-05",
+      "field": "question",
+      "value": "About 250 000 workers are covered by the award nationally.",
+      "note": "a population figure, not a number to call",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

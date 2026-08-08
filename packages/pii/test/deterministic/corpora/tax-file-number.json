@@ -1,0 +1,361 @@
+{
+  "category": "TAX_FILE_NUMBER",
+  "prdRow": "TFN, bank/card details, Medicare/passport/licence number",
+  "positives": [
+    {
+      "id": "tfn-p-01",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123456782 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "plain, checksum-valid",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-02",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123 456 782 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-03",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123-456-782 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-04",
+      "field": "question",
+      "value": "The worker gave me their tax file number １２３４５６７８２ when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-05",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123456790 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "plain, checksum-valid",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-06",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123 456 790 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-07",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123-456-790 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-08",
+      "field": "question",
+      "value": "The worker gave me their tax file number １２３４５６７９０ when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-09",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123456802 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "plain, checksum-valid",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-10",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123 456 802 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-11",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123-456-802 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-12",
+      "field": "question",
+      "value": "The worker gave me their tax file number １２３４５６８０２ when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-13",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123456810 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "plain, checksum-valid",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-14",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123 456 810 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-15",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123-456-810 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-16",
+      "field": "question",
+      "value": "The worker gave me their tax file number １２３４５６８１０ when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-17",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123456829 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "plain, checksum-valid",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-18",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123 456 829 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-19",
+      "field": "question",
+      "value": "The worker gave me their tax file number 123-456-829 when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 52
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-20",
+      "field": "question",
+      "value": "The worker gave me their tax file number １２３４５６８２９ when they started, is that a problem?",
+      "expected": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-21",
+      "field": "question",
+      "value": "TFN on file: 1234​56782 — should I keep it?",
+      "expected": [
+        {
+          "start": 13,
+          "end": 23
+        }
+      ],
+      "note": "zero-width space inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-22",
+      "field": "question",
+      "value": "Their tax file no is 1234­56790, can we store it?",
+      "expected": [
+        {
+          "start": 21,
+          "end": 31
+        }
+      ],
+      "note": "soft hyphen inside the number",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-23",
+      "field": "question",
+      "value": "tfn 123456780 was written on the form",
+      "expected": [
+        {
+          "start": 4,
+          "end": 13
+        }
+      ],
+      "note": "checksum-INVALID number in an explicit TFN context (deliverable 7 row 1)",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-p-24",
+      "field": "question",
+      "value": "Tax File Number: 123 456 780 — from the paper form",
+      "expected": [
+        {
+          "start": 17,
+          "end": 28
+        }
+      ],
+      "note": "checksum-invalid, spaced, in context",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "tfn-n-01",
+      "field": "question",
+      "value": "Our invoice reference 123456781 covers the overtime period.",
+      "note": "nine-digit invoice reference that fails the mod-11 check",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-n-02",
+      "field": "question",
+      "value": "The award clause numbers are 12, 13 and 21.4 for overtime.",
+      "note": "short numbers cannot form a nine-digit run",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-n-03",
+      "field": "question",
+      "value": "Annual turnover was 123456781 cents last financial year.",
+      "note": "checksum-invalid nine-digit financial figure",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-n-04",
+      "field": "question",
+      "value": "The matter number is 20240001 in the Commission file.",
+      "note": "eight-digit matter number with no TFN context",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "tfn-n-05",
+      "field": "question",
+      "value": "Ten employees each worked 1234567812 minutes in total this year.",
+      "note": "ten-digit run: maximality means it is never read as a nine-digit TFN",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}
