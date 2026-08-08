@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/node-version.schema.json",
+  "title": "NodeVersion payload",
+  "description": "Half of the PRD §40.7 `normalise(parsed)` output, and the text every citation ultimately points at (PRD §15.3). Feeds the immutable corpus `node_version` table (PRD §35.2), which is also the FTS source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stable_source_key",
+    "version_label",
+    "stable_node_key",
+    "canonical_text",
+    "ordinal",
+    "effective_from",
+    "text_hash"
+  ],
+  "properties": {
+    "stable_source_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "version_label": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "stable_node_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "parent_stable_node_key": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "Absent for a root node. Scoped to the same document version."
+    },
+    "display_label": { "type": "string" },
+    "heading": { "type": "string" },
+    "canonical_text": {
+      "type": "string",
+      "description": "Unicode-NFC-normalised ONCE, at `normalise()`. Every offset in this contract is a character offset into exactly these code points. A generic validator cannot check NFC; `validate_record()` does (violation TEXT_NOT_NFC)."
+    },
+    "ordinal": { "type": "integer", "minimum": 0 },
+    "effective_from": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "effective_to": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "text_hash": {
+      "$ref": "refs.schema.json#/$defs/sha256_hex",
+      "description": "Lowercase hex SHA-256 of the UTF-8 bytes of the exact stored `canonical_text`. Checked by `validate_record()` (violation TEXT_HASH_MISMATCH)."
+    }
+  }
+}

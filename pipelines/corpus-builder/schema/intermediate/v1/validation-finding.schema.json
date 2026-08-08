@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/validation-finding.schema.json",
+  "title": "ValidationFinding payload",
+  "description": "Output of the PRD §40.7 `validate(candidate, priorState)` boundary — the adapter's own findings about what it emitted. The release gates are CRPS-06's; this record is evidence for them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["finding_code", "severity"],
+  "properties": {
+    "finding_code": { "type": "string", "minLength": 1 },
+    "severity": {
+      "type": "string",
+      "enum": ["BLOCKING", "ANOMALY", "INFO"],
+      "description": "CRPS-01 deliverable 13 states these three literally, so they are contract spec rather than a packages/contracts family. BLOCKING is reserved for the classes PRD §40.9 says block release: critical identity/time/citation and mandatory-source failures."
+    },
+    "subject_ref": {
+      "oneOf": [
+        { "$ref": "refs.schema.json#/$defs/node_ref" },
+        { "$ref": "refs.schema.json#/$defs/version_ref" }
+      ],
+      "description": "What the finding is about, by natural key."
+    },
+    "details_json": { "$ref": "refs.schema.json#/$defs/json_string" }
+  }
+}

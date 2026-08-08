@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/envelope.schema.json",
+  "title": "Intermediate normalised-record envelope, contract v1",
+  "description": "CRPS-01 deliverable 9. Every record an adapter emits is one JSON object in this shape. PRD §40.7: the adapter never writes active corpus tables directly; it emits versioned intermediate records with source URL, artifact hash and tool version — which is why `provenance` and `tool_versions` are required on EVERY record type, not only on the fetch output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "record_type",
+    "adapter_key",
+    "source_id",
+    "ingestion_run_id",
+    "emitted_at",
+    "tool_versions",
+    "provenance",
+    "payload"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "refs.schema.json#/$defs/semver",
+      "description": "The INR contract version this record was written against."
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "remote_descriptor",
+        "source_artifact",
+        "document_identity",
+        "document_version",
+        "document_node",
+        "node_version",
+        "legal_event",
+        "node_relation",
+        "validation_finding"
+      ]
+    },
+    "adapter_key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The adapter that emitted the record; matches corpus `source.adapter_key`."
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The corpus `source.id` these records belong to. This is the ONE place a corpus identifier legitimately appears: it scopes every natural key in the payload. Payload members never carry corpus identifiers (deliverable 11)."
+    },
+    "ingestion_run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The corpus `ingestion_run.id` this batch belongs to (PRD §35.3)."
+    },
+    "emitted_at": { "$ref": "refs.schema.json#/$defs/utc_timestamp" },
+    "tool_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "framework", "parser"],
+      "properties": {
+        "adapter": { "type": "string", "minLength": 1 },
+        "framework": { "type": "string", "minLength": 1 },
+        "parser": { "type": "string", "minLength": 1 },
+        "ocr": { "type": "string", "minLength": 1 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["official_url", "artifact_sha256", "retrieved_at"],
+      "properties": {
+        "official_url": { "type": "string", "minLength": 1 },
+        "artifact_sha256": { "$ref": "refs.schema.json#/$defs/sha256_hex" },
+        "retrieved_at": { "$ref": "refs.schema.json#/$defs/utc_timestamp" }
+      }
+    },
+    "payload": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "record_type": { "const": "remote_descriptor" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "remote-descriptor.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "source_artifact" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "source-artifact.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "document_identity" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "document-identity.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "document_version" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "document-version.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "document_node" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "document-node.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "node_version" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "node-version.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "legal_event" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "legal-event.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "node_relation" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "node-relation.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "record_type": { "const": "validation_finding" } }, "required": ["record_type"] },
+      "then": { "properties": { "payload": { "$ref": "validation-finding.schema.json" } } }
+    }
+  ]
+}

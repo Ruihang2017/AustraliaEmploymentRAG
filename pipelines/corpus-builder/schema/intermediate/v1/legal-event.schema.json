@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/legal-event.schema.json",
+  "title": "LegalEvent payload",
+  "description": "Output of the PRD §40.7 `extractEvents(normalised)` boundary. Feeds the immutable corpus `legal_event` table. PRD §15.2: legal status MUST be derived from these evidenced events — cached status fields are not the authoritative history.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["stable_source_key", "event_type", "event_date"],
+  "properties": {
+    "stable_source_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §15.1 event taxonomy. NOT constrained to an enum here: packages/contracts publishes no `LegalEventType` family yet (Q-CRPS-4 / FND-03)."
+    },
+    "event_date": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "effective_date": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "evidence_ref": {
+      "$ref": "refs.schema.json#/$defs/node_ref",
+      "description": "The node version whose text evidences the event. Absence means the event is asserted without in-corpus textual evidence, which the CRPS-06 gates treat as an anomaly."
+    },
+    "target_version_label": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "The document version the event acts upon, when it is not the emitting version."
+    },
+    "metadata_json": { "$ref": "refs.schema.json#/$defs/json_string" }
+  }
+}

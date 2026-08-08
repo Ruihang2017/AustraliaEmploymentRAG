@@ -1,0 +1,10 @@
+# CRPS-01. git's core.autocrlf=true (the Git-for-Windows default) rewrites LF to CRLF in the working
+# tree on checkout. Every file under this directory is hashed — the corpus DDL feeds
+# schema_fingerprint(), the INR JSON Schemas are read byte-wise by conformance tooling — so a
+# platform-dependent line ending would make the same commit produce different hashes on Windows and
+# Linux. Keep LF in the working tree too.
+#
+# The repository-root .gitattributes is unallocated by breakdown plan §4 and must not be touched;
+# tools/tests/frozen-paths.test.mjs anchors that rule to the root file, so a sub-directory
+# .gitattributes inside this ticket's file-scope is the permitted form.
+* text eol=lf

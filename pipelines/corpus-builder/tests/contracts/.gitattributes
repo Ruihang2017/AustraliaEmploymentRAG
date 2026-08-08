@@ -1,0 +1,4 @@
+# CRPS-01. Conformance fixtures are hashed byte-for-byte by records-manifest.json, so a CRLF
+# working-tree checkout (git core.autocrlf=true on Windows) would break every hash. Keep LF.
+# The repository-root .gitattributes is unallocated by breakdown plan §4 and is not touched.
+* text eol=lf
