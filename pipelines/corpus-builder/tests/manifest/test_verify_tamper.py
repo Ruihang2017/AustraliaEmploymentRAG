@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from manifest_fixtures import read_manifest, write_raw_manifest
+from manifest_fixtures import altered_hex, read_manifest, write_raw_manifest
 
 from manifest import verify_bundle
 
@@ -69,7 +69,11 @@ def test_an_altered_recorded_file_hash_blocks(bundle_factory, trusted_keys) -> N
     bundle = bundle_factory()
     document = read_manifest(bundle)
     entry = next(item for item in document["files"] if item["path"] == "corpus.sqlite")
-    entry["sha256"] = "0" + entry["sha256"][1:]
+    recorded = entry["sha256"]
+    entry["sha256"] = altered_hex(recorded)
+    # corpus.sqlite is not byte-stable across runs, so its digest is not either: assert the mutation
+    # actually happened rather than trusting a leading-digit substitution.
+    assert entry["sha256"] != recorded
     write_raw_manifest(bundle, document)
     report = verify_bundle(bundle, public_keys=trusted_keys)
     assert "FILE_HASH_MISMATCH" in report.codes()
@@ -81,11 +85,51 @@ def test_an_altered_artifact_hash_alone_is_its_own_code(bundle_factory, trusted_
     bundle = bundle_factory()
     document = read_manifest(bundle)
     current = document["artifacts"]["corpus_sqlite_sha256"]
-    document["artifacts"]["corpus_sqlite_sha256"] = ("0" if current[0] != "0" else "1") + current[1:]
+    document["artifacts"]["corpus_sqlite_sha256"] = altered_hex(current)
+    assert document["artifacts"]["corpus_sqlite_sha256"] != current
     write_raw_manifest(bundle, document)
     report = verify_bundle(bundle, public_keys=trusted_keys)
     assert "ARTIFACT_HASH_MISMATCH" in report.codes()
     assert "FILE_HASH_MISMATCH" not in report.codes()
+
+
+def test_altered_hex_changes_every_possible_leading_digit() -> None:
+    """Regression guard for the flaky tamper mutation.
+
+    Overwriting the first nibble with a fixed digit silently did nothing for the sixteenth of runs
+    where the digest already began with that digit, so the tamper matrix asserted against an
+    untampered bundle. `altered_hex` must change the digest for every leading nibble, and must keep
+    it a well-formed 64-character lowercase hex digest.
+    """
+    for digit in "0123456789abcdef":
+        digest = digit + "a" * 63
+        mutated = altered_hex(digest)
+        assert mutated != digest
+        assert len(mutated) == 64
+        assert all(character in "0123456789abcdef" for character in mutated)
+        assert mutated.endswith("a" * 63)
+
+
+@pytest.mark.parametrize("bad", ["", "zz", "0" * 63, "0" * 65, "A" * 64])
+def test_altered_hex_refuses_anything_that_is_not_a_sha256_digest(bad: str) -> None:
+    """A mutation helper that silently accepts a non-digest would hide the same class of no-op."""
+    with pytest.raises(AssertionError):
+        altered_hex(bad)
+
+
+def test_no_test_module_hand_rolls_a_hash_mutation() -> None:
+    """Every recorded-hash mutation routes through `altered_hex`, never a fixed-digit splice.
+
+    The needle is assembled at runtime so this guard does not match its own source.
+    """
+    needle = '"' + '0" + '
+    suite = Path(__file__).resolve().parent
+    offenders = [
+        module.name
+        for module in sorted(suite.glob("test_*.py"))
+        if needle in module.read_text(encoding="utf-8")
+    ]
+    assert offenders == [], f"hand-rolled hash mutation in {offenders}; use altered_hex()"
 
 
 def test_a_corrupt_manifest_is_a_finding_not_an_exception(bundle_factory, trusted_keys) -> None:

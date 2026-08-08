@@ -313,6 +313,19 @@ def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, An
     return merged
 
 
+def altered_hex(value: str) -> str:
+    """Return a hex digest that is GUARANTEED to differ from `value`.
+
+    The obvious `"0" + value[1:]` is a no-op whenever the digest already starts with `0` — about one
+    run in sixteen for a hash that is not byte-stable across runs (`corpus.sqlite` is not). That made
+    the tamper matrix intermittently assert on an untampered bundle. Every recorded-hash mutation in
+    this suite goes through here so the mutation is deterministic by construction, not by luck.
+    """
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise AssertionError(f"not a lowercase sha256 hex digest: {value!r}")
+    return ("1" if value[0] == "0" else "0") + value[1:]
+
+
 def read_manifest(bundle: Path) -> dict[str, Any]:
     return json.loads((bundle / "release-manifest.json").read_text(encoding="utf-8"))
 

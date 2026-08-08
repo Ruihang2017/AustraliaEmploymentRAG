@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from manifest_fixtures import read_manifest, versions_fixture, write_raw_manifest
+from manifest_fixtures import altered_hex, read_manifest, versions_fixture, write_raw_manifest
 
 from dataclasses import replace
 
@@ -20,7 +20,7 @@ def test_three_independent_defects_produce_three_findings(bundle_factory, truste
     document["versions"]["schema"] = "99.0.0"
     # 3: an artifact hash that disagrees with files[].
     current = document["artifacts"]["vector_index_sha256"]
-    document["artifacts"]["vector_index_sha256"] = ("0" if current[0] != "0" else "1") + current[1:]
+    document["artifacts"]["vector_index_sha256"] = altered_hex(current)
     write_raw_manifest(bundle, document)
 
     report = verify_bundle(bundle, public_keys=trusted_keys)
