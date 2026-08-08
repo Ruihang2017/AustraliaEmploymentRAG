@@ -1,0 +1,77 @@
+{
+  "$comment": [
+    "FND-05 deliverable 1 — the event type registry: type -> current version -> schema path, for both",
+    "transports (sub-PRD D8). schemas.test.ts walks schemas/events/**/*.json and compares BOTH",
+    "directions: a schema file absent from this registry fails, and a registry entry with no file fails.",
+    "",
+    "Paths are relative to this file's directory and always use forward slashes.",
+    "",
+    "Adding a type is additive within v1 (PRD §16.1) and happens HERE, together with its schema — never",
+    "inside the requesting module's own tree (FND-05 Feedback obligation 2). Removing or renaming a",
+    "property, or changing a meaning, mints schemas/events/<transport>/v2/** and bumps schema_version;",
+    "packages/contracts/test/events/baseline/v1.json is what makes that mechanical."
+  ],
+  "webhook": {
+    "envelope": {
+      "schema": "webhook/v1/envelope.json",
+      "version": "v1",
+      "schema_version": "1.0"
+    },
+    "types": {
+      "alert.created": {
+        "schema": "webhook/v1/alert.created.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      }
+    }
+  },
+  "sse": {
+    "types": {
+      "job.started": {
+        "schema": "sse/v1/job.started.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "stage.changed": {
+        "schema": "sse/v1/stage.changed.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "clarification.required": {
+        "schema": "sse/v1/clarification.required.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "answer.section": {
+        "schema": "sse/v1/answer.section.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "citation.added": {
+        "schema": "sse/v1/citation.added.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "job.completed": {
+        "schema": "sse/v1/job.completed.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "job.failed": {
+        "schema": "sse/v1/job.failed.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "job.cancelled": {
+        "schema": "sse/v1/job.cancelled.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      },
+      "heartbeat": {
+        "schema": "sse/v1/heartbeat.json",
+        "version": "v1",
+        "schema_version": "1.0"
+      }
+    }
+  }
+}

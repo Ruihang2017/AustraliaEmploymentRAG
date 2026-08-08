@@ -104,6 +104,59 @@ denylist below is a schema rule and not a code review item.
 - Only one event type is fully specified in the PRD (`alert.created`, §34.8). Additional types are added
   by their owning module through a writeback here — see Feedback obligation 2.
 - `packages/contracts/package.json` is append-only shared within this module (sub-PRD D16).
+- **Implementation writeback (v1.1, 2026-08-08 — sub-PRD v0.9).** Eight things this ticket asserted that
+  the merged repository falsifies, each recorded here before any schema or helper code was written:
+  1. **No declared dependency is possible.** `tools/tests/skeleton.test.mjs` asserts every workspace
+     member manifest declares no `dependencies` and no `devDependencies`. The Test-plan harness
+     sentence below ("JSON Schema validator and code generator declared in
+     `packages/contracts/package.json`") is therefore satisfied by **repo-local** code registered as
+     npm *scripts*, not by a declared dependency: a purpose-built emitter under
+     `packages/contracts/src/events/codegen/**`, and a subset JSON Schema 2020-12 validator under
+     `packages/contracts/test/events/support/**` whose supported-keyword allowlist is asserted
+     **closed over the whole corpus**. The validity reading discharged is *structural validity against
+     the declared 2020-12 vocabulary subset, with the subset proven complete for these schemas*.
+  2. **`generate` / `generated:check` cannot be registered by a workspace member yet.**
+     `tools/tests/scripts.test.mjs` asserts `membersProviding(name)` is empty for every key of
+     `tools/fixtures/script-owners.json#owners`, which includes both names; declaring either in a
+     member manifest turns the repo-wide suite red, and the repair lives in `tools/**` (`FND-01`'s
+     scope). This ticket registers only `generate:events` and `generated:check:events`
+     (sub-PRD **D22**) and discharges acceptance item 11's substance — a hand-edit is detected — inside
+     the package's own vitest suite, which `pnpm test` runs on every PR. Recorded as sub-PRD **D23**,
+     an escalation with a specified repair, not a waiver.
+  3. **Two fixtures per artifact.** The PRD §34.8 and §34.4 texts contain placeholders (`evt_...`,
+     `job_...`, `<lowercase hex HMAC-SHA256>`), so the verbatim text cannot itself validate or be
+     signed. Deliverable 6 therefore ships the byte-verbatim PRD text **and** a concrete instance
+     derived from it by a committed substitution map, with a test proving the derivation
+     byte-for-byte. Nothing can be smuggled into the concrete instance.
+  4. **The §34.4 fixtures come from `docs/PRD.md` lines 1945–1951**, not from this ticket's abbreviated
+     Background quote: the PRD spells `"message":"Validating citations"` and carries a second
+     (`job.completed`, with `answer_snapshot_id`) frame that the quote omits and deliverable 6
+     requires.
+  5. **The fixed test secret is a lower-case JSON key with a lower-case value.** `FND-02`'s CI secret
+     scan applies the seven name-shaped `secret-patterns.json` patterns to every git-tracked file
+     outside `docs/**`, so an UPPER_SNAKE identifier ending in `_SECRET` / `_KEY` / `_TOKEN` /
+     `_PASSWORD` / `_CREDENTIAL(S)`, or starting with `AWS_`, fails the scan job.
+  6. **`verifyWebhook`'s `secret` accepts a string or an ordered list** — deliverable 3 asks for both
+     spellings — and the timestamp window is **symmetric**: a far-future timestamp is rejected too.
+     PRD §34.8 only says "older than five minutes"; the symmetric reading is strictly safer and closes
+     a replay-with-future-timestamp hole.
+  7. **`answer.section` ships no content-bearing property.** PRD §34.4 calls it *"provisional UI
+     content"* but shows no frame, while deliverable 2 forbids `answer`/`content`/`text`/… in any
+     schema here. It carries the same three common fields as every other unevidenced type. Recorded
+     against sub-PRD **Q-F2/D8**; the Architect and the Builder of `RUNT-03` decide before `RUNT-03`
+     starts, and `RUNT-03` may not resolve it inside `apps/api/src/sse/**` (D8).
+  8. **`crypto.timingSafeEqual` is not reachable from this package, so the "or equivalent" branch of
+     deliverable 3 is taken.** `packages/contracts` declares no dependency, so there is no
+     `@types/node`, and `tsconfig.base.json` sets `lib: ["ES2024"]`: `import … from 'node:crypto'` is
+     `TS2307` unless the package ships an ambient `declare module`, which every downstream consumer's
+     program would then need too. Web Crypto needs no declaration but is async and offers no
+     constant-time comparator, so it cannot back deliverable 3's synchronous signatures. SHA-256,
+     HMAC-SHA256 and the comparator are therefore implemented in `src/events/{sha256,hmac,bytes}.ts`
+     with **zero imports** (the shape `FND-03`'s `uuidv7.ts` established) and pinned byte-for-byte
+     against Node's OpenSSL-backed `node:crypto` from `test/events/hmac.test.ts`, across every SHA-256
+     block and padding boundary and both RFC 2104 key branches. Recorded as sub-PRD **D24**, with an
+     ADR candidate (`docs/adr/NNNN-webhook-signing.md`) raised for the Architect — the signing input
+     is unchanged, so nothing blocks on it.
 
 ## Goal
 
@@ -200,9 +253,11 @@ the "Event/webhook schema root" serial-owner row to `FND-05`). The only shared f
      PRD §34.8's requirement and `WTCH-05` as its owner.
 4. **Generated TypeScript types** from the JSON Schemas into
    `packages/contracts/src/events/generated/**`, each file carrying
-   `// GENERATED FROM schemas/events/** — DO NOT EDIT (PRD §20.1)`, wired into the package's `generate`
-   and `generated:check` scripts (appended to `packages/contracts/package.json`, reachable from the
-   root delegators `FND-01` created).
+   `// GENERATED FROM schemas/events/** — DO NOT EDIT (PRD §20.1)`, wired into the package's
+   `generate:events` and `generated:check:events` scripts (appended to
+   `packages/contracts/package.json`, sub-PRD **D22**). The aggregate `generate` / `generated:check`
+   names are **not** registered here — see the writeback note above and sub-PRD **D23**; the
+   generated-diff guarantee runs under `pnpm test` instead, on every PR.
 5. **Versioning rule, encoded**: adding an event type or an optional property is additive within `v1`;
    removing a property, renaming one or changing a meaning requires a new version directory
    (`schemas/events/webhook/v2/…`) and a `schema_version` bump. A test compares against a committed
@@ -213,7 +268,12 @@ the "Event/webhook schema root" serial-owner row to `FND-05`). The only shared f
    - `sse-stage-changed.prd-34-4.txt` and `sse-job-completed.prd-34-4.txt` — the §34.4 event frames
      verbatim;
    - a fixed test secret (a literal in the fixture file, never an environment variable) and the
-     expected signature computed from it.
+     expected signature computed from it — in `signing.json`, whose keys and values are **lower-case**
+     (writeback note 5);
+   - and, for each of the four verbatim files above, a `*.signed.json` / `*.concrete.txt` sibling
+     derived from it by the committed `signing.json#placeholders` map (writeback note 3). The verbatim
+     files prove key set and key order against the PRD's own text; the derived files are what is
+     validated in full and signed.
 
 ## Acceptance checklist (classified)
 
@@ -243,8 +303,10 @@ the "Event/webhook schema root" serial-owner row to `FND-05`). The only shared f
 - [ ] `[machine]` Event ids validate as `evt_`-prefixed UUIDv7 via `FND-03`'s `isId` (PRD §34.1, §34.8).
 - [ ] `[machine]` Non-additive change detection, negative test: removing a property from an existing
       `v1` schema fails the baseline test; adding an optional property passes (PRD §16.1).
-- [ ] `[machine]` `pnpm generate && pnpm generated:check` leaves no diff for
-      `packages/contracts/src/events/generated/**`; a hand-edit is detected (PRD §20.1).
+- [ ] `[machine]` `pnpm --filter @taxrag/contracts generate:events && pnpm --filter @taxrag/contracts
+      generated:check:events` leaves no diff for `packages/contracts/src/events/generated/**`; a
+      hand-edit is detected, and the same comparison runs under `pnpm test` (PRD §20.1; sub-PRD D22/D23
+      — the aggregate root names stay unregistered until `tools/tests/scripts.test.mjs` is repaired).
 - [ ] `[machine]` No secret is read from the environment, a file or the network by the helper — asserted
       by inspecting its imports and signature (PRD §20.2).
 - [ ] `[machine]` No email transport, provider client or delivery code appears anywhere in this ticket's
@@ -279,19 +341,25 @@ Reviewer steps, all offline and deterministic (fixed secret, fixed timestamp, in
    timestamp (301 s). Run them.
 4. **Raw-body proof.** Inspect the raw-bytes test: it must sign a body whose re-serialisation differs
    (reordered keys or a non-ASCII character) and verify against the original bytes.
-5. **Constant-time check.** Read `sign.ts`; confirm `crypto.timingSafeEqual` (or equivalent) on
-   equal-length buffers, with an explicit length guard before it. Confirm the static `===` check exists
-   and fails when reverted on a scratch branch.
+5. **Constant-time check.** Read `sign.ts` and `bytes.ts`; confirm the *equivalent* comparator
+   `equalsInConstantTime` (writeback note 8 — `crypto.timingSafeEqual` is unreachable from this
+   package) on equal-length buffers, with an explicit length guard before it and no early `return`
+   inside the loop. Confirm the static `===` check exists and fails when reverted on a scratch branch.
+   Then read `test/events/hmac.test.ts`: the hand-written SHA-256/HMAC is only defensible while that
+   differential run against `node:crypto` is intact.
 6. **Denylist negative test.** Add a `question` property to `alert.created.json` on a scratch branch;
    assert the denylist test fails naming the property; discard.
 7. **SSE completeness.** Assert the nine PRD §34.4 types each have a schema and no tenth exists.
-8. **Generated check.** `pnpm generate && pnpm generated:check`; then hand-edit a generated file and
-   confirm it fails; restore.
+8. **Generated check.** `pnpm --filter @taxrag/contracts generate:events` then
+   `pnpm --filter @taxrag/contracts generated:check:events`; then hand-edit a generated file and confirm
+   both it and `pnpm test` fail; restore. (The aggregate root names are unregistered — sub-PRD D23.)
 9. **Append-only manifest.** `git diff packages/contracts/package.json` shows additions only.
 
-Harness: the framework `FND-01` registered; JSON Schema validator and code generator declared in
-`packages/contracts/package.json`. Fixtures are the four files in deliverable 6. No network, no live
-webhook endpoint.
+Harness: the framework `FND-01` registered; the JSON Schema validator and the code generator are
+**repo-local** (writeback note 1 — a member manifest may declare no dependency), registered as the
+`generate:events` / `generated:check:events` scripts in `packages/contracts/package.json`. Fixtures are
+the files in deliverable 6, each in a verbatim and a derived-concrete form (writeback note 3). No
+network, no live webhook endpoint.
 
 ## Feedback obligation
 

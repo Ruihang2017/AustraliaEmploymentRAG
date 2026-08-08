@@ -1,0 +1,15 @@
+{
+  "$comment": [
+    "FND-05 — published SHA-256 digests, committed so the hand-written implementation in",
+    "packages/contracts/src/events/sha256.ts is pinned to a value that does not come from this",
+    "repository. Both are the FIPS 180-4 / NIST example digests and are quoted in every reference",
+    "implementation.",
+    "",
+    "If a literal here ever disagrees with the differential run against node:crypto in hmac.test.ts,",
+    "the LITERAL is the transcription error: fix this fixture, never the implementation."
+  ],
+  "sha256": {
+    "": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "abc": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+  }
+}

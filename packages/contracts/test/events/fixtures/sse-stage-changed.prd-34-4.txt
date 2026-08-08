@@ -1,0 +1,3 @@
+id: 12
+event: stage.changed
+data: {"schema_version":"1.0","job_id":"job_...","stage":"VALIDATING_CITATIONS","message":"Validating citations","occurred_at":"2026-08-03T03:00:09Z"}

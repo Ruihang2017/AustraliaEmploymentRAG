@@ -9,7 +9,9 @@
     "test": "vitest run",
     "generate": "node src/openapi/generate.mjs",
     "generated:check": "node src/openapi/generated-check.mjs",
-    "test:openapi-compat": "vitest run test/openapi"
+    "test:openapi-compat": "vitest run test/openapi",
+    "generate:events": "node src/events/codegen/generate.mjs",
+    "generated:check:events": "node src/events/codegen/check.mjs"
   },
   "devDependencies": {
     "ajv": "8.20.0",
