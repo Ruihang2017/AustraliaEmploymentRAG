@@ -29,6 +29,8 @@ declare module 'node:fs' {
   export interface StatsLike {
     isFile(): boolean;
     isSymbolicLink(): boolean;
+    /** TEST-ONLY — test/text-integrity.test.ts walks the package tree without following symlinks. */
+    isDirectory(): boolean;
     readonly size: number;
     readonly mtimeMs: number;
   }
@@ -42,8 +44,12 @@ declare module 'node:fs' {
   export function unlinkSync(path: string): void;
   /** src/retention.ts — createNodeFileSystem(): append one record line. */
   export function appendFileSync(path: string, contents: string): void;
-  /** TEST-ONLY — test/surface.test.ts and test/schema.test.ts read source and the committed schema. */
-  export function readFileSync(path: string, encoding: 'utf8'): string;
+  /**
+   * TEST-ONLY — test/surface.test.ts and test/schema.test.ts read source and the committed schema as
+   * text; test/text-integrity.test.ts reads the same files as `latin1`, where one byte maps to exactly
+   * one code unit, so it can assert byte-level facts (no NUL byte) without needing `Buffer` typings.
+   */
+  export function readFileSync(path: string, encoding: 'utf8' | 'latin1'): string;
 }
 
 /**
