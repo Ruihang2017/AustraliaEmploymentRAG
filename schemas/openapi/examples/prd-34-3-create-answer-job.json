@@ -1,0 +1,26 @@
+{
+  "mode": "QUICK",
+  "question": "Which official rules should be checked for this anonymous scenario?",
+  "facts": {
+    "free_text": "A full-time employee performs the following principal duties…",
+    "employer_name": "Example Pty Ltd",
+    "employer_abn": "51824753556",
+    "work_jurisdictions": [
+      "VIC"
+    ],
+    "engagement_type": "EMPLOYEE",
+    "employment_type": "FULL_TIME",
+    "industry": "software services",
+    "principal_duties": [
+      "anonymous duty description"
+    ]
+  },
+  "legal_as_at": "2026-08-03",
+  "jurisdictions": [
+    "CTH",
+    "VIC"
+  ],
+  "retention_mode": "SAVE",
+  "research_record_id": "rec_...",
+  "new_record": null
+}

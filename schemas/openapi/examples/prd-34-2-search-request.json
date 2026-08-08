@@ -1,0 +1,23 @@
+{
+  "mode": "ADVANCED",
+  "query": "annual leave direction section 94",
+  "legal_as_at": "2026-08-03",
+  "jurisdictions": [
+    "CTH",
+    "VIC"
+  ],
+  "document_types": [
+    "ACT",
+    "MODERN_AWARD",
+    "DECISION"
+  ],
+  "legal_statuses": [
+    "IN_FORCE"
+  ],
+  "authority_ids": [],
+  "exact_identifiers": [],
+  "employer": null,
+  "sort": "RELEVANCE",
+  "page_size": 25,
+  "cursor": null
+}

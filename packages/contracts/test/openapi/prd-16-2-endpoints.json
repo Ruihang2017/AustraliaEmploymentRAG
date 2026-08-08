@@ -1,0 +1,398 @@
+{
+  "$comment": [
+    "FND-04 deliverable 8. The PRD 16.2 and 16.3 endpoint lists, transcribed, plus the one endpoint",
+    "PRD 34.3 names normatively and 16.2 omits (sub-PRD D24).",
+    "",
+    "`prd_line` is the PRD bullet VERBATIM, backticks included, so the Reviewer can read it beside",
+    "docs/PRD.md character for character (ticket test-plan step 2). `derived: false` means the line",
+    "already IS a path and a method; `derived: true` means sub-PRD D23's expansion rules produced the",
+    "operations, and `basis` says which rule and why.",
+    "",
+    "PARAMETER NAMES. Where 16.2 spells the parameter, it is used verbatim ({document_id},",
+    "{version_id}, {node_version_id}, {node_id}, {job_id}, {answer_snapshot_id}, and {id} for the",
+    "three /v1/research-records sub-paths). Where a path is derived, the name is <resource>_id — with",
+    "one deliberate exception: the derived /v1/research-records item path adopts {id} so that the",
+    "resource is not spelled two ways in one tree.",
+    "",
+    "test/openapi/endpoint-replay.test.ts asserts BOTH directions: every operation here appears",
+    "exactly once in schemas/openapi/openapi.yaml, and the document declares no operation absent from",
+    "here. One direction alone is a vacuous check (FND-04 acceptance item 2)."
+  ],
+  "basePath": "/v1",
+  "groups": [
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`POST /v1/search`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/search" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/documents/{document_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/documents/{document_id}" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/documents/{document_id}/versions`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/documents/{document_id}/versions" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/document-versions/{version_id}/nodes`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/document-versions/{version_id}/nodes" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/node-versions/{node_version_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/node-versions/{node_version_id}" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/documents/{document_id}/timeline`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/documents/{document_id}/timeline" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/nodes/{node_id}/timeline`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/nodes/{node_id}/timeline" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/documents/{document_id}/relations`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/documents/{document_id}/relations" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Search and authorities",
+      "prd_line": "`GET /v1/nodes/{node_id}/relations`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/nodes/{node_id}/relations" }]
+    },
+
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`POST /v1/answers`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/answers" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`GET /v1/answer-jobs/{job_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/answer-jobs/{job_id}" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`GET /v1/answer-jobs/{job_id}/events`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/answer-jobs/{job_id}/events" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`POST /v1/answer-jobs/{job_id}/cancel`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/answer-jobs/{job_id}/cancel" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`GET /v1/answers/{answer_snapshot_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/answers/{answer_snapshot_id}" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Answers",
+      "prd_line": "`POST /v1/answers/{answer_snapshot_id}/rerun`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/answers/{answer_snapshot_id}/rerun" }]
+    },
+    {
+      "prd_section": "34.3",
+      "group": "Answers",
+      "prd_line": "Clarifications are submitted to `POST /v1/answer-jobs/{job_id}/clarifications`.",
+      "derived": true,
+      "basis": "Named normatively by PRD 34.3 and absent from every 16.2 list. Sub-PRD D24 records that the fixture's authority is 16.2 + 16.3 + 34.3, because acceptance item 2 forbids the document declaring an operation that is not here.",
+      "operations": [{ "method": "POST", "path": "/v1/answer-jobs/{job_id}/clarifications" }]
+    },
+
+    {
+      "prd_section": "16.2",
+      "group": "Compare and coverage",
+      "prd_line": "`POST /v1/comparisons`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/comparisons" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Compare and coverage",
+      "prd_line": "`GET /v1/comparison-jobs/{job_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/comparison-jobs/{job_id}" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Compare and coverage",
+      "prd_line": "`POST /v1/coverage-assessments`",
+      "derived": false,
+      "operations": [{ "method": "POST", "path": "/v1/coverage-assessments" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Compare and coverage",
+      "prd_line": "`GET /v1/coverage-assessment-jobs/{job_id}`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/coverage-assessment-jobs/{job_id}" }]
+    },
+
+    {
+      "prd_section": "16.2",
+      "group": "Research and collaboration",
+      "prd_line": "CRUD `/v1/research-records`",
+      "derived": true,
+      "basis": "Sub-PRD D23(a): CRUD = POST collection, GET collection, GET item, PATCH item, DELETE item. PATCH not PUT, because 34.1's If-Match row and 34.7's \"Mutable metadata updates require If-Match\" describe a partial metadata update. The item parameter is {id} to match the three sub-paths 16.2 spells below.",
+      "operations": [
+        { "method": "POST", "path": "/v1/research-records" },
+        { "method": "GET", "path": "/v1/research-records" },
+        { "method": "GET", "path": "/v1/research-records/{id}" },
+        { "method": "PATCH", "path": "/v1/research-records/{id}" },
+        { "method": "DELETE", "path": "/v1/research-records/{id}" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Research and collaboration",
+      "prd_line": "`/v1/research-records/{id}/turns`",
+      "derived": true,
+      "basis": "The path is verbatim; 16.2 states no methods. PRD 34.7 makes turns immutable — \"A mistake is corrected by adding a new turn with supersedes_turn_id, never by editing the original turn\" — so the surface is append and read only: no PATCH, no DELETE.",
+      "operations": [
+        { "method": "GET", "path": "/v1/research-records/{id}/turns" },
+        { "method": "POST", "path": "/v1/research-records/{id}/turns" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Research and collaboration",
+      "prd_line": "`/v1/research-records/{id}/answers`",
+      "derived": true,
+      "basis": "The path is verbatim; 16.2 states no methods. Answer Snapshots are created through POST /v1/answers, not here, so this sub-resource is read-only.",
+      "operations": [{ "method": "GET", "path": "/v1/research-records/{id}/answers" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Research and collaboration",
+      "prd_line": "`/v1/research-records/{id}/review-actions`",
+      "derived": true,
+      "basis": "The path is verbatim; 16.2 states no methods. A review action is an appended record that moves the RecordWorkflowState (PRD 8.7), so list and create.",
+      "operations": [
+        { "method": "GET", "path": "/v1/research-records/{id}/review-actions" },
+        { "method": "POST", "path": "/v1/research-records/{id}/review-actions" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Research and collaboration",
+      "prd_line": "CRUD `/v1/comments` and `/resolve`",
+      "derived": true,
+      "basis": "Sub-PRD D23(a) for the CRUD half and D23(b) for the appended verb: a named verb becomes POST /v1/<collection>/{id}/<verb>.",
+      "operations": [
+        { "method": "POST", "path": "/v1/comments" },
+        { "method": "GET", "path": "/v1/comments" },
+        { "method": "GET", "path": "/v1/comments/{comment_id}" },
+        { "method": "PATCH", "path": "/v1/comments/{comment_id}" },
+        { "method": "DELETE", "path": "/v1/comments/{comment_id}" },
+        { "method": "POST", "path": "/v1/comments/{comment_id}/resolve" }
+      ]
+    },
+
+    {
+      "prd_section": "16.2",
+      "group": "Monitor and delivery",
+      "prd_line": "CRUD `/v1/watchlists`",
+      "derived": true,
+      "basis": "Sub-PRD D23(a).",
+      "operations": [
+        { "method": "POST", "path": "/v1/watchlists" },
+        { "method": "GET", "path": "/v1/watchlists" },
+        { "method": "GET", "path": "/v1/watchlists/{watchlist_id}" },
+        { "method": "PATCH", "path": "/v1/watchlists/{watchlist_id}" },
+        { "method": "DELETE", "path": "/v1/watchlists/{watchlist_id}" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Monitor and delivery",
+      "prd_line": "`GET /v1/alerts`, alert detail, acknowledge and resolve",
+      "derived": true,
+      "basis": "GET /v1/alerts is verbatim; \"alert detail\" is the item read and \"acknowledge\"/\"resolve\" are named verbs, expanded by sub-PRD D23(b).",
+      "operations": [
+        { "method": "GET", "path": "/v1/alerts" },
+        { "method": "GET", "path": "/v1/alerts/{alert_id}" },
+        { "method": "POST", "path": "/v1/alerts/{alert_id}/acknowledge" },
+        { "method": "POST", "path": "/v1/alerts/{alert_id}/resolve" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Monitor and delivery",
+      "prd_line": "CRUD/test/rotate `/v1/webhook-subscriptions`",
+      "derived": true,
+      "basis": "Sub-PRD D23(a) for CRUD and D23(b) for the two named verbs.",
+      "operations": [
+        { "method": "POST", "path": "/v1/webhook-subscriptions" },
+        { "method": "GET", "path": "/v1/webhook-subscriptions" },
+        { "method": "GET", "path": "/v1/webhook-subscriptions/{webhook_subscription_id}" },
+        { "method": "PATCH", "path": "/v1/webhook-subscriptions/{webhook_subscription_id}" },
+        { "method": "DELETE", "path": "/v1/webhook-subscriptions/{webhook_subscription_id}" },
+        { "method": "POST", "path": "/v1/webhook-subscriptions/{webhook_subscription_id}/test" },
+        { "method": "POST", "path": "/v1/webhook-subscriptions/{webhook_subscription_id}/rotate" }
+      ]
+    },
+
+    {
+      "prd_section": "16.2",
+      "group": "Export, usage, audit and issues",
+      "prd_line": "`POST /v1/exports`, get/cancel export jobs",
+      "derived": true,
+      "basis": "POST /v1/exports is verbatim; \"get/cancel export jobs\" is expanded by sub-PRD D23(c) to /v1/export-jobs/{job_id} + /cancel, matching the /v1/answer-jobs/{job_id} and /v1/comparison-jobs/{job_id} shapes 16.2 already spells.",
+      "operations": [
+        { "method": "POST", "path": "/v1/exports" },
+        { "method": "GET", "path": "/v1/export-jobs/{job_id}" },
+        { "method": "POST", "path": "/v1/export-jobs/{job_id}/cancel" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Export, usage, audit and issues",
+      "prd_line": "`GET /v1/usage/current`, `/events`, `/limits`",
+      "derived": true,
+      "basis": "The first is verbatim; the two bare sub-paths are resolved against the /v1/usage prefix the same line establishes.",
+      "operations": [
+        { "method": "GET", "path": "/v1/usage/current" },
+        { "method": "GET", "path": "/v1/usage/events" },
+        { "method": "GET", "path": "/v1/usage/limits" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Export, usage, audit and issues",
+      "prd_line": "`GET /v1/audit-events`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/audit-events" }]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Export, usage, audit and issues",
+      "prd_line": "create/list/get/comment `/v1/issues`",
+      "derived": true,
+      "basis": "Sub-PRD D23(d): create = POST collection, list = GET collection, get = GET item, comment = POST /{issue_id}/comments.",
+      "operations": [
+        { "method": "POST", "path": "/v1/issues" },
+        { "method": "GET", "path": "/v1/issues" },
+        { "method": "GET", "path": "/v1/issues/{issue_id}" },
+        { "method": "POST", "path": "/v1/issues/{issue_id}/comments" }
+      ]
+    },
+    {
+      "prd_section": "16.2",
+      "group": "Export, usage, audit and issues",
+      "prd_line": "`GET /v1/system-status`",
+      "derived": false,
+      "operations": [{ "method": "GET", "path": "/v1/system-status" }]
+    },
+
+    {
+      "prd_section": "16.3",
+      "group": "Authentication and machine access",
+      "prd_line": "Invitation and membership lifecycle endpoints.",
+      "derived": true,
+      "basis": "Sub-PRD D23(e). A capability sentence, no path. Two nouns — invitation and membership — one collection each, lifecycle transitions as POST /{id}/<verb>. An invitation is created, listed, accepted and revoked; a membership is listed, read, role-changed and removed. Customer-visible path names remain the founder's to overrule (PRD 45.5).",
+      "operations": [
+        { "method": "POST", "path": "/v1/invitations" },
+        { "method": "GET", "path": "/v1/invitations" },
+        { "method": "POST", "path": "/v1/invitations/{invitation_id}/accept" },
+        { "method": "POST", "path": "/v1/invitations/{invitation_id}/revoke" },
+        { "method": "GET", "path": "/v1/memberships" },
+        { "method": "GET", "path": "/v1/memberships/{membership_id}" },
+        { "method": "PATCH", "path": "/v1/memberships/{membership_id}" },
+        { "method": "DELETE", "path": "/v1/memberships/{membership_id}" }
+      ]
+    },
+    {
+      "prd_section": "16.3",
+      "group": "Authentication and machine access",
+      "prd_line": "Session list/revoke and recent-authentication checks.",
+      "derived": true,
+      "basis": "Sub-PRD D23(e). \"list\" and \"revoke\" map to GET collection and DELETE item; the recent-authentication check is a created assertion, which is what clears 34.9's RECENT_AUTH_REQUIRED.",
+      "operations": [
+        { "method": "GET", "path": "/v1/sessions" },
+        { "method": "DELETE", "path": "/v1/sessions/{session_id}" },
+        { "method": "POST", "path": "/v1/recent-authentication-checks" }
+      ]
+    },
+    {
+      "prd_section": "16.3",
+      "group": "Authentication and machine access",
+      "prd_line": "TOTP, passkey and recovery-code lifecycle.",
+      "derived": true,
+      "basis": "Sub-PRD D23(e). Three factors under one /v1/mfa prefix. TOTP is a single enrolment (no id): enrol, activate, remove. Passkeys are a collection: list, begin registration, activate, remove one. Recovery codes are regenerated as a set and returned once.",
+      "operations": [
+        { "method": "POST", "path": "/v1/mfa/totp" },
+        { "method": "POST", "path": "/v1/mfa/totp/activate" },
+        { "method": "DELETE", "path": "/v1/mfa/totp" },
+        { "method": "GET", "path": "/v1/mfa/passkeys" },
+        { "method": "POST", "path": "/v1/mfa/passkeys" },
+        { "method": "POST", "path": "/v1/mfa/passkeys/activate" },
+        { "method": "DELETE", "path": "/v1/mfa/passkeys/{passkey_id}" },
+        { "method": "POST", "path": "/v1/mfa/recovery-codes" }
+      ]
+    },
+    {
+      "prd_section": "16.3",
+      "group": "Authentication and machine access",
+      "prd_line": "SAML/OIDC SSO connection create/test/activate/disable.",
+      "derived": true,
+      "basis": "Sub-PRD D23(e). The four verbs are named by the sentence itself; create is POST collection and the other three are POST /{sso_connection_id}/<verb>. A list operation is added because the four verbs are unusable without one. The SsoConnectionState machine is 16.3's own.",
+      "operations": [
+        { "method": "POST", "path": "/v1/sso-connections" },
+        { "method": "GET", "path": "/v1/sso-connections" },
+        { "method": "POST", "path": "/v1/sso-connections/{sso_connection_id}/test" },
+        { "method": "POST", "path": "/v1/sso-connections/{sso_connection_id}/activate" },
+        { "method": "POST", "path": "/v1/sso-connections/{sso_connection_id}/disable" }
+      ]
+    },
+    {
+      "prd_section": "16.3",
+      "group": "Authentication and machine access",
+      "prd_line": "Service-account and credential create/rotate/revoke.",
+      "derived": true,
+      "basis": "Sub-PRD D23(e). A credential belongs to a service account, so it is a nested collection; rotate and revoke are named verbs on the credential. A service-account list operation is added because the credential paths are unusable without one.",
+      "operations": [
+        { "method": "POST", "path": "/v1/service-accounts" },
+        { "method": "GET", "path": "/v1/service-accounts" },
+        { "method": "POST", "path": "/v1/service-accounts/{service_account_id}/credentials" },
+        { "method": "POST", "path": "/v1/service-accounts/{service_account_id}/credentials/{credential_id}/rotate" },
+        { "method": "POST", "path": "/v1/service-accounts/{service_account_id}/credentials/{credential_id}/revoke" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "comparison_type": "TIME",
+  "question": "How did the applicable official rule change?",
+  "dimensions": [
+    {
+      "label": "Before",
+      "legal_as_at": "2024-08-03",
+      "jurisdictions": [
+        "CTH"
+      ]
+    },
+    {
+      "label": "Current",
+      "legal_as_at": "2026-08-03",
+      "jurisdictions": [
+        "CTH"
+      ]
+    }
+  ],
+  "document_ids": [
+    "doc_..."
+  ],
+  "retention_mode": "SAVE",
+  "research_record_id": "rec_..."
+}

@@ -1,0 +1,17 @@
+{
+  "legal_as_at": "2026-08-03",
+  "employer": {
+    "name": "Example Pty Ltd",
+    "abn": "51824753556"
+  },
+  "work_locations": [
+    "VIC"
+  ],
+  "principal_duties": [
+    "anonymous duty description"
+  ],
+  "known_agreement_ids": [],
+  "known_award_codes": [],
+  "retention_mode": "SAVE",
+  "research_record_id": "rec_..."
+}

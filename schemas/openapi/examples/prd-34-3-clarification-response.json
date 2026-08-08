@@ -1,0 +1,13 @@
+{
+  "status": "WAITING_FOR_CLARIFICATION",
+  "clarifications": [
+    {
+      "id": "clq_...",
+      "question": "Is the employer a constitutional corporation?",
+      "affects": [
+        "WORKPLACE_RELATIONS_SYSTEM"
+      ],
+      "answer_type": "YES_NO_UNKNOWN"
+    }
+  ]
+}
