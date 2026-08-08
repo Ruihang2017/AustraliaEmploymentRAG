@@ -1,0 +1,956 @@
+{
+  "category": "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME",
+  "prdRow": "Employee or private individual name",
+  "positives": [
+    {
+      "id": "name-greet-01",
+      "field": "question",
+      "value": "Hi Marta Kowalski, could you explain the Sunday penalty rate?",
+      "expected": [
+        {
+          "start": 3,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-02",
+      "field": "question",
+      "value": "Hello Ana Popović, what notice period applies to a casual?",
+      "expected": [
+        {
+          "start": 6,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-03",
+      "field": "question",
+      "value": "Dear Ngô Thanh, please advise on the redundancy consultation.",
+      "expected": [
+        {
+          "start": 5,
+          "end": 14
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-04",
+      "field": "question",
+      "value": "Hi Nguyễn Anh, could you explain the Sunday penalty rate?",
+      "expected": [
+        {
+          "start": 3,
+          "end": 13
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-05",
+      "field": "question",
+      "value": "Hello Wiremu Tane, what notice period applies to a casual?",
+      "expected": [
+        {
+          "start": 6,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-06",
+      "field": "question",
+      "value": "Dear Grace Fields, please advise on the redundancy consultation.",
+      "expected": [
+        {
+          "start": 5,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-07",
+      "field": "question",
+      "value": "Hi Rose Harding, could you explain the Sunday penalty rate?",
+      "expected": [
+        {
+          "start": 3,
+          "end": 15
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-08",
+      "field": "question",
+      "value": "Hello Will Baxter, what notice period applies to a casual?",
+      "expected": [
+        {
+          "start": 6,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-09",
+      "field": "question",
+      "value": "Dear Summer Nolan, please advise on the redundancy consultation.",
+      "expected": [
+        {
+          "start": 5,
+          "end": 17
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-10",
+      "field": "question",
+      "value": "Hi Priya Raman, could you explain the Sunday penalty rate?",
+      "expected": [
+        {
+          "start": 3,
+          "end": 14
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-greet-11",
+      "field": "question",
+      "value": "Hello Tomas Söderberg, what notice period applies to a casual?",
+      "expected": [
+        {
+          "start": 6,
+          "end": 21
+        }
+      ],
+      "note": "greeting context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-12",
+      "field": "question",
+      "value": "My employee Marta Kowalski asked about the public holiday penalty rate.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 26
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-13",
+      "field": "question",
+      "value": "The employee Ana Popović reports to the site supervisor on weekends.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 24
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-14",
+      "field": "question",
+      "value": "Ngô Thanh works for us as a casual and asked about notice.",
+      "expected": [
+        {
+          "start": 0,
+          "end": 9
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-15",
+      "field": "question",
+      "value": "Our worker Nguyễn Anh was terminated after the second warning.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 21
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-16",
+      "field": "question",
+      "value": "My employee Wiremu Tane asked about the public holiday penalty rate.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 23
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-17",
+      "field": "question",
+      "value": "The employee Grace Fields reports to the site supervisor on weekends.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 25
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-18",
+      "field": "question",
+      "value": "Rose Harding works for us as a casual and asked about notice.",
+      "expected": [
+        {
+          "start": 0,
+          "end": 12
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-19",
+      "field": "question",
+      "value": "Our worker Will Baxter was terminated after the second warning.",
+      "expected": [
+        {
+          "start": 11,
+          "end": 22
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-20",
+      "field": "question",
+      "value": "My employee Summer Nolan asked about the public holiday penalty rate.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 24
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-21",
+      "field": "question",
+      "value": "The employee Priya Raman reports to the site supervisor on weekends.",
+      "expected": [
+        {
+          "start": 13,
+          "end": 24
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-rel-22",
+      "field": "question",
+      "value": "Tomas Söderberg works for us as a casual and asked about notice.",
+      "expected": [
+        {
+          "start": 0,
+          "end": 15
+        }
+      ],
+      "note": "employment-relation context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-23",
+      "field": "question",
+      "value": "Please advise on the notice period. Regards, Marta Kowalski",
+      "expected": [
+        {
+          "start": 45,
+          "end": 59
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-24",
+      "field": "question",
+      "value": "Thanks for your help with the roster question. -- Ana Popović",
+      "expected": [
+        {
+          "start": 50,
+          "end": 61
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-25",
+      "field": "question",
+      "value": "What is the award rate for a casual? Kind regards, Ngô Thanh",
+      "expected": [
+        {
+          "start": 51,
+          "end": 60
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-26",
+      "field": "question",
+      "value": "Please advise on the notice period. Regards, Nguyễn Anh",
+      "expected": [
+        {
+          "start": 45,
+          "end": 55
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-27",
+      "field": "question",
+      "value": "Thanks for your help with the roster question. -- Wiremu Tane",
+      "expected": [
+        {
+          "start": 50,
+          "end": 61
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-28",
+      "field": "question",
+      "value": "What is the award rate for a casual? Kind regards, Grace Fields",
+      "expected": [
+        {
+          "start": 51,
+          "end": 63
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-29",
+      "field": "question",
+      "value": "Please advise on the notice period. Regards, Rose Harding",
+      "expected": [
+        {
+          "start": 45,
+          "end": 57
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-30",
+      "field": "question",
+      "value": "Thanks for your help with the roster question. -- Will Baxter",
+      "expected": [
+        {
+          "start": 50,
+          "end": 61
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-31",
+      "field": "question",
+      "value": "What is the award rate for a casual? Kind regards, Summer Nolan",
+      "expected": [
+        {
+          "start": 51,
+          "end": 63
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-32",
+      "field": "question",
+      "value": "Please advise on the notice period. Regards, Priya Raman",
+      "expected": [
+        {
+          "start": 45,
+          "end": 56
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-sig-33",
+      "field": "question",
+      "value": "Thanks for your help with the roster question. -- Tomas Söderberg",
+      "expected": [
+        {
+          "start": 50,
+          "end": 65
+        }
+      ],
+      "note": "signature or sign-off context",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-34",
+      "field": "question",
+      "value": "Please call Marta Kowalski on 0412 345 678 about the shift swap.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 26
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-35",
+      "field": "question",
+      "value": "Write to Ana Popović via private.person@example.invalid about the roster.",
+      "expected": [
+        {
+          "start": 9,
+          "end": 20
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-36",
+      "field": "question",
+      "value": "Send the roster to Ngô Thanh on 0499 887 766 before Friday.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 28
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-37",
+      "field": "question",
+      "value": "Please call Nguyễn Anh on 0412 345 678 about the shift swap.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 22
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-38",
+      "field": "question",
+      "value": "Write to Wiremu Tane via private.person@example.invalid about the roster.",
+      "expected": [
+        {
+          "start": 9,
+          "end": 20
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-39",
+      "field": "question",
+      "value": "Send the roster to Grace Fields on 0499 887 766 before Friday.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 31
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-40",
+      "field": "question",
+      "value": "Please call Rose Harding on 0412 345 678 about the shift swap.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 24
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-41",
+      "field": "question",
+      "value": "Write to Will Baxter via private.person@example.invalid about the roster.",
+      "expected": [
+        {
+          "start": 9,
+          "end": 20
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-42",
+      "field": "question",
+      "value": "Send the roster to Summer Nolan on 0499 887 766 before Friday.",
+      "expected": [
+        {
+          "start": 19,
+          "end": 31
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-43",
+      "field": "question",
+      "value": "Please call Priya Raman on 0412 345 678 about the shift swap.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 23
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-adj-44",
+      "field": "question",
+      "value": "Write to Tomas Söderberg via private.person@example.invalid about the roster.",
+      "expected": [
+        {
+          "start": 9,
+          "end": 24
+        }
+      ],
+      "note": "adjacent private contact detail",
+      "synthetic": true
+    },
+    {
+      "id": "name-hon-45",
+      "field": "question",
+      "value": "The complaint names Dr Ana Popović as the treating doctor.",
+      "expected": [
+        {
+          "start": 23,
+          "end": 34
+        }
+      ],
+      "note": "honorific",
+      "synthetic": true
+    },
+    {
+      "id": "name-hon-46",
+      "field": "question",
+      "value": "The letter was signed by Ms Marta Kowalski on behalf of the team.",
+      "expected": [
+        {
+          "start": 28,
+          "end": 42
+        }
+      ],
+      "note": "honorific",
+      "synthetic": true
+    },
+    {
+      "id": "name-hon-47",
+      "field": "question",
+      "value": "Mr Will Baxter lodged the unfair dismissal application.",
+      "expected": [
+        {
+          "start": 3,
+          "end": 14
+        }
+      ],
+      "note": "honorific",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "name-en-01",
+      "field": "question",
+      "value": "Smith & Co Pty Ltd is the employer named in the agreement.",
+      "note": "a person-shaped company name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-02",
+      "field": "question",
+      "value": "The employer is Example Widgets Pty Ltd in Geelong.",
+      "note": "a public employer name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-03",
+      "field": "question",
+      "value": "Harper Holdings Limited operates three sites under one agreement.",
+      "note": "a person-shaped company name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-04",
+      "field": "question",
+      "value": "The employee works for Example Widgets Pty Ltd on a casual basis.",
+      "note": "an employment cue beside an employer name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-05",
+      "field": "question",
+      "value": "Our worker is engaged by Fielding Partners Trust as a contractor.",
+      "note": "an employment cue beside a trust name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-06",
+      "field": "question",
+      "value": "Wilson Group Services Inc runs the depot in regional NSW.",
+      "note": "a person-shaped company name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-07",
+      "field": "question",
+      "value": "Acme Bakery Pty Ltd employs about forty staff across two sites.",
+      "note": "a public employer name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-08",
+      "field": "question",
+      "value": "Hi Example Widgets Pty Ltd, what notice applies to a casual?",
+      "note": "a greeting addressed to a company",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-09",
+      "field": "question",
+      "value": "The trading name is Baxter Winery and the ABN is on the invoice.",
+      "note": "a person-shaped trading name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-10",
+      "field": "question",
+      "value": "Nolan Depot Pty Ltd is listed on the public register.",
+      "note": "a person-shaped company name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-11",
+      "field": "question",
+      "value": "The matter is Smith v Example Widgets Pty Ltd [2024] FWC 123.",
+      "note": "a public case party and citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-12",
+      "field": "question",
+      "value": "Re Application by the Australian Workers Union [2023] FWCFB 45 applies here.",
+      "note": "a public case citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-13",
+      "field": "question",
+      "value": "See Harper v Acme Bakery Pty Ltd (2019) 268 CLR 1 for the principle.",
+      "note": "a public case party in a reported citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-14",
+      "field": "question",
+      "value": "The Full Bench decision in Kowalski v Nolan Depot Pty Ltd [2022] FWCFB 9 is on point.",
+      "note": "a public case party and citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-15",
+      "field": "question",
+      "value": "The decision in Baxter v Wilson Group Services Inc [2021] FWC 4567 was appealed.",
+      "note": "a public case party and citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-16",
+      "field": "question",
+      "value": "Dear Fair Work Commission, we seek guidance on the award coverage.",
+      "note": "a greeting addressed to a tribunal",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-17",
+      "field": "question",
+      "value": "The Fair Work Ombudsman published guidance on casual conversion.",
+      "note": "a regulator name",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-18",
+      "field": "question",
+      "value": "Safe Work Australia issued the model code of practice this year.",
+      "note": "a regulator name",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-19",
+      "field": "question",
+      "value": "The Australian Taxation Office confirmed the superannuation treatment.",
+      "note": "a regulator name",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-20",
+      "field": "question",
+      "value": "The Federal Court of Australia remitted the matter to the Commission.",
+      "note": "a court name",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-21",
+      "field": "question",
+      "value": "Employee A was terminated after the second written warning.",
+      "note": "the synthetic placeholder itself",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-22",
+      "field": "question",
+      "value": "Worker B reports to the site supervisor on weekends.",
+      "note": "the synthetic placeholder itself",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-23",
+      "field": "question",
+      "value": "The worker asked whether the applicant may be represented.",
+      "note": "roles, not names",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-24",
+      "field": "question",
+      "value": "Staff Member A lodged the complaint about the roster change.",
+      "note": "the synthetic placeholder itself",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-25",
+      "field": "question",
+      "value": "The respondent employer disputes the casual classification.",
+      "note": "a role, not a name",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-26",
+      "field": "question",
+      "value": "Person A and Person B both worked the night shift.",
+      "note": "the synthetic placeholder itself",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-27",
+      "field": "question",
+      "value": "Regards, the worker who lodged the complaint.",
+      "note": "a sign-off with no name",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-28",
+      "field": "question",
+      "value": "Hi there, my employee asked about the shift penalty.",
+      "note": "a greeting with no name",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-29",
+      "field": "question",
+      "value": "The employee is a level 3 cleaner engaged on a casual basis.",
+      "note": "anonymous role and employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-30",
+      "field": "question",
+      "value": "The role requires a Certificate III and two years of experience.",
+      "note": "qualifications without identity",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-31",
+      "field": "question",
+      "value": "Our worker was employed as a storeperson under the modern award.",
+      "note": "anonymous role",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-32",
+      "field": "question",
+      "value": "The employee works ordinary hours Monday to Friday.",
+      "note": "ordinary hours, weekday names",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-33",
+      "field": "question",
+      "value": "A part-time administrator asked about time off in lieu.",
+      "note": "employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-34",
+      "field": "question",
+      "value": "The apprentice electrician is on a fixed-term contract.",
+      "note": "anonymous role and employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-35",
+      "field": "question",
+      "value": "The work is performed in regional NSW across two depots.",
+      "note": "a state-level location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-36",
+      "field": "question",
+      "value": "The employer operates in VIC, QLD and SA under one agreement.",
+      "note": "multiple states, no street address",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-37",
+      "field": "question",
+      "value": "The site is around Sydney metro and the depot is near the airport.",
+      "note": "a non-precise location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-38",
+      "field": "question",
+      "value": "New South Wales and Western Australia have different long service rules.",
+      "note": "state names",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-39",
+      "field": "question",
+      "value": "The worker was paid about $28 an hour, roughly the award rate.",
+      "note": "approximate wage facts",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-40",
+      "field": "question",
+      "value": "Overtime is paid at time and a half for the first two hours.",
+      "note": "a rate fact with no identity",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-41",
+      "field": "question",
+      "value": "The Christmas shutdown falls between December and January this year.",
+      "note": "calendar vocabulary, not names",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "name-en-42",
+      "field": "question",
+      "value": "Head Office can be reached on 1300 123 456 during business hours.",
+      "note": "a published business line",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

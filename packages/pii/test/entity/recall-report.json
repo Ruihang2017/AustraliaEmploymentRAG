@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "limitsVersion": 1,
+  "combinationRuleVersion": 1,
+  "runtimeOff": {
+    "categories": {
+      "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME": {
+        "positives": 47,
+        "detected": 47,
+        "recall": 1,
+        "negatives": 64,
+        "falsePositives": 0,
+        "precision": 1,
+        "detectedByStage": {
+          "deterministic": 0,
+          "entity": 47,
+          "combination": 0
+        }
+      },
+      "IDENTIFYING_COMBINATION": {
+        "positives": 22,
+        "detected": 22,
+        "recall": 1,
+        "negatives": 44,
+        "falsePositives": 0,
+        "precision": 1,
+        "detectedByStage": {
+          "deterministic": 0,
+          "entity": 0,
+          "combination": 22
+        }
+      }
+    }
+  },
+  "runtimeOn": {
+    "skipped": "no model artifact is selected or shipped — docs/adr/0001-local-pii-entity-runtime.md decides the rule/gazetteer recogniser for v1, so ENTITY_ARTIFACT_PINS is empty and there is nothing to load"
+  }
+}

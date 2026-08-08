@@ -16,7 +16,7 @@
 | Modules that depend on this one | `15-answer-product`, `19-exports`, `21-evaluation-600`, `22-internal-admin`, `23-assurance` |
 | Languages | TypeScript only (`packages/pii`, `packages/citations`, `packages/model-gateway`) |
 | Master spec | [`docs/PRD.md`](../../PRD.md) |
-| Version | v0.3 (2026-08-08) |
+| Version | v0.4 (2026-08-08) |
 
 ## Problem
 
@@ -162,12 +162,14 @@ something an implementing agent may settle by preference. Plan §8 **Q11** (the 
 rerank runtime: Microsoft ONNX Runtime, CPU-only, through an exactly pinned `ort` crate, owned by
 `RETR-07` in `11-retrieval-engine`) is a **confirmed** decision and is therefore not an open question
 here; it is recorded in Non-goals above and must not be re-litigated. `Q-EVID-1` … `Q-EVID-8` are this
-module's own questions and remain open exactly as authored.
+module's own questions. **`Q-EVID-1` is CLOSED by `EVID-02`** (2026-08-08) — see the row below and
+the writeback section that follows the table. `Q-EVID-2` … `Q-EVID-8` remain open exactly as
+authored.
 
 | # | Question | Owner | Resolved by | Blocks | Basis |
 |---|---|---|---|---|---|
 | **Q1 (plan §8)** | **Exact hosted model per profile** (`QUICK_SYNTHESIS`, `DEEP_SYNTHESIS`, `STRUCTURED_REPAIR`, `EVALUATION_JUDGE`, and any policy-permitted optional hosted reranker/fallback). **Status: benchmark-selected** — chosen by comparing accuracy, zero-tolerance failures, latency, provider availability and cost through the evaluation pipeline, never by preference. | `21-evaluation-600`; the Founder approves production promotion **after** seeing the benchmark evidence (PRD §14.4) | `GOLD-15` (`blocked_by EVID-07`), which records the promotion report and pins the promoted profile | Production promotion only — `EVID-07` continues to build against provider/profile abstractions and stubs | PRD §14.4, §17.3; plan §8 Q1 |
-| **Q-EVID-1** | **Local entity-recognition runtime for `EVID-02`.** PRD §17.3 lists "local entity recognition"/"PII pre-screening" as online-local work and PRD §18.2 says "small pinned … runtime", but names no library. This is **not** plan §8 **Q11**: that entry confirms the *embedding and rerank* runtime inside `11-retrieval-engine` (`RETR-07`) and settles nothing about the PII recogniser in `packages/pii`, which is this module's to choose. **ADR candidate** (durable dependency + a model artifact that must ship inside the release archive and the §39.2 `app` 320 MiB budget). | `12-evidence-safety` (`EVID-02`) | `EVID-02`, which records the choice in a new `docs/adr/NNNN-local-pii-entity-runtime.md` (plan **A9**: the creating ticket claims the file) | Nothing — `EVID-02` ships a deterministic gazetteer/rule recogniser behind the same port, so CI never needs a model | PRD §17.3, §18.2, §21.1 (*"no arbitrary runtime plugin/model/code download"*), §45.5 |
+| **Q-EVID-1 — CLOSED (2026-08-08, `EVID-02`)** — resolved by [`docs/adr/0001-local-pii-entity-runtime.md`](../../adr/0001-local-pii-entity-runtime.md): *ship the rule/gazetteer recogniser as the local entity-recognition runtime for v1; define the pinned-model runtime as a port plus a hash-verifying loader contract; select no artifact and ship none.* | **Local entity-recognition runtime for `EVID-02`.** PRD §17.3 lists "local entity recognition"/"PII pre-screening" as online-local work and PRD §18.2 says "small pinned … runtime", but names no library. This is **not** plan §8 **Q11**: that entry confirms the *embedding and rerank* runtime inside `11-retrieval-engine` (`RETR-07`) and settles nothing about the PII recogniser in `packages/pii`, which is this module's to choose. **ADR candidate** (durable dependency + a model artifact that must ship inside the release archive and the §39.2 `app` 320 MiB budget). | `12-evidence-safety` (`EVID-02`) | `EVID-02`, which records the choice in a new `docs/adr/NNNN-local-pii-entity-runtime.md` (plan **A9**: the creating ticket claims the file) | Nothing — `EVID-02` ships a deterministic gazetteer/rule recogniser behind the same port, so CI never needs a model | PRD §17.3, §18.2, §21.1 (*"no arbitrary runtime plugin/model/code download"*), §45.5 |
 | **Q-EVID-2** | **The configured PII recall target.** `PII-001`'s evidence is *"Synthetic PII suite meets **configured** recall and zero raw logging"* — the PRD sets no number, and the number is a risk decision, not an engineering one. | **Founder** (product/risk, PRD §45.5), staged through `12-evidence-safety` | `EVID-02` records the measured recall/precision per category on its synthetic corpus; the *target* is confirmed by the Founder and re-measured by `ASSR-03` and `GOLD-14` | Nothing — the blocked-category list (§37.1) and zero-raw-logging are absolute today | PRD §30.2 `PII-001`, §10.1, §37.1 |
 | **Q-EVID-3** | **The default quote limit when a `LicenceAssessment` states none.** PRD §11.1 says unclear rights default to *"metadata, limited quotation and official links"* without a character count, and §36.4's `licence_quote_limit` may be absent. | `12-evidence-safety` (`EVID-06`) proposes; **Founder** approves the customer-visible default; `05-ingestion-framework` (`INGF-04`) owns the assessment fields | `EVID-06` (initial conservative default recorded in the ticket); reviewed with `INGF-04` | Nothing — `PROHIBITED`/`METADATA_AND_LINK_ONLY` behaviour is fixed by §11.1 | PRD §11.1, §36.4, §36.6, §8.9 |
 | **Q-EVID-4** | **Which providers actually offer no-training with zero or approved minimal retention**, and under whose contract. | **Founder** (commercial), with `21-evaluation-600` for capability | `GOLD-15` + the Founder's provider decision; `EVID-07` encodes the requirement as a per-profile precondition that an unconfigured provider fails | Production promotion only | PRD §10.2, §14.4, §16.4 |
@@ -230,6 +232,83 @@ implementation is the failure mode**; the resolution is one owner plus a depende
 surprised.** A valid eleven-digit ABN pasted into *free text* may still be blocked (a Medicare-shaped
 eleven-digit run can fire, and blocking wins). The supported channel for a public ABN is the
 structured `abn` field, which is exactly what PRD §37.2 and `UAT-PII-02` require.
+
+### Open-question status — writeback from `EVID-02` (2026-08-08)
+
+**Q-EVID-1 — the local entity-recognition runtime. CLOSED.** Recorded in
+[`docs/adr/0001-local-pii-entity-runtime.md`](../../adr/0001-local-pii-entity-runtime.md), the
+repository's first ADR (breakdown plan **A9**). Decision, in one line: **ship the rule/gazetteer
+recogniser for v1; define the pinned-model runtime as a port plus a pure, hash-verifying loader
+contract; select no artifact and ship none.** Three options were considered and the **hosted
+service was rejected outright** — PRD §17.3 makes this task local and PRD §10.1 forbids sending
+unadmitted customer text anywhere, so detecting PII by shipping it to a provider would be the exact
+failure `PII-001` exists to prevent. The decisive constraint is mechanical rather than a preference:
+`packages/pii/test/contract/purity.test.ts` (`EVID-01`, unmodifiable by `EVID-02`) asserts that every
+module specifier under `packages/pii/src/**` is relative, so this package cannot read a file, hash
+bytes, read an environment variable or open a socket — a model runtime's impurity has to be injected
+by the host. `ENTITY_ARTIFACT_PINS` is an empty frozen tuple: **empty by decision, not by omission**.
+Consequences: **`RLSE-01`'s release archive gains nothing** (no model file, no licence text, no SBOM
+entry, no new scan target); `EVID-03` consumes the three-state `readiness()` accessor, which never
+defaults to `READY`; no new dependency and no `pnpm-lock.yaml` change.
+
+**Q-EVID-2 — the configured PII recall target. Still open, still the Founder's.** `EVID-02` shipped
+the measurement for PRD §37.2 stages 4–6, committed to
+`packages/pii/test/entity/recall-report.json` (recomputed by the test run, never hand-written):
+
+| Category | Positives | Recall | Negatives | False positives | Precision | Detected by stage |
+|---|---|---|---|---|---|---|
+| `EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME` (unlabelled, stage 4) | 47 | **1.0** | 64 | 0 | 1.0 | entity 47 |
+| `IDENTIFYING_COMBINATION` (stage 6) | 22 | **1.0** | 44 | 0 | 1.0 | combination 22 |
+
+**`IDENTIFYING_COMBINATION` is no longer at 0%.** `EVID-01` reported it at 0% with twenty `deferred`
+cases owned by this ticket; all twenty now produce a `BLOCKING` finding, and
+`packages/pii/test/context/stages-regression.test.ts` proves it the honest way — it replays
+`EVID-01`'s entire corpus under `CONSERVATIVE_STAGE_DEFAULTS` and under `PII_STAGES` and asserts that
+the **only** decision changes are those twenty ids, that no case flips `REJECT → ACCEPT`, and that
+no §37.1 allowed row changes outcome.
+
+**Read these numbers as what they are.** They are recall against corpora this module authored, so
+they measure "the rules do what their own cases say", not "the recogniser catches real-world names".
+**The named blind spots** — recorded here so the next measurement does not rediscover them, and so
+the number is not mistaken for coverage: scripts without case (**CJK, Arabic, Hebrew, Thai are not
+covered at all** — every rule keys on `\p{Lu}`), all-lower-case names, bare mononyms with no
+possessive cue, and a name inside a sentence that also carries a citation-shaped reference. The
+*target* remains the Founder's; `ASSR-03` and `GOLD-14` re-measure on corpora this module did not
+write.
+
+**`COMBINATION_RULE_V1`, and the derivation the next measurement is re-measuring.** The rule is
+frozen versioned data: `threshold: 2` distinct dimensions, `required: [PERSONAL_EVENT]`,
+`narrowing: [ROLE_SPECIFICITY, SMALL_WORKPLACE, RESIDUAL_IDENTIFIER]` (at least one), over the five
+dimensions `ROLE_SPECIFICITY`, `SMALL_WORKPLACE`, `PERSONAL_EVENT`, `PRECISE_TIME_OR_PLACE`,
+`RESIDUAL_IDENTIFIER`. Derived, not chosen: only **9 of `EVID-01`'s 20** deferred cases carry an
+explicit headcount, so a plain threshold of 3 misses eleven of them; and a plain threshold of 2 would
+block *"The dismissal took effect on 12/03/2024 after the meeting."* (`PERSONAL_EVENT` +
+`PRECISE_TIME_OR_PLACE`), an ordinary question PRD §10.1 says MAY be accepted. Hence a personal event
+is required and its partner must be identity-*narrowing*. **Any change to those numbers is a new
+`version`, never an edited constant**, and is recorded here (ticket Feedback obligation).
+
+**The canary manifest is extended, not forked — for `ASSR-03`.**
+`packages/pii/test/deterministic/corpora/canaries.json` gained a **second top-level key**,
+`stageCanaries` (three cases: two `recogniseEntities`, one `applyCombinationRules`), authored in the
+same `generate.mjs`. `loadCanaries()` still reads `.canaries`, so `EVID-01`'s leak suite is
+unaffected; `packages/pii/test/entity/fixture.ts#loadStageCanaries` reads the new key. **`23-assurance`
+must read this file rather than fork a copy** — a second manifest is how the two suites drift.
+
+**Stage 5 is narrower than `EVID-01`'s conservative default, by category as well as by channel.**
+A structured channel now explains only the categories it actually covers
+(`employer`/`publicCaseParty` → `EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME`; `abn` → `TAX_FILE_NUMBER`,
+`MEDICARE_NUMBER`, `EMPLOYEE_OR_PAYROLL_IDENTIFIER`), so a personal email pasted into the `employer`
+field is no longer cleared by an allow rule written for company names. This can only ever REJECT
+more, never less. `structured.publicCaseParty` additionally requires the value itself to carry a
+citation-shaped reference: a bare "Smith" is not public material.
+
+**Recorded so `EVID-03` and `15-answer-product` are not surprised.** `readiness()` has exactly three
+states (`READY` / `DEGRADED` / `UNAVAILABLE`) and never defaults to `READY`; the shipped
+deterministic recogniser reports `READY` because it loads nothing and has no failure mode. What an
+operation does under `UNAVAILABLE` is `EVID-03`'s decision (D5), not the port's. Measured on the
+delivery run with the runtime off: RSS **62.5 MiB** for the test process, **7.9 MiB** transient
+across 20 maximum-size admissions, p95 admission latency **2.7 ms** for 16 × 8,000 characters —
+against the PRD §39.2 `app` limit of **320 MiB**.
 
 ## Work breakdown
 
@@ -376,3 +455,14 @@ The module is done when all ten tickets are delivered (`/verify-delivery` green 
   free text. No decision is made here and no question is closed: scope, tickets,
   `blocked_by`/`blocks` edges, file-scope and every acceptance gate are unchanged, and Q-EVID-1 …
   Q-EVID-8 all remain open.
+- **v0.4 — 2026-08-08** — `EVID-02` writeback (its acceptance checklist's writeback item). **Closes
+  `Q-EVID-1`**, pointing at the merged `docs/adr/0001-local-pii-entity-runtime.md` and quoting its
+  decision; adds the `EVID-02` section of **Open-question status** with the measured per-category
+  recall/precision for **Q-EVID-2** (`IDENTIFYING_COMBINATION` no longer at 0% — `EVID-01`'s twenty
+  deferred cases are closed and proved by a differential replay; the target remains the Founder's),
+  the `COMBINATION_RULE_V1` threshold derivation so the next measurement knows what it is
+  re-measuring, the **named recogniser blind spots** (scripts without case, all-lower-case names,
+  bare mononyms, names beside a citation), the `stageCanaries` manifest extension for `ASSR-03`, the
+  narrowing of stage 5 by category, and the measured memory/latency against PRD §39.2. **No decision,
+  scope, ticket, `blocked_by`/`blocks` edge, file-scope or acceptance gate changed**; `Q-EVID-2` …
+  `Q-EVID-8` all remain open exactly as authored.

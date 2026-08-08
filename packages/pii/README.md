@@ -122,3 +122,135 @@ there. Regenerate deliberately with `PII_UPDATE_RECALL_REPORT=1 pnpm --filter @t
   **customer input** only.
 - **An `ACCEPT` does not mean there was content.** An empty request is a well-defined `ACCEPT` with
   no findings; callers must not read that as "checked and non-empty".
+
+---
+
+# Stages 4–6 — local entity recognition, public-entity rules, combination risk (`EVID-02`)
+
+PRD §37.2's stages 4, 5 and 6, behind `EVID-01`'s frozen ports. Callers pass **`PII_STAGES`** where
+they previously passed `CONSERVATIVE_STAGE_DEFAULTS`:
+
+```ts
+import { admit } from '../../../pii/src/contract/index.js';
+import { PII_STAGES } from '../../../pii/src/context/index.js';
+
+const result = admit(request, PII_STAGES);
+```
+
+`src/index.ts` stays `export {};` (see *Importing this package* above), so `src/entity/index.js` and
+`src/context/index.js` are deep-imported the same way.
+
+## Stage 4 — local entity recognition (`src/entity/**`)
+
+A rule/gazetteer recogniser behind the `EntityRecogniser` port. It detects person-name-shaped spans
+by **structure and context**, never from a list of names. Every rule needs a cue; a sentence-initial
+capital is never a candidate on its own.
+
+| Rule | Trigger | Severity | Documented false-positive risk |
+|---|---|---|---|
+| `HONORIFIC_NAME` | `Mr`/`Mrs`/`Ms`/`Miss`/`Dr`/`Prof`/`Sir`/`Dame`/`Rev` + 1–3 capitalised tokens | `BLOCKING` | place names carrying an honorific ("Dr Martin Place") |
+| `EMPLOYMENT_RELATION_NAME` | 2–3 capitalised tokens inside an employment-relation context (`my employee`, `the worker`, `works for`, `reports to`, `dismissed`, `terminated`, `resigned`, `on leave`, …), before **or** after | `BLOCKING` | an employer name in the same sentence — mitigated by the organisation-head test |
+| `SIGNATURE_OR_GREETING_NAME` | `Hi`/`Hello`/`Dear`/`Regards`/`Thanks`/`Sincerely` + capitalised token(s), or a trailing `--`/`—` sign-off | `BLOCKING` | "Dear Fair Work Commission" — mitigated by the gazetteer |
+| `ADJACENT_CONTACT_NAME` | 2–3 capitalised tokens within 48 characters of a span already carrying a private email, phone, social handle or address | `BLOCKING` | a business name beside a published business line |
+| `POSSESSIVE_PERSONAL_MONONYM` | one capitalised token in a personal-possessive employment context (`X's roster`, `X was rostered`) | `ADVISORY` | the highest of the five; held to zero false positives across every `EVID-01` negative by the differential replay |
+
+The **allow gazetteer** (`src/entity/deterministic/gazetteer.ts`) prevents candidates, and can never
+remove a finding another stage produced: legal/organisation heads (`Pty Ltd`, `Group`, `Council`, …),
+named regulators, courts and tribunals, the PRD §37.1 placeholder forms (`Employee A`, `the worker`),
+state/territory names, calendar vocabulary, and a case-citation guard so
+`Smith v Example Widgets Pty Ltd [2024] FWC 123` is public material.
+
+**Documented blind spots** — named because an unnamed blind spot turns a recall number into a
+fiction:
+
+- **scripts without case** — CJK, Arabic, Hebrew and Thai names are **not covered**: every rule keys
+  on `\p{Lu}`;
+- an all-lower-case name, and a bare mononym with no possessive cue;
+- a name inside a sentence that also carries a citation-shaped reference (the citation guard is
+  sentence-scoped; it suppresses only *name candidates*, never a deterministic finding).
+
+## Stage 5 — contextual public-entity allow rules (`src/context/publicEntity.ts`)
+
+**The only stage that removes a finding, and the whole reason it may.** Suppression happens only when
+`isExplainedByStructuredChannel(finding, structured)` is true, which requires **all** of:
+
+1. the finding's field is one of the three reserved channels **and** that channel is present;
+2. the span covers the **whole** channel value, modulo leading/trailing whitespace — an employer name
+   with a phone number appended is still blocked;
+3. the finding's category is one this channel actually explains
+   (`employer`/`publicCaseParty` → `EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME`; `abn` → `TAX_FILE_NUMBER`,
+   `MEDICARE_NUMBER`, `EMPLOYEE_OR_PAYROLL_IDENTIFIER`). A personal email pasted into the `employer`
+   field is **not** cleared;
+4. for `structured.abn`, the digits pass the mod-89 checksum; for `structured.publicCaseParty`, the
+   value itself carries a citation-shaped reference — a bare "Smith" is not public material.
+
+The predicate takes **exactly two parameters** and always will: no role, header, flag, environment
+variable, acknowledgement or permission can reach it (PRD §37.2, sub-PRD **D4**), asserted at the type
+level in `test/context/types.test-d.ts`. Nothing in `freeText` is ever suppressed, and a `freeText`
+field named `structured.*` is rejected by the limits stage before any scanning.
+
+`src/context/necessaryFacts.ts` is a **candidate filter**, not a suppressor: anonymous role/duty,
+employment type, award/classification language, approximate wage facts, state/territory location and
+age bands are prevented from becoming candidates, and are never used to clear a finding. It is
+deliberately not imported by `publicEntity.ts`, and a test asserts that import edge is absent.
+
+## Stage 6 — combination/risk rules (`src/context/combination.ts`)
+
+`COMBINATION_RULE_V1` is **frozen, versioned data** — a threshold and two dimension sets, never a
+number inside an `if`:
+
+| Field | Value |
+|---|---|
+| `threshold` | 2 distinct dimensions |
+| `required` | `PERSONAL_EVENT` |
+| `narrowing` | at least one of `ROLE_SPECIFICITY`, `SMALL_WORKPLACE`, `RESIDUAL_IDENTIFIER` |
+| `dimensions` | `ROLE_SPECIFICITY`, `SMALL_WORKPLACE`, `PERSONAL_EVENT`, `PRECISE_TIME_OR_PLACE`, `RESIDUAL_IDENTIFIER` |
+
+**Why those numbers, derived rather than chosen.** Of `EVID-01`'s twenty deferred cases only nine
+carry an explicit headcount, so a plain threshold of 3 would miss eleven of them; and a plain
+threshold of 2 would block *"The dismissal took effect on 12/03/2024 after the meeting."*
+(`PERSONAL_EVENT` + `PRECISE_TIME_OR_PLACE`), an ordinary question PRD §10.1 says MAY be accepted.
+Hence: a personal event is required, and its partner must be identity-**narrowing**; a precise time
+or place counts toward the total but can never be the only partner. Changing this ships a
+`COMBINATION_RULE_V2` with a new `version`, recorded in `docs/prd/12-evidence-safety/README.md` —
+never an edit in place.
+
+The fired dimensions are returned by `evaluateCombination(input, findings)` as **names**, alongside
+the finding, because `PiiFinding` has exactly six members and `EVID-01`'s type test asserts that list
+exhaustively. The assessment carries names, a field name and offsets — never text.
+
+## Running with a model runtime enabled
+
+The pinned-model runtime is **off by default, and there is no switch to leave on**: `PII_STAGES`
+always holds the deterministic recogniser, and a model arrives only by being passed in.
+
+```ts
+import { createPiiStages } from '../../../pii/src/context/index.js';
+import { createRuntimeRecogniser, loadPinnedArtifact } from '../../../pii/src/entity/index.js';
+
+// The host supplies the impurity: this package imports no builtin and no dependency.
+const outcome = loadPinnedArtifact(pin, { read: () => readModelBytesOrNull() }, sha256Hex);
+const stages = createPiiStages({ recogniser: createRuntimeRecogniser(model, outcome) });
+```
+
+`loadPinnedArtifact` verifies in a fixed, tested order — read → size → digest → `READY` — and has no
+"warn and continue" branch. A failure yields `readiness() === 'UNAVAILABLE'`, the recogniser appends
+nothing, and the deterministic recogniser continues. **No artifact is selected or shipped today**:
+see `docs/adr/0001-local-pii-entity-runtime.md`, which also records the measured memory and latency
+against the PRD §39.2 `app` 320 MiB limit.
+
+## Measurement (stages 4–6)
+
+`test/entity/recall-report.json` is committed and recomputed by the test run. It records recall,
+precision and **which stage made each detection** (derived by running every case under
+`CONSERVATIVE_STAGE_DEFAULTS` and under `PII_STAGES` and diffing), plus a **named** reason for the
+skipped runtime-enabled row. Regenerate deliberately with
+`PII_UPDATE_ENTITY_REPORT=1 pnpm --filter @taxrag/pii test`.
+
+`EVID-01`'s `IDENTIFYING_COMBINATION` deferral is closed here:
+`test/context/stages-regression.test.ts` replays `EVID-01`'s entire corpus under both stage sets and
+asserts that the ONLY decision changes are the twenty deferred cases, named by id.
+
+The canary manifest `test/deterministic/corpora/canaries.json` gained a second key, `stageCanaries`,
+for the stage-4/6 paths — the same file, so `ASSR-03` reads one manifest and the two suites cannot
+drift.

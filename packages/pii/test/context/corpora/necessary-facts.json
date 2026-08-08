@@ -1,0 +1,158 @@
+{
+  "prdClause": "PRD §10.1 — \"necessary role/duty/location facts MAY be accepted\"",
+  "cases": [
+    {
+      "id": "ctx-fact-01",
+      "field": "question",
+      "value": "The worker is a level 3 cleaner engaged on a casual basis.",
+      "rule": "ANONYMOUS_ROLE_OR_DUTY",
+      "note": "anonymous role",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-02",
+      "field": "question",
+      "value": "Our storeperson stacks pallets and operates the forklift.",
+      "rule": "ANONYMOUS_ROLE_OR_DUTY",
+      "note": "duties",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-03",
+      "field": "question",
+      "value": "The employee is a part-time administrator with fixed hours.",
+      "rule": "ANONYMOUS_ROLE_OR_DUTY",
+      "note": "role and employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-04",
+      "field": "question",
+      "value": "The employment type is casual with no guaranteed hours.",
+      "rule": "EMPLOYMENT_TYPE",
+      "note": "employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-05",
+      "field": "question",
+      "value": "The role is full-time and ongoing under the modern award.",
+      "rule": "EMPLOYMENT_TYPE",
+      "note": "employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-06",
+      "field": "question",
+      "value": "Labour hire workers on site are covered by the host agreement.",
+      "rule": "EMPLOYMENT_TYPE",
+      "note": "employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-07",
+      "field": "question",
+      "value": "The role requires a Certificate III and a current licence.",
+      "rule": "AWARD_OR_CLASSIFICATION",
+      "note": "qualifications",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-08",
+      "field": "question",
+      "value": "The classification is level 4 under the enterprise agreement.",
+      "rule": "AWARD_OR_CLASSIFICATION",
+      "note": "classification language",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-09",
+      "field": "question",
+      "value": "The modern award sets the ordinary hours for the classification.",
+      "rule": "AWARD_OR_CLASSIFICATION",
+      "note": "award language",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-10",
+      "field": "question",
+      "value": "The worker was paid about $28 an hour, roughly the award rate.",
+      "rule": "APPROXIMATE_WAGE_OR_RATE",
+      "note": "approximate wage facts",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-11",
+      "field": "question",
+      "value": "Overtime is paid at time and a half for the first two hours.",
+      "rule": "APPROXIMATE_WAGE_OR_RATE",
+      "note": "a rate fact",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-12",
+      "field": "question",
+      "value": "The penalty rate for Sunday work is set by the award.",
+      "rule": "APPROXIMATE_WAGE_OR_RATE",
+      "note": "a rate fact",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-13",
+      "field": "question",
+      "value": "The work is performed in regional NSW across two depots.",
+      "rule": "STATE_OR_TERRITORY_LOCATION",
+      "note": "a state-level location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-14",
+      "field": "question",
+      "value": "The employer operates in Victoria and South Australia.",
+      "rule": "STATE_OR_TERRITORY_LOCATION",
+      "note": "state-level locations",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-15",
+      "field": "question",
+      "value": "The site is around Sydney metro and the depot is near the airport.",
+      "rule": "STATE_OR_TERRITORY_LOCATION",
+      "note": "a non-precise location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-16",
+      "field": "question",
+      "value": "The employee is aged 30-39, which the discrimination claim relies on.",
+      "rule": "AGE_BAND",
+      "note": "an age band",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-fact-17",
+      "field": "question",
+      "value": "An age band is enough for the claim; the exact date is not needed.",
+      "rule": "AGE_BAND",
+      "note": "an age band",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    }
+  ]
+}
