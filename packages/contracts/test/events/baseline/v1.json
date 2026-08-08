@@ -1,0 +1,281 @@
+{
+  "sse/v1/answer.section.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/citation.added.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/clarification.required.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/heartbeat.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/job.cancelled.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/job.completed.json": {
+    "required": [
+      "answer_snapshot_id",
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "answer_snapshot_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/job.failed.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/job.started.json": {
+    "required": [
+      "job_id",
+      "occurred_at",
+      "schema_version"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "sse/v1/stage.changed.json": {
+    "required": [
+      "job_id",
+      "message",
+      "occurred_at",
+      "schema_version",
+      "stage"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "job_id": {
+        "type": "string"
+      },
+      "stage": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "occurred_at": {
+        "type": "string"
+      }
+    }
+  },
+  "webhook/v1/alert.created.json": {
+    "required": [
+      "created_at",
+      "data",
+      "data/affected_research_record_ids",
+      "data/alert_id",
+      "data/change_type",
+      "data/effective_date",
+      "data/watchlist_id",
+      "id",
+      "sandbox",
+      "schema_version",
+      "type"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "id": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "const": "alert.created"
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "sandbox": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object"
+      },
+      "data/alert_id": {
+        "type": "string"
+      },
+      "data/watchlist_id": {
+        "type": "string"
+      },
+      "data/change_type": {
+        "type": "string",
+        "enum": [
+          "AMENDMENT",
+          "COMMENCEMENT",
+          "RATE",
+          "REPLACEMENT",
+          "APPEAL",
+          "GUIDANCE",
+          "SOURCE_REMOVAL",
+          "FRESHNESS"
+        ]
+      },
+      "data/effective_date": {
+        "type": "string"
+      },
+      "data/affected_research_record_ids": {
+        "type": "array"
+      }
+    }
+  },
+  "webhook/v1/envelope.json": {
+    "required": [
+      "created_at",
+      "data",
+      "id",
+      "sandbox",
+      "schema_version",
+      "type"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "1.0"
+      },
+      "id": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "alert.created"
+        ]
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "sandbox": {
+        "type": "boolean"
+      },
+      "data": {
+        "type": "object"
+      }
+    }
+  }
+}

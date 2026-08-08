@@ -1,0 +1,3 @@
+X-AER-Event-Id: evt_...
+X-AER-Timestamp: 1785726012
+X-AER-Signature: v1=<lowercase hex HMAC-SHA256>

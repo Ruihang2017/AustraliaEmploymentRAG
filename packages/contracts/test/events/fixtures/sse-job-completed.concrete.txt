@@ -1,0 +1,3 @@
+id: 13
+event: job.completed
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","answer_snapshot_id":"ans_0198f3c1-4a23-7f26-9d84-1a3b7c9e02d5","occurred_at":"2026-08-03T03:00:12Z"}

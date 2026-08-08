@@ -6,6 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:events": "node src/events/codegen/generate.mjs",
+    "generated:check:events": "node src/events/codegen/check.mjs"
   }
 }

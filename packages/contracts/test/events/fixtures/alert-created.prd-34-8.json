@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "id": "evt_...",
+  "type": "alert.created",
+  "created_at": "2026-08-03T03:00:12Z",
+  "sandbox": false,
+  "data": {
+    "alert_id": "alt_...",
+    "watchlist_id": "wat_...",
+    "change_type": "COMMENCEMENT",
+    "effective_date": "2026-09-01",
+    "affected_research_record_ids": ["rec_..."]
+  }
+}
