@@ -1,0 +1,56 @@
+{
+  "$comment": [
+    "FND-09 deliverable 13 — PRD §24.1's monthly founder-funded budget, transcribed VERBATIM.",
+    "Transcription rule: the `label` and `planningBudget` cells are the PRD's own table cells,",
+    "character for character, EN DASH (U+2013) included. test/budget/prd-24-1-budget.test.ts asserts",
+    "each row occurs in docs/PRD.md as `| label | planningBudget |`, so a hyphen typed for an en dash",
+    "fails here rather than silently redefining the budget downstream.",
+    "Big integers are JSON STRINGS parsed with BigInt(...): JSON.parse would route them through a",
+    "double and PRD §34.1 forbids floating-point money.",
+    "Ceiling derivation (recorded so the Reviewer need not re-derive it): the founder monthly ceiling",
+    "is the UPPER BOUND of the §24.1 Total row (A$42–50), corroborated verbatim by §42.6's",
+    "'The monthly A$50 ceiling is an admission-control requirement, not a spreadsheet hope.'",
+    "The §42.6 reserve-order phrases are transcribed here too, because FOUNDER_RESERVE_ORDER encodes",
+    "them and nothing else in this leaf carries §42.6 text."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "§24.1",
+  "prdLines": "1271-1284",
+  "heading": "### 24.1 Monthly founder-funded budget",
+  "rows": [
+    { "item": "SYDNEY_LIGHTSAIL_2GB", "label": "Sydney Lightsail 2 GB", "planningBudget": "A$14–15", "lowMicroAud": "14000000", "highMicroAud": "15000000" },
+    { "item": "ATTACHED_STORAGE_32GB", "label": "32 GB attached storage", "planningBudget": "A$4–5", "lowMicroAud": "4000000", "highMicroAud": "5000000" },
+    { "item": "R2_PUBLIC_CORPUS", "label": "R2 public corpus", "planningBudget": "A$3–4", "lowMicroAud": "3000000", "highMicroAud": "4000000" },
+    { "item": "S3_SYDNEY_BACKUPS_PRIVATE_EXPORTS", "label": "S3 Sydney backups/private exports", "planningBudget": "A$1–2", "lowMicroAud": "1000000", "highMicroAud": "2000000" },
+    { "item": "CLOUDFLARE_PAGES_TUNNEL_FREE_EDGE", "label": "Cloudflare Pages/tunnel/free edge", "planningBudget": "A$0 target", "lowMicroAud": "0", "highMicroAud": "0" },
+    { "item": "HOSTED_MODEL_HARD_BUDGET", "label": "Hosted model hard budget", "planningBudget": "approximately A$12", "lowMicroAud": "12000000", "highMicroAud": "12000000" },
+    { "item": "DOMAIN_EMAIL_VARIANCE_RESERVE", "label": "Domain/email/variance reserve", "planningBudget": "A$8–12", "lowMicroAud": "8000000", "highMicroAud": "12000000" },
+    { "item": "TOTAL", "label": "Total", "planningBudget": "A$42–50", "lowMicroAud": "42000000", "highMicroAud": "50000000" }
+  ],
+  "closingRule": "Cloudflare Paid Workers is not a default dependency. Actual provider billing MUST be monitored; the system MUST stop before exceeding the founder-funded ceiling.",
+  "derived": {
+    "founderMonthlyCeilingMicroAud": "50000000",
+    "founderMonthlyCeilingDerivation": "Upper bound of the §24.1 Total row (A$42–50) = A$50; §42.6 names the same figure: 'The monthly A$50 ceiling'.",
+    "hostedModelHardBudgetMicroAud": "12000000",
+    "hostedModelHardBudgetDerivation": "The §24.1 'Hosted model hard budget' row, 'approximately A$12', at 1 AUD = 1 000 000 micro-AUD.",
+    "totalLowMicroAud": "42000000",
+    "totalHighMicroAud": "50000000",
+    "totalDerivation": "The §24.1 Total row 'A$42–50', low and high bound.",
+    "warningThresholdBasisPoints": "9000",
+    "warningThresholdMicroAud": "45000000",
+    "warningThresholdDerivation": "OPS-003's 90% warning: ceil(50000000 * 9000 / 10000) = 45000000 micro-AUD, computed in basis points so no float is involved."
+  },
+  "prd42_6": {
+    "prdSection": "§42.6",
+    "prdLines": "3102-3121",
+    "ceilingSentence": "The monthly A$50 ceiling is an admission-control requirement, not a spreadsheet",
+    "reserveOrder": [
+      { "position": 1, "reserveClass": "PRODUCTION_INCIDENT_OR_SAFETY_CHECK", "prdText": "production incident/synthetic safety check allowance;" },
+      { "position": 2, "reserveClass": "ACTIVE_TRIAL_COMMITMENT", "prdText": "active trial commitments;" },
+      { "position": 3, "reserveClass": "INTERNAL_TESTING", "prdText": "internal testing;" },
+      { "position": 4, "reserveClass": "DISCRETIONARY_DEEP", "prdText": "discretionary Deep runs." }
+    ],
+    "failClosedSentence": "If price or\ncurrency data is unavailable, new founder-funded calls fail closed.",
+    "byokSentence": "BYOK still records\nestimated usage/cost for visibility but does not debit founder funds."
+  }
+}
