@@ -218,21 +218,55 @@ describe('expand/contract same-release rule (PRD §39.7 step 4)', () => {
 
   it('refuses a contract migration whose expand ran in the SAME run', async () => {
     await withTempMigrations('contract', async ({ migrationsDir, databasePath }) => {
-      let thrown: unknown;
-      try {
-        await runMigrations({ databasePath, migrationsDir });
-      } catch (error) {
-        thrown = error;
-      }
-      expect(thrown).toBeInstanceOf(MigrationError);
-      expect((thrown as MigrationError).code).toBe('CONTRACT_IN_SAME_RUN');
+      const report = await runMigrations({ databasePath, migrationsDir });
+
+      // Refusal is reported, not thrown: see the mixed-batch test below for why.
+      expect(report.deferred).toEqual([
+        expect.objectContaining({ name: contractName, reason: 'CONTRACT_IN_SAME_RUN' }),
+      ]);
+      expect(report.deferred[0]?.expandedIn).toBe('20260803120000_alpha.sql');
 
       // The expand half committed; the contract half did not.
+      expect(report.applied.map((migration) => migration.name)).toEqual([
+        '0001_baseline.sql',
+        '20260803120000_alpha.sql',
+      ]);
       expect(ledger(databasePath).map((row) => row.name)).toEqual([
         '0001_baseline.sql',
         '20260803120000_alpha.sql',
       ]);
       expect(tableNames(databasePath)).toContain('fixture_alpha');
+    });
+  });
+
+  it('applies an unrelated later expand in the same batch as a refused contract migration', async () => {
+    // Breakdown plan §2.1 A5 lets DATA-04…DATA-07 author migrations concurrently, so a run is
+    // routinely a MIXED batch. Aborting the run on the first ungated contract migration would stop
+    // every unrelated migration sorting after it — re-serialising exactly what A5 exists to keep
+    // parallel. The refusal must be scoped to the file it is about.
+    await withTempMigrations('contract-mixed', async ({ migrationsDir, databasePath }) => {
+      const report = await runMigrations({ databasePath, migrationsDir });
+
+      expect(report.deferred.map((migration) => migration.name)).toEqual([contractName]);
+      expect(report.applied.map((migration) => migration.name)).toEqual([
+        '0001_baseline.sql',
+        '20260803120000_alpha.sql',
+        '20260803140000_gamma.sql',
+      ]);
+
+      const tables = tableNames(databasePath);
+      expect(tables).toContain('fixture_alpha'); // the contract migration did NOT drop it
+      expect(tables).toContain('fixture_gamma'); // the unrelated expand still landed
+      expect(report.head).toBe('20260803140000_gamma.sql');
+
+      // Still pending, so a status call and RUNT-08 readiness both keep saying so.
+      expect(migrationStatus(databasePath, migrationsDir).pending).toEqual([contractName]);
+
+      // ...and the next run, under a new run id, applies it without any file changing.
+      const second = await runMigrations({ databasePath, migrationsDir });
+      expect(second.deferred).toEqual([]);
+      expect(second.applied.map((migration) => migration.name)).toEqual([contractName]);
+      expect(tableNames(databasePath)).not.toContain('fixture_alpha');
     });
   });
 
@@ -261,15 +295,29 @@ describe('expand/contract same-release rule (PRD §39.7 step 4)', () => {
   });
 
   it('refuses a contract migration whose expand was never applied', async () => {
-    await withTempMigrations(
-      'contract',
-      async ({ migrationsDir, databasePath }) => {
-        rmSync(join(migrationsDir, '20260803120000_alpha.sql'));
-        await expect(runMigrations({ databasePath, migrationsDir })).rejects.toThrowError(
-          expect.objectContaining({ code: 'CONTRACT_EXPAND_NOT_APPLIED' }),
-        );
-      },
-    );
+    await withTempMigrations('contract', async ({ migrationsDir, databasePath }) => {
+      rmSync(join(migrationsDir, '20260803120000_alpha.sql'));
+      const report = await runMigrations({ databasePath, migrationsDir });
+
+      expect(report.deferred).toEqual([
+        expect.objectContaining({ name: contractName, reason: 'CONTRACT_EXPAND_NOT_APPLIED' }),
+      ]);
+      expect(report.applied.map((migration) => migration.name)).toEqual(['0001_baseline.sql']);
+      // Refusing must never look like success to a caller that only checks `applied`.
+      expect(migrationStatus(databasePath, migrationsDir).pending).toEqual([contractName]);
+    });
+  });
+
+  it('leaves `deferred` empty on every run that has nothing to refuse', async () => {
+    // The negative control for the two tests above: `deferred` is a signal, so it must not be
+    // permanently non-empty (or permanently empty) by construction.
+    await withTempMigrations('good', async ({ migrationsDir, databasePath }) => {
+      const first = await runMigrations({ databasePath, migrationsDir });
+      expect(first.deferred).toEqual([]);
+      const second = await runMigrations({ databasePath, migrationsDir });
+      expect(second.deferred).toEqual([]);
+      expect(second.applied).toEqual([]);
+    });
   });
 
   it('refuses an expand migration containing a destructive construct', async () => {

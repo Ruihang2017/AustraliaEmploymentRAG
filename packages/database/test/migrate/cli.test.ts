@@ -93,6 +93,25 @@ describe('the db:* scripts (DATA-01 deliverable 11, PRD §20.3)', () => {
     });
   });
 
+  it('exits non-zero when the expand/contract gate defers a migration, and still applies the rest', async () => {
+    // The runner reports a refused contract migration instead of throwing, so that an unrelated
+    // migration in the same batch still lands. The exit code is therefore the ONLY thing standing
+    // between "one migration was deliberately withheld" and a release script reporting success.
+    await withTempMigrations('contract-mixed', ({ migrationsDir, databasePath }) => {
+      const result = cli(['migrate', '--database', databasePath, '--migrations', migrationsDir]);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('CONTRACT_IN_SAME_RUN');
+      expect(result.stderr).toContain('database is NOT at head');
+      // The unrelated expand migration was still applied.
+      expect(result.stdout).toContain('+ 20260803140000_gamma.sql [expand]');
+
+      // The second invocation clears the deferral and therefore exits 0.
+      const second = cli(['migrate', '--database', databasePath, '--migrations', migrationsDir]);
+      expect(second.status, second.stderr).toBe(0);
+      expect(second.stdout).toContain('+ 20260803130000_alpha-contract.sql [contract]');
+    });
+  });
+
   it('exits 2 on an unknown command and 0 on --help', () => {
     expect(cli(['no-such-command']).status).toBe(2);
     expect(cli(['--help']).status).toBe(0);

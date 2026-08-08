@@ -88,6 +88,18 @@ async function commandMigrate(flags) {
     console.log(`out of order: ${report.outOfOrder.join(', ')}`);
   }
   console.log(`head:     ${report.head ?? '<none>'}`);
+
+  // A deferred contract migration means the database is deliberately not at head. The runner does not
+  // throw for it — an unrelated expand in the same batch must still land (see runner.ts) — so this is
+  // the loud operator signal, and it has to be an exit code: a release script that only checks for a
+  // thrown error would otherwise report success on a half-applied release.
+  if (report.deferred.length > 0) {
+    console.error(`deferred: ${report.deferred.length} (database is NOT at head)`);
+    for (const migration of report.deferred) {
+      console.error(`  ! ${migration.name} [${migration.reason}] ${migration.detail}`);
+    }
+    return 1;
+  }
   return 0;
 }
 

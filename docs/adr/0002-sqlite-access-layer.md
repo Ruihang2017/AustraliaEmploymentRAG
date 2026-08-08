@@ -133,17 +133,37 @@ This section records a settled decision. It is not an open comparison and is not
    build, use the shipped prebuild. `true` would put a C++ toolchain on the critical path of every
    developer machine and CI runner for no gain.
 
-   That key is the one root-file change `DATA-01` makes, and it is outside the ticket's stated
-   file-scope. It is recorded here rather than quietly: it is a mechanical consequence of declaring
-   the dependency, in the same class as the regenerated `pnpm-lock.yaml` the ticket already
-   anticipates, and without it no install in this repository can produce a working
-   `packages/database`. If `00-foundation` would rather own it, the fix is to move the key, not to
-   remove it.
+   That key is the one root-file change `DATA-01` makes, and it is **outside the ticket's stated
+   file-scope**, which assigns root manifests to `00-foundation`. It is not recorded here as a
+   settled thing: it is raised as an open escalation, **M-Q4** in `docs/prd/01-app-data/README.md`,
+   under the ticket's Feedback obligation, and `00-foundation` or the Architect decides where the key
+   lives. What was measured, so that decision is not re-derived:
 
-   The equally-viable alternative, `better-sqlite3@12.11.1` with `allowBuilds: true`, was measured
-   and rejected: 12.x runs `prebuild-install` from an `install` script, which reaches GitHub releases
-   over the network at install time and falls back to `node-gyp` when that fetch fails. 13.x needs
-   neither.
+   - a cold `pnpm install --frozen-lockfile` with `better-sqlite3` declared and no root build policy
+     exits 1 with `ERR_PNPM_IGNORED_BUILDS`; the workspace does not install at all;
+   - the two in-file-scope alternatives were tried and neither suppresses it —
+     `dependenciesMeta: { better-sqlite3: { built: false } }` in `packages/database/package.json`
+     (accepted into the lockfile, still fails the install) and a `pnpm` block in the same manifest.
+     pnpm reads the build policy from the workspace root only;
+   - **both** candidate versions trip it, so this is not a consequence of the version choice below:
+     `12.11.1` would need `allowBuilds: true`, `13.0.3` needs `allowBuilds: false`.
+
+   The key therefore stays until the escalation is answered — removing it makes every install in the
+   repository fail, which is strictly worse than a declared exception —
+   and `packages/database/test/migrate/file-scope.test.ts` bounds it to one key with one entry and
+   fails if the M-Q4 record is ever deleted.
+
+   **Recorded deviation from the implementation plan's pin.** The plan for this ticket pinned
+   `12.11.1` and said not to float it. The shipped pin is `13.0.3`, and the reason is not preference:
+   12.x runs `prebuild-install` from an `install` script, which reaches GitHub releases over the
+   network at install time and falls back to `node-gyp` when that fetch fails — the same `node-gyp`
+   path the plan itself measured as broken on the founder's workstation (`MSB8020`, no ClangCL
+   toolset). 13.x declares no install script at all, so the install is hermetic and offline-capable
+   and the build policy can be `false` rather than `true`. Both versions satisfy the ticket, which
+   names no version and asks only that the verified pair be recorded rather than floated; that pair
+   is recorded above. `file-scope.test.ts` pins the property the choice rests on — the resolved
+   package declares no `preinstall`/`install`/`postinstall`/`prepare` script — so a future bump that
+   reintroduces one fails a test instead of silently making CI network-dependent.
 7. **(vii)** Triggers, CHECK constraints and composite tenant foreign keys stay in SQL, which is what
    keeps PRD §35.8 invariants 4 and 5 **structural** rather than conventional. `DATA-02` deliverable
    5, `DATA-06` and `DATA-09` depend on that.
@@ -195,12 +215,29 @@ This section records a settled decision. It is not an open comparison and is not
     forward-only — add a new migration — which is the same discipline PRD §20.4 already imposes.
     `RLSE-05` inherits this as a decision rather than a surprise; if an exclusive whole-run lock ever
     turns out to be required, that is a new `docs/adr/NNNN-migration-locking.md`, not a local change.
-12. **(xii)** **The same-run contract gate refuses, it does not defer.** A `-- aer:phase contract`
-    migration whose `-- aer:expanded-in` target was applied by the current `run_id` raises
-    `CONTRACT_IN_SAME_RUN` and stops the run. Because each migration commits in its own transaction
-    (xi), the expand it names has already landed, so the very next invocation — a different `run_id` —
-    applies the contract migration cleanly. This is the mechanical form of PRD §39.7 step 4, and its
-    operational consequence is explicit: a release that ships an expand and its contract together
-    needs `db:migrate` run twice. If a deployment must apply everything in one invocation, the
-    alternative gate is a release-id header rather than `run_id`, and that is a ticket writeback to
-    `DATA-01` deliverable 6 and sub-PRD **D2** — not a quiet change in `policy.ts`.
+12. **(xii)** **The same-run contract gate refuses one file; it does not abort the run.** A
+    `-- aer:phase contract` migration whose `-- aer:expanded-in` target was applied by the current
+    `run_id` — or was never applied at all — is **skipped** and reported in `MigrationReport.deferred`
+    with the reason code it would otherwise have thrown. The run continues with the remaining
+    migrations. This is the mechanical form of PRD §39.7 step 4, and the *scope* of the refusal is the
+    load-bearing part:
+
+    A run is a **mixed batch**. Under breakdown plan §2.1 **A5**, `DATA-04`…`DATA-07` author
+    timestamp-prefixed migrations concurrently and lexicographic order interleaves them, so one
+    module's not-yet-releasable contract migration routinely sits *between* another module's
+    migrations. Aborting the run on it would withhold every unrelated migration sorting after it and
+    re-serialise exactly what A5 exists to keep parallel. Skipping is safe because each migration
+    commits in its own transaction (xi) — there is nothing to roll back — and because a contract
+    migration only removes what an already-applied expand superseded, so no later migration can depend
+    on it having run.
+
+    The refusal is not silent, and the signal is an exit code rather than an exception: `pnpm
+    db:migrate` prints each deferral and **exits non-zero** whenever `deferred` is non-empty, so a
+    release script that only watches for a thrown error cannot report success on a deliberately
+    half-applied release. `migrationStatus` keeps listing the file as pending and
+    `assertSchemaUpToDate` keeps failing, so `RUNT-08` readiness (PRD §42.1) does not go green either.
+
+    The operational consequence is unchanged and explicit: a release that ships an expand and its
+    contract together needs `db:migrate` run twice. If a deployment must apply everything in one
+    invocation, the alternative gate is a release-id header rather than `run_id`, and that is a ticket
+    writeback to `DATA-01` deliverable 6 and sub-PRD **D2** — not a quiet change in `policy.ts`.

@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 
-import { MigrationError } from './errors.js';
+import { MigrationError, type MigrationErrorCode } from './errors.js';
 import { assertUniquePrefixes, parseMigrationFilename, sortMigrationNames } from './naming.js';
 import { APP_SQLITE_BUSY_TIMEOUT_MS, applyAppPragmas } from './pragmas.js';
 import { assertExpandOnly, parseMigrationHeader, type MigrationPhase } from './policy.js';
@@ -43,6 +43,20 @@ export interface AppliedMigration {
   phase: MigrationPhase;
 }
 
+/**
+ * A pending contract migration this run refused to apply.
+ *
+ * `reason` is the `MigrationErrorCode` the refusal would have carried had it been thrown, so a caller
+ * branches on the same constant either way.
+ */
+export interface DeferredMigration {
+  name: string;
+  reason: Extract<MigrationErrorCode, 'CONTRACT_IN_SAME_RUN' | 'CONTRACT_EXPAND_NOT_APPLIED'>;
+  /** The `-- aer:expanded-in` target the refusal is about. */
+  expandedIn: string;
+  detail: string;
+}
+
 export interface MigrationReport {
   runId: string;
   databasePath: string;
@@ -50,6 +64,11 @@ export interface MigrationReport {
   head: string | null;
   /** Files applied in this run that sort *before* a migration already applied (breakdown plan A5). */
   outOfOrder: string[];
+  /**
+   * Contract migrations the expand/contract gate refused (PRD §39.7 step 4). Non-empty means the
+   * database is deliberately **not** at head, and `pnpm db:migrate` exits non-zero.
+   */
+  deferred: DeferredMigration[];
   recoveryPoint: { id: string; takenAt: string } | null;
   durationMs: number;
 }
@@ -164,6 +183,16 @@ function isBusy(error: unknown): boolean {
  *     migration is applied;
  *  4. each pending migration is applied inside its own `BEGIN IMMEDIATE` transaction together with
  *     its ledger row.
+ *
+ * A contract migration whose `-- aer:expanded-in` gate is not satisfied is **skipped and reported in
+ * `report.deferred`**, not thrown. Throwing would abort the whole run, and under breakdown plan §2.1
+ * A5 a run is a *mixed batch*: `DATA-04`…`DATA-07` author independently, so one module's
+ * not-yet-releasable contract migration would otherwise block every unrelated expand migration that
+ * happens to sort after it — turning concurrent authoring back into a chain. Skipping is safe because
+ * each migration commits in its own transaction (nothing to roll back) and a contract migration only
+ * *removes* what an already-applied expand superseded, so no later migration can depend on it having
+ * run. The refusal is not silent: `report.deferred` carries the reason and `pnpm db:migrate` exits
+ * non-zero, and the next invocation — a new `run_id` — applies it.
  */
 export async function runMigrations(options: RunMigrationsOptions): Promise<MigrationReport> {
   const startedAt = performance.now();
@@ -191,6 +220,7 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<Migr
   const db = openDatabase(options.databasePath);
   const applied: AppliedMigration[] = [];
   const outOfOrder: string[] = [];
+  const deferred: DeferredMigration[] = [];
 
   try {
     // 3. Ledger + tamper check.
@@ -231,20 +261,25 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<Migr
         const target = header.expandedIn as string;
         const expandRow = ledger.get(target);
         if (!expandRow) {
-          throw new MigrationError(
-            'CONTRACT_EXPAND_NOT_APPLIED',
-            `${name} contracts ${target}, which has never been applied`,
-            { name },
-          );
+          deferred.push({
+            name,
+            reason: 'CONTRACT_EXPAND_NOT_APPLIED',
+            expandedIn: target,
+            detail: `${name} contracts ${target}, which has never been applied`,
+          });
+          continue;
         }
         if (expandRow.run_id === runId) {
-          throw new MigrationError(
-            'CONTRACT_IN_SAME_RUN',
-            `${name} contracts ${target}, which this same run (${runId}) applied; a contract ` +
+          deferred.push({
+            name,
+            reason: 'CONTRACT_IN_SAME_RUN',
+            expandedIn: target,
+            detail:
+              `${name} contracts ${target}, which this same run (${runId}) applied; a contract ` +
               'migration must ship in a later release than the expand it supersedes (PRD §39.7 ' +
-              'step 4)',
-            { name },
-          );
+              'step 4). Re-run `pnpm db:migrate` to apply it under a new run id.',
+          });
+          continue;
         }
       }
 
@@ -268,6 +303,7 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<Migr
       applied,
       head,
       outOfOrder,
+      deferred,
       recoveryPoint,
       durationMs: Math.round(performance.now() - startedAt),
     };
