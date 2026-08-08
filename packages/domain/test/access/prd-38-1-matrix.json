@@ -1,0 +1,512 @@
+{
+  "$comment": [
+    "FND-06 deliverable 8 — the PRD section 38.1 role matrix transcribed VERBATIM from docs/PRD.md,",
+    "so the 84-cell replay asserts against the PRD’s own words rather than against the",
+    "implementation’s reading of them.",
+    "",
+    "`prdText` is the exact cell string, tick and em dash included; `prdRowLine` is the whole markdown",
+    "row. `prd-38-1-transcription.test.ts` rebuilds every row line from `prdAction` + the six",
+    "`prdText` values and asserts docs/PRD.md contains it, so this file cannot drift from the PRD.",
+    "",
+    "`kind`, `condition` and `reason` are the READING of that text, and",
+    "packages/domain/src/access/matrix.ts must agree cell for cell — matrix-replay.test.ts asserts the",
+    "agreement in both directions, so neither side can drift from the other either.",
+    "",
+    "Row order is PRD row order and equals PERMISSION_VALUES order (FND-03). Column order is PRD",
+    "column order: the five roles, then the service account.",
+    "",
+    "Flattening a conditional cell to ALLOW/DENY, renaming a member or dropping a cell is a product",
+    "change (PRD section 45.5), not a refactor."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "38.1 Role matrix",
+  "heading": "### 38.1 Role matrix",
+  "ownParagraphLines": [
+    "`Own` below means a record owned by or explicitly shared with the member inside",
+    "the same organisation; the MVP has no external/public sharing."
+  ],
+  "headerLine": "| Action | Owner | Admin | Researcher | Viewer | Developer | Service account |",
+  "separatorLine": "|---|:---:|:---:|:---:|:---:|:---:|:---:|",
+  "columns": [
+    "OWNER",
+    "ADMIN",
+    "RESEARCHER",
+    "VIEWER",
+    "DEVELOPER",
+    "SERVICE_ACCOUNT"
+  ],
+  "prdColumnLabels": [
+    "Owner",
+    "Admin",
+    "Researcher",
+    "Viewer",
+    "Developer",
+    "Service account"
+  ],
+  "rows": [
+    {
+      "permission": "CORPUS_SEARCH_READ",
+      "prdAction": "Search/read public corpus",
+      "prdRowLine": "| Search/read public corpus | ✓ | ✓ | ✓ | ✓ | ✓ | scoped |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "VIEWER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "DEVELOPER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "kind": "CONDITIONAL",
+          "condition": "SCOPE_GRANTED"
+        }
+      }
+    },
+    {
+      "permission": "ANSWER_CREATE",
+      "prdAction": "Create Answer/Coverage/Compare",
+      "prdRowLine": "| Create Answer/Coverage/Compare | ✓ | ✓ | ✓ | — | — by default | scoped |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "— by default",
+          "kind": "CONDITIONAL",
+          "condition": "OFF_BY_DEFAULT_GRANTABLE"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "kind": "CONDITIONAL",
+          "condition": "SCOPE_GRANTED"
+        }
+      }
+    },
+    {
+      "permission": "RESEARCH_RECORD_READ_WRITE_OWN",
+      "prdAction": "Create/read own Research Records",
+      "prdRowLine": "| Create/read own Research Records | ✓ | ✓ | ✓ | read shared | — by default | scoped |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "VIEWER": {
+          "prdText": "read shared",
+          "kind": "CONDITIONAL",
+          "condition": "SHARED_WITH_MEMBER"
+        },
+        "DEVELOPER": {
+          "prdText": "— by default",
+          "kind": "CONDITIONAL",
+          "condition": "OFF_BY_DEFAULT_GRANTABLE"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "kind": "CONDITIONAL",
+          "condition": "SCOPE_GRANTED"
+        }
+      }
+    },
+    {
+      "permission": "RESEARCH_RECORD_REVIEW_COMMENT",
+      "prdAction": "Review/comment shared records",
+      "prdRowLine": "| Review/comment shared records | ✓ | ✓ | ✓ if assigned | comment if granted | — | scoped if granted |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓ if assigned",
+          "kind": "CONDITIONAL",
+          "condition": "ASSIGNED_REVIEWER"
+        },
+        "VIEWER": {
+          "prdText": "comment if granted",
+          "kind": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped if granted",
+          "kind": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "EXPORT_CREATE",
+      "prdAction": "Export accessible records",
+      "prdRowLine": "| Export accessible records | ✓ | ✓ | ✓ | read-only export if granted | — | scoped |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "VIEWER": {
+          "prdText": "read-only export if granted",
+          "kind": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "kind": "CONDITIONAL",
+          "condition": "SCOPE_GRANTED"
+        }
+      }
+    },
+    {
+      "permission": "WATCHLIST_CREATE",
+      "prdAction": "Create watchlists",
+      "prdRowLine": "| Create watchlists | ✓ | ✓ | ✓ | — | — | scoped |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "kind": "CONDITIONAL",
+          "condition": "SCOPE_GRANTED"
+        }
+      }
+    },
+    {
+      "permission": "MEMBERSHIP_MANAGE",
+      "prdAction": "Manage members/invitations",
+      "prdRowLine": "| Manage members/invitations | ✓ | ✓ except Owner constraints | — | — | — | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓ except Owner constraints",
+          "kind": "CONDITIONAL",
+          "condition": "OWNER_CONSTRAINTS"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "MEMBERSHIP_ROLE_CHANGE",
+      "prdAction": "Change roles/remove members",
+      "prdRowLine": "| Change roles/remove members | ✓ | ✓ cannot remove/change last Owner | — | — | — | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓ cannot remove/change last Owner",
+          "kind": "CONDITIONAL",
+          "condition": "LAST_OWNER_IMMUTABLE"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "ORGANIZATION_RETENTION_CONFIGURE",
+      "prdAction": "Configure retention/closure",
+      "prdRowLine": "| Configure retention/closure | ✓ | — | — | — | — | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "ORGANIZATION_SECURITY_CONFIGURE",
+      "prdAction": "Configure SSO/enforce MFA",
+      "prdRowLine": "| Configure SSO/enforce MFA | ✓ | ✓ | — | — | — | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "SERVICE_ACCOUNT_MANAGE",
+      "prdAction": "Manage service accounts/webhooks/widget",
+      "prdRowLine": "| Manage service accounts/webhooks/widget | ✓ | ✓ | — | — | ✓ within granted developer permission | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "✓ within granted developer permission",
+          "kind": "CONDITIONAL",
+          "condition": "DEVELOPER_PERMISSION_GRANTED"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "USAGE_VIEW",
+      "prdAction": "View organisation usage",
+      "prdRowLine": "| View organisation usage | ✓ | ✓ | own usage | — | API/service usage subset | own usage |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "RESEARCHER": {
+          "prdText": "own usage",
+          "kind": "CONDITIONAL",
+          "condition": "OWN_RESOURCE_ONLY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "API/service usage subset",
+          "kind": "CONDITIONAL",
+          "condition": "USAGE_SUBSET"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "own usage",
+          "kind": "CONDITIONAL",
+          "condition": "OWN_RESOURCE_ONLY"
+        }
+      }
+    },
+    {
+      "permission": "AUDIT_EVENT_VIEW",
+      "prdAction": "View audit/security events",
+      "prdRowLine": "| View audit/security events | ✓ | ✓ limited | — | — | credential events only | — |",
+      "cells": {
+        "OWNER": {
+          "prdText": "✓",
+          "kind": "ALLOW"
+        },
+        "ADMIN": {
+          "prdText": "✓ limited",
+          "kind": "CONDITIONAL",
+          "condition": "LIMITED_SUBSET"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY"
+        },
+        "DEVELOPER": {
+          "prdText": "credential events only",
+          "kind": "CONDITIONAL",
+          "condition": "CREDENTIAL_EVENTS_ONLY"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "—",
+          "kind": "DENY"
+        }
+      }
+    },
+    {
+      "permission": "INTERNAL_ADMIN",
+      "prdAction": "Internal source/release/incident admin",
+      "prdRowLine": "| Internal source/release/incident admin | — | — | — | — | — | separate internal identity only |",
+      "cells": {
+        "OWNER": {
+          "prdText": "—",
+          "kind": "DENY",
+          "reason": "SEPARATE_INTERNAL_IDENTITY_REQUIRED"
+        },
+        "ADMIN": {
+          "prdText": "—",
+          "kind": "DENY",
+          "reason": "SEPARATE_INTERNAL_IDENTITY_REQUIRED"
+        },
+        "RESEARCHER": {
+          "prdText": "—",
+          "kind": "DENY",
+          "reason": "SEPARATE_INTERNAL_IDENTITY_REQUIRED"
+        },
+        "VIEWER": {
+          "prdText": "—",
+          "kind": "DENY",
+          "reason": "SEPARATE_INTERNAL_IDENTITY_REQUIRED"
+        },
+        "DEVELOPER": {
+          "prdText": "—",
+          "kind": "DENY",
+          "reason": "SEPARATE_INTERNAL_IDENTITY_REQUIRED"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "separate internal identity only",
+          "kind": "CONDITIONAL",
+          "condition": "SEPARATE_INTERNAL_IDENTITY"
+        }
+      }
+    }
+  ],
+  "closingRuleLines": [
+    "All checks are permission checks plus resource membership; a role alone never",
+    "authorises a record from another organisation."
+  ]
+}
