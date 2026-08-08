@@ -1,0 +1,4 @@
+# INGF-01, mirroring the CRPS-01/CRPS-03 precedent. Keep LF in the working tree (git
+# core.autocrlf=true would otherwise rewrite these on a Windows checkout, and envelope rendering is
+# asserted byte-for-byte).
+* text eol=lf
