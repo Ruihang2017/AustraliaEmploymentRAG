@@ -37,8 +37,29 @@ describe('root scripts (FND-01 deliverable 2)', () => {
     expect(owners.owners['stack:down']).toEqual({ ticket: 'RUNT-09', module: '03-app-runtime' });
     expect(owners.owners['eval:smoke']).toEqual({ ticket: 'GOLD-03', module: '21-evaluation-600' });
     expect(owners.owners['test:integration']).toEqual({ ticket: 'ASSR-*', module: '23-assurance' });
-    expect(owners.owners.generate).toEqual({ ticket: 'FND-04/FND-05', module: '00-foundation' });
-    expect(owners.owners['generated:check']).toEqual({ ticket: 'FND-04/FND-05', module: '00-foundation' });
+  });
+
+  // FND-04 / sub-PRD D22. `generate` and `generated:check` used to be asserted here as *unimplemented*,
+  // owner `FND-04/FND-05` — a bootstrap snapshot promoted to a repository-wide invariant that the very
+  // ticket named as owner could not satisfy (FND-04 deliverable 7 requires packages/contracts to provide
+  // exactly these two names). Naming them something else would leave root `pnpm generate` delegating to
+  // nothing and make DEV-001's "generated-client diff is clean in CI" evidence vacuous. The weaker
+  // assertion is therefore replaced by a stronger one, not deleted: the delegation must be real.
+  // PRD §45.3 is why they stay in `rootScripts` — a command is never removed from the list, only
+  // implemented. `toContain`, not `toEqual`, so FND-05 adding a second provider does not break this.
+  it.each(['generate', 'generated:check'])(
+    '`%s` is implemented by a real workspace provider, so root delegation is not vacuous',
+    (name) => {
+      expect(Object.keys(owners.owners)).not.toContain(name);
+      expect(owners.rootScripts).toContain(name);
+      expect(membersProviding(name)).toContain('packages/contracts');
+    },
+  );
+
+  it('runs the delegated generator for real: `generate` then `generated:check` exit 0', () => {
+    expect(runScriptWrapper('generate').status).toBe(0);
+    const check = runScriptWrapper('generated:check');
+    expect(check.status, `${check.stdout}\n${check.stderr}`).toBe(0);
   });
 
   it.each(Object.keys(owners.owners))(
