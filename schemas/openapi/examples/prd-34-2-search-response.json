@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "request_id": "req_...",
+  "search_execution_id": "srx_...",
+  "corpus_release_id": "cr_...",
+  "legal_as_at": "2026-08-03",
+  "applied_filters": {
+    "jurisdictions": [
+      "CTH",
+      "VIC"
+    ],
+    "legal_statuses": [
+      "IN_FORCE"
+    ]
+  },
+  "results": [
+    {
+      "document_id": "doc_...",
+      "document_version_id": "dv_...",
+      "node_id": "node_...",
+      "node_version_id": "nv_...",
+      "title": "Official source title",
+      "document_type": "ACT",
+      "authority": {
+        "id": "auth_...",
+        "name": "Official authority"
+      },
+      "jurisdictions": [
+        "CTH"
+      ],
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-07-01",
+      "effective_to": null,
+      "pinpoint": "s 94(5)",
+      "snippet": {
+        "text": "Exact source text…",
+        "start_offset": 120,
+        "end_offset": 198
+      },
+      "match_reasons": [
+        "EXACT_PROVISION",
+        "LEXICAL"
+      ],
+      "freshness": "CURRENT",
+      "official_url": "https://official.example/..."
+    }
+  ],
+  "next_cursor": null,
+  "warnings": []
+}

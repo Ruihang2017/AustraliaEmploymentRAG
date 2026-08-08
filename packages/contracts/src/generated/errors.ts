@@ -1,0 +1,73 @@
+// GENERATED FROM schemas/openapi/openapi.yaml — DO NOT EDIT (PRD §20.1)
+// Regenerate with `pnpm generate`; `pnpm generated:check` fails on a hand edit.
+
+import type { Error as ApiErrorObject, ErrorResponse } from './schemas.js';
+
+/** PRD §34.9, the complete error catalogue. */
+export type ErrorCode =
+  | "AUTHENTICATION_REQUIRED"
+  | "CONCURRENT_MODIFICATION"
+  | "CORPUS_INCOMPATIBLE"
+  | "CREDIT_LIMIT_REACHED"
+  | "EMPLOYEE_PII_DETECTED"
+  | "EPHEMERAL_CONTENT_EXPIRED"
+  | "GENERATION_UNAVAILABLE"
+  | "IDEMPOTENCY_CONFLICT"
+  | "INTERNAL_ERROR"
+  | "INVALID_ABN"
+  | "INVALID_LEGAL_DATE"
+  | "INVALID_REQUEST"
+  | "MFA_REQUIRED"
+  | "RATE_LIMITED"
+  | "RECENT_AUTH_REQUIRED"
+  | "RESOURCE_NOT_FOUND"
+  | "SOURCE_NOT_CURRENT";
+
+/** PRD §16.1 uniform error shape. */
+export type ApiError = ApiErrorObject;
+export type ApiErrorResponse = ErrorResponse;
+
+/** The exact HTTP status PRD §34.9 assigns each code. */
+export const errorHttpStatusByCode: Readonly<Record<ErrorCode, number>> = {
+  AUTHENTICATION_REQUIRED: 401,
+  CONCURRENT_MODIFICATION: 409,
+  CORPUS_INCOMPATIBLE: 503,
+  CREDIT_LIMIT_REACHED: 429,
+  EMPLOYEE_PII_DETECTED: 422,
+  EPHEMERAL_CONTENT_EXPIRED: 410,
+  GENERATION_UNAVAILABLE: 503,
+  IDEMPOTENCY_CONFLICT: 409,
+  INTERNAL_ERROR: 500,
+  INVALID_ABN: 400,
+  INVALID_LEGAL_DATE: 400,
+  INVALID_REQUEST: 400,
+  MFA_REQUIRED: 403,
+  RATE_LIMITED: 429,
+  RECENT_AUTH_REQUIRED: 403,
+  RESOURCE_NOT_FOUND: 404,
+  SOURCE_NOT_CURRENT: 503,
+} as const;
+
+/** The PRD §34.9 Retry column, reduced to a boolean (sub-PRD D7). */
+export const errorRetryableByCode: Readonly<Record<ErrorCode, boolean>> = {
+  AUTHENTICATION_REQUIRED: true,
+  CONCURRENT_MODIFICATION: true,
+  CORPUS_INCOMPATIBLE: false,
+  CREDIT_LIMIT_REACHED: true,
+  EMPLOYEE_PII_DETECTED: true,
+  EPHEMERAL_CONTENT_EXPIRED: false,
+  GENERATION_UNAVAILABLE: true,
+  IDEMPOTENCY_CONFLICT: false,
+  INTERNAL_ERROR: true,
+  INVALID_ABN: false,
+  INVALID_LEGAL_DATE: false,
+  INVALID_REQUEST: false,
+  MFA_REQUIRED: true,
+  RATE_LIMITED: true,
+  RECENT_AUTH_REQUIRED: true,
+  RESOURCE_NOT_FOUND: false,
+  SOURCE_NOT_CURRENT: false,
+} as const;
+
+/** Every code, in PRD §34.9 identifier order. */
+export const errorCodes: readonly ErrorCode[] = ["AUTHENTICATION_REQUIRED", "CONCURRENT_MODIFICATION", "CORPUS_INCOMPATIBLE", "CREDIT_LIMIT_REACHED", "EMPLOYEE_PII_DETECTED", "EPHEMERAL_CONTENT_EXPIRED", "GENERATION_UNAVAILABLE", "IDEMPOTENCY_CONFLICT", "INTERNAL_ERROR", "INVALID_ABN", "INVALID_LEGAL_DATE", "INVALID_REQUEST", "MFA_REQUIRED", "RATE_LIMITED", "RECENT_AUTH_REQUIRED", "RESOURCE_NOT_FOUND", "SOURCE_NOT_CURRENT"] as const;

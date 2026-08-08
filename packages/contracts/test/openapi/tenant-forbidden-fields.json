@@ -1,0 +1,63 @@
+{
+  "$comment": [
+    "FND-04 acceptance item 9. PRD 34.1: \"Tenant | Never accepted in a request body; derived from",
+    "authenticated session/key/widget token.\" PRD 16.5: \"authenticate -> resolve organisation ->",
+    "verify membership/service account -> evaluate permission -> perform tenant-scoped lookup. Other-",
+    "tenant and absent opaque IDs return the same not-found response.\"",
+    "",
+    "Everything downstream — DATA-02's tenant-scoped repositories, RUNT-02's admission chain,",
+    "SEC-001 — assumes the CONTRACT never lets a client name an organisation. This denylist is the",
+    "contract-level half of that guarantee.",
+    "",
+    "`requestFieldNames` are matched case-insensitively against: every operation parameter name (path,",
+    "query, header AND cookie, including $ref'd ones), and every request-body property name, walked",
+    "RECURSIVELY through $ref, allOf/anyOf/oneOf and array items with cycle protection. A scan that",
+    "only reads top-level path parameters discharges nothing, which is why",
+    "test/openapi/tenant-leak.test.ts ships a positive control with a forbidden name nested three",
+    "levels inside a request body behind a $ref.",
+    "",
+    "`securitySchemeNames` are matched against every apiKey security scheme's `name`: a scheme that",
+    "read an organisation from a header or cookie would be the same leak by another route.",
+    "",
+    "`secretResponseFieldNames` is the PRD 16.4 half — \"Keys are displayed only on entry, decrypted",
+    "only inside the Model Gateway and excluded from logs/exports/support\" — matched against every",
+    "RESPONSE schema property name. `codes` (recovery codes, PRD 16.3) is deliberately absent: those",
+    "are returned exactly once at generation, which is the display-on-entry rule, not a violation."
+  ],
+  "requestFieldNames": [
+    "organisation",
+    "organisation_id",
+    "organisationId",
+    "organization",
+    "organization_id",
+    "organizationId",
+    "org",
+    "org_id",
+    "orgId",
+    "tenant",
+    "tenant_id",
+    "tenantId",
+    "workspace_id",
+    "workspaceId",
+    "account_id",
+    "customer_id"
+  ],
+  "securitySchemeNames": [
+    "X-Organisation-Id",
+    "X-Organization-Id",
+    "X-Tenant-Id",
+    "organisation_id",
+    "organization_id",
+    "tenant_id"
+  ],
+  "secretResponseFieldNames": [
+    "secret",
+    "client_secret",
+    "password",
+    "private_key",
+    "signing_secret",
+    "credential_value",
+    "byok_key",
+    "provider_key"
+  ]
+}

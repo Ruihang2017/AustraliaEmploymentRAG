@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "id": "ans_...",
+  "record_id": "rec_...",
+  "answer_version": 2,
+  "status": "CONDITIONAL",
+  "short_answer": "It depends on the unresolved facts listed below.",
+  "legal_as_at": "2026-08-03",
+  "knowledge_cutoff_at": "2026-08-03T02:51:00Z",
+  "jurisdictions": [
+    "CTH",
+    "VIC"
+  ],
+  "corpus_release_id": "cr_...",
+  "claims": [
+    {
+      "id": "clm_...",
+      "sequence": 1,
+      "kind": "APPLICATION",
+      "text": "Conditional application stated in customer-readable English.",
+      "support_status": "CONDITIONAL",
+      "citation_ids": [
+        "cit_..."
+      ],
+      "assumption_ids": [
+        "asm_..."
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "id": "cit_...",
+      "role": "SUPPORTS",
+      "document_version_id": "dv_...",
+      "node_version_id": "nv_...",
+      "pinpoint": "cl 4.1",
+      "quote": "Exact permitted source excerpt…",
+      "start_offset": 44,
+      "end_offset": 92,
+      "official_url": "https://official.example/...",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-07-01",
+      "effective_to": null
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "asm_...",
+      "text": "The employer is a constitutional corporation.",
+      "source": "USER_NOT_CONFIRMED",
+      "impact_if_false": "The workplace-relations system and applicable instruments may differ."
+    }
+  ],
+  "next_checks": [
+    "Confirm the unresolved employer fact."
+  ],
+  "limitations": [
+    "No customer contract or employee record was reviewed."
+  ],
+  "correction_state": "NONE",
+  "created_at": "2026-08-03T03:00:12Z"
+}

@@ -97,6 +97,27 @@ enforceable rather than aspirational.
 - The Python generated core (DEV-001's other half) is `20-developer-platform`/`PLTF-03`, generated from
   this same root.
 - `packages/contracts/package.json` is append-only shared within this module (sub-PRD D16).
+- **Added in v1.1 (sub-PRD v0.8).** PRD §34.3 names `409 CLARIFICATION_ROUND_CLOSED`, which the §34.9
+  catalogue does not list and `FND-03`'s `ERROR_CODE_VALUES` therefore does not contain. Acceptance
+  item 4 forbids an extra code and acceptance item 5 pins the `ErrorCode` schema to the registry, so
+  `POST /v1/answer-jobs/{job_id}/clarifications` is declared **without** a stale-round `409`. The gap
+  is recorded as sub-PRD **Q-F8** and escalated to the founder as a PRD §34.3-vs-§34.9 inconsistency;
+  it is not resolved by inventing an eighteenth member.
+- **Added in v1.1.** PRD §34.5's Answer Snapshot carries `schema_version` but **no `request_id`**, and
+  §34.3's clarification block carries neither, so deliverable 1's common-envelope rule cannot be
+  applied universally without adding a property to a normative §34 shape — which acceptance item 3
+  forbids. Sub-PRD **D27** records the exemption mechanism (`x-envelope-exempt` + a reason citing the
+  overriding PRD block, asserted by the convention scan).
+- **Added in v1.2 (sub-PRD v0.8, decision D29) — review bounce.** Acceptance item 6's
+  `git status --porcelain` half **failed as literally tested** under this repository's documented
+  `core.autocrlf=true`: git checks the generated files out as CRLF, an always-LF `generate` rewrote
+  them, and git reported them modified even though `git hash-object` matched the committed blob.
+  `.gitattributes` — the repository-wide fix — is unallocated by breakdown plan §4 and `FORBIDDEN` in
+  `tools/tests/frozen-paths.test.mjs`, so `generate` reproduces git's own checkout transformation
+  instead (LF on CI, CRLF on a `core.autocrlf=true` checkout) while `emit()` stays pure LF, the index
+  stays LF and `generated:check` is not loosened (Feedback obligation 4).
+  `packages/contracts/test/generated/working-tree.test.ts` is the regression guard. The durable fix —
+  allocating `.gitattributes` and setting `* text=auto eol=lf` — is escalated to the Architect.
 
 ## Goal
 
@@ -136,6 +157,23 @@ Owned by this ticket:
 - `packages/contracts/src/generated/**` — generated types and client core (machine-written).
 - `packages/contracts/test/{openapi,generated}/**` (sub-PRD D14).
 - `packages/contracts/package.json` — **append-only**, own entries only (sub-PRD D16).
+- `tools/tests/skeleton.test.mjs`, `tools/tests/scripts.test.mjs`, `tools/fixtures/script-owners.json`
+  — **added in v1.1 (sub-PRD v0.8, decision D22)**, the minimum needed to repair `FND-01`'s two
+  remaining bootstrap-time invariants. Both encode *the state of the repository at bootstrap* as a
+  permanent, repository-wide invariant that `tools/vitest.config.mjs` runs on every later branch:
+  *"declares no dependency beyond the toolchain in any member manifest"* contradicts this ticket's own
+  Harness paragraph, and *"`generate` … prints exactly one owner-naming line"* (asserting
+  `membersProviding('generate')` is empty) contradicts deliverable 7. It is the same defect class
+  `FND-11` was created to repair, it blocks every remaining ticket that adds a dependency or implements
+  a delegated script, and it cannot be worked around inside the original file-scope without making
+  DEV-001's evidence vacuous. The repair replaces each assertion with a **stronger** one (D22) — it
+  never deletes, skips or weakens a check. `FND-05` shares these three files this wave and **rebases
+  onto this repair rather than re-doing it**.
+- `packages/contracts/test/enums/package-purity.test.ts` — **added in v1.1 (sub-PRD D22c)**, the same
+  defect one ticket later: `FND-03` asserted *"declares no dependency of any kind"*, which this
+  ticket's Harness cannot satisfy. Repaired to PRD §39.1/§45.2's durable rule — this package pushes
+  no dependency onto its consumers — **plus two new, stronger assertions** covering the `.mjs` build
+  tooling the file's `.ts`-only import scan would otherwise have missed entirely.
 
 Does not touch:
 
@@ -145,8 +183,12 @@ Does not touch:
 - `packages/domain/**` — `FND-06` … `FND-10` (same wave, different package).
 - `apps/**`, `services/**`, `packages/sdk-typescript/**`, `sdk/python/**`, `docs/api/**` — modules 03,
   11, 20.
-- Root manifests, lockfiles, `README.md`, `tools/**` — `FND-01`. `.github/workflows/**` — `FND-02`
-  (this ticket supplies the script the `openapi-compat` job calls; it does not edit the workflow).
+- Root manifests, `README.md`, and all of `tools/**` **except** the three files named above — `FND-01`.
+  `.github/workflows/**` — `FND-02` (this ticket supplies the script the `openapi-compat` job calls,
+  named `test:openapi-compat` by sub-PRD D19; it does not edit the workflow).
+- Lockfiles are **regenerated, never hand-edited** — `pnpm-lock.yaml` is a build artifact of the
+  dependency this ticket's Harness requires (sub-PRD D1: *"Any later ticket adding a dependency
+  regenerates the lockfile as a build artifact and never hand-merges it."*).
 
 **Serial-safety analysis.** First decomposition; nothing merged, nothing in flight. This ticket is one
 of seven wave-3 siblings, all `blocked_by FND-03`. Their scopes are disjoint by construction:
@@ -249,7 +291,10 @@ tautology by design and every subsequent one is meaningful.
       a request field — §34.1/§16.5; BYOK keys never appear in a response — §16.4), source/licence
       impact (none), cost/memory/latency impact (none — no runtime path), rollback path (revert;
       nothing serves it yet), known gaps (unimplemented operations and the `/internal/v1` surface owned
-      by `22-internal-admin`).
+      by `22-internal-admin`). **Amended in v1.1 (sub-PRD D28): source/licence impact is one vendored
+      Apache-2.0 schema document** (`schemas/openapi/meta/oas-3.1-schema-2022-10-07.json`, required by
+      the Harness's "the meta-schema must be vendored or pinned so validation runs offline"), plus the
+      three pinned `devDependencies` the Harness requires — **not "none"**.
 
 Absent classes: no `[human]` criteria — the contract is machine-verifiable end to end; its human-facing
 surface is the developer portal (`PLTF-01`, `/developer/api`, PRD §32.8) and the DEV-001 UAT evidence is

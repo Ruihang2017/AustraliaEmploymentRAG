@@ -1,0 +1,83 @@
+{
+  "$comment": [
+    "FND-04 deliverable 3 / acceptance item 3. PRD 34 preamble: \"The examples below are normative",
+    "payload shapes; property names and enum meanings cannot drift from them without PRD/API change",
+    "control.\"",
+    "",
+    "This fixture is what turns \"cannot drift\" from a human read into an assertion.",
+    "test/openapi/prd-34-examples.test.ts uses it to (1) re-extract the fenced ```json block at",
+    "`heading` + `blockIndex` from docs/PRD.md and deep-equal it against the example file,",
+    "(2) compile `schemaRef` out of schemas/openapi/openapi.yaml with Ajv 2020 and validate the",
+    "example against it, and (3) assert the file is wired into the document as an `externalValue`.",
+    "",
+    "The deep-equal is on the PARSED JSON, so whitespace and key order are free but a renamed, added",
+    "or dropped property fails — which is exactly the drift PRD 34 forbids. A heading or block index",
+    "that does not resolve is a hard failure, never a skip: a skipped example discharges nothing.",
+    "",
+    "docs/PRD.md is frozen (breakdown plan section 4) and read-only here."
+  ],
+  "prdPath": "docs/PRD.md",
+  "examplesDir": "schemas/openapi/examples",
+  "examples": [
+    {
+      "file": "prd-34-2-search-request.json",
+      "heading": "### 34.2 Search",
+      "blockIndex": 0,
+      "schemaRef": "#/components/schemas/SearchRequest"
+    },
+    {
+      "file": "prd-34-2-search-response.json",
+      "heading": "### 34.2 Search",
+      "blockIndex": 1,
+      "schemaRef": "#/components/schemas/SearchResponse"
+    },
+    {
+      "file": "prd-34-3-create-answer-job.json",
+      "heading": "### 34.3 Create an Answer job",
+      "blockIndex": 0,
+      "schemaRef": "#/components/schemas/CreateAnswerJobRequest"
+    },
+    {
+      "file": "prd-34-3-answer-job-accepted.json",
+      "heading": "### 34.3 Create an Answer job",
+      "blockIndex": 1,
+      "schemaRef": "#/components/schemas/AnswerJobAccepted"
+    },
+    {
+      "file": "prd-34-3-clarification-response.json",
+      "heading": "### 34.3 Create an Answer job",
+      "blockIndex": 2,
+      "schemaRef": "#/components/schemas/AnswerJobClarificationRequired"
+    },
+    {
+      "file": "prd-34-5-answer-snapshot.json",
+      "heading": "### 34.5 Answer Snapshot",
+      "blockIndex": 0,
+      "schemaRef": "#/components/schemas/AnswerSnapshot"
+    },
+    {
+      "file": "prd-34-6-coverage-request.json",
+      "heading": "### 34.6 Coverage and Compare requests",
+      "blockIndex": 0,
+      "schemaRef": "#/components/schemas/CoverageAssessmentRequest"
+    },
+    {
+      "file": "prd-34-6-comparison-request.json",
+      "heading": "### 34.6 Coverage and Compare requests",
+      "blockIndex": 1,
+      "schemaRef": "#/components/schemas/ComparisonRequest"
+    },
+    {
+      "file": "prd-34-7-research-record-create.json",
+      "heading": "### 34.7 Research Record write contract",
+      "blockIndex": 0,
+      "schemaRef": "#/components/schemas/ResearchRecordCreateRequest"
+    },
+    {
+      "file": "prd-34-7-turn-create.json",
+      "heading": "### 34.7 Research Record write contract",
+      "blockIndex": 1,
+      "schemaRef": "#/components/schemas/ResearchRecordTurnCreateRequest"
+    }
+  ]
+}

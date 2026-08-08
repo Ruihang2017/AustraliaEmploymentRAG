@@ -1,0 +1,7 @@
+{
+  "turn_type": "FACT_CLARIFICATION",
+  "content": {
+    "fact": "The employer is a constitutional corporation."
+  },
+  "supersedes_turn_id": null
+}
