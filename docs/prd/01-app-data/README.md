@@ -81,7 +81,7 @@ In scope — the whole of `packages/database/**` and `packages/jobs/**`:
 | D8 | Unit/integration tests live under the **owning ticket's own area** — either co-located inside that ticket's `src/<area>/**` or under `packages/database/test/<area>/**` where `<area>` is that ticket's own name. No ticket writes into another ticket's test directory. | Plan §1.1 "Tests"; keeps sibling file-scopes disjoint |
 | D9 | `packages/database/package.json`, `packages/database/tsconfig.json`, `packages/jobs/package.json` and `packages/jobs/tsconfig.json` are **module-owned, append-only shared**. Adding a declared dependency regenerates the root lockfile as a build artifact; conflicts resolve by re-running pnpm, never by hand-merge. | Plan §1.1 "Package manifests"; PRD §44.3 |
 | D10 | The single-writer discipline SQLite forces is made explicit: WAL, `foreign_keys=ON` and a non-zero `busy_timeout` are defined **once** (`DATA-01`, `src/migrate/pragmas.ts`) and applied by every connection factory in the package. | PRD §23.1 ("`app.sqlite` uses WAL"), §39.1/§39.4 (api, worker and Litestream all touch the same file) |
-| D11 | **The SQLite access layer is settled: Kysely-style repositories and query construction, using Kysely's SQLite dialect over `better-sqlite3`. Drizzle is not used in the application database layer.** Raw `.sql` files checked into git remain the **only** migration authoring format (D2); this module's own forward-only expand/contract runner (`DATA-01`) owns migration ordering, checksums, locking, recovery-point enforcement and the expand/contract policy. Kysely owns typed application queries and repositories only — it neither generates nor owns schema migrations. Constraints, composite tenant foreign keys, triggers, CHECK constraints, temporal rules and indexes stay expressed explicitly in SQL. Application code reaches the database only through `DATA-02`'s tenant-scoped repositories; an unscoped Kysely instance or `better-sqlite3` handle must never be spread into feature modules, which is the same boundary `DATA-02`'s SEC-001 architecture test enforces. | Plan §8 **Q13** — confirmed architecture decision, owner `01-app-data`; PRD §18.2 (which lists both options), §45.5. `DATA-01` carries the ADR decision input for `docs/adr/NNNN-sqlite-access-layer.md`; that ADR is authored by the `DATA-01` Builder at implementation time and **does not exist yet** (`docs/adr/` contains only `.gitkeep`). An implementing agent must not re-open this choice — a Builder that believes it is falsified uses the ticket's feedback obligation and writes back to plan §8 Q13 and this file first (plan §8 standing note) |
+| D11 | **The SQLite access layer is settled: Kysely-style repositories and query construction, using Kysely's SQLite dialect over `better-sqlite3`. Drizzle is not used in the application database layer.** Raw `.sql` files checked into git remain the **only** migration authoring format (D2); this module's own forward-only expand/contract runner (`DATA-01`) owns migration ordering, checksums, locking, recovery-point enforcement and the expand/contract policy. Kysely owns typed application queries and repositories only — it neither generates nor owns schema migrations. Constraints, composite tenant foreign keys, triggers, CHECK constraints, temporal rules and indexes stay expressed explicitly in SQL. Application code reaches the database only through `DATA-02`'s tenant-scoped repositories; an unscoped Kysely instance or `better-sqlite3` handle must never be spread into feature modules, which is the same boundary `DATA-02`'s SEC-001 architecture test enforces. | Plan §8 **Q13** — confirmed architecture decision, owner `01-app-data`; PRD §18.2 (which lists both options), §45.5. `DATA-01` carries the ADR decision input for [`docs/adr/0002-sqlite-access-layer.md`](../../adr/0002-sqlite-access-layer.md), authored by the `DATA-01` Builder at implementation time. An implementing agent must not re-open this choice — a Builder that believes it is falsified uses the ticket's feedback obligation and writes back to plan §8 Q13 and this file first (plan §8 standing note) |
 
 ## Rejected alternatives
 
@@ -109,6 +109,7 @@ remains below are this module's own local questions.
 | M-Q1 | §35.8 invariant 8 ("Active corpus promotion never mutates an existing release bundle") has **no app-database table** in the PRD §35.4–35.6 dictionary. Does promotion need an app-side, append-only corpus-pointer table, or is PRD §39.3's "Pointer recorded in app DB/audit" satisfied by `audit_event` alone? | `18-ops-release` — the `RLSE-07` Builder, with `04-corpus-contract` (`CRPS-06`) | `RLSE-07`. Interim position: `DATA-09` records invariant 8 as `OUT_OF_MODULE` and asserts only that no app repository exposes an update path to a corpus-release reference. | Nothing in this module |
 | M-Q2 | Who holds the field-encryption KEK in production, and what is the rotation cadence? PRD §39.6 names the secret group; PRD §23.1 requires a forced recovery point before key rotation but sets no interval. | **Founder**, provisioned by `18-ops-release` (`RLSE-02`, `RLSE-05`) | `RLSE-02` / `RLSE-05` | Nothing — `DATA-03` ships multi-version key support and a rotation entry point regardless |
 | M-Q3 | Property-testing library for `DATA-09`. PRD names none. | `01-app-data` — the `DATA-09` Builder | `DATA-09`. Classified "Implementation detail" under PRD §45.5 (documented in code/tests, no ADR), unless the choice adds a runtime dependency — then it is an ADR. | Nothing |
+| M-Q4 | **Who owns the workspace dependency-build policy?** `DATA-01` declares the workspace's first native dependency (`better-sqlite3`, ADR `0002` (vi)), and pnpm 11 refuses to install it unless the **root** `pnpm-workspace.yaml` names it under `allowBuilds` — `strictDepBuilds` defaults to true and the package ships a `binding.gyp`, so an install that neither allows nor denies it exits `ERR_PNPM_IGNORED_BUILDS`. pnpm reads that policy from the workspace root only: `dependenciesMeta.built` and a `pnpm` block in `packages/database/package.json` were both measured and neither suppresses it, and both candidate versions trip it (`12.11.1` needs `true`, `13.0.3` needs `false`). So `DATA-01`'s own deliverable cannot be satisfied inside `DATA-01`'s file-scope, whose "Does not touch" list assigns root manifests to `00-foundation`. `DATA-01` shipped the minimal form — one key, one entry, `better-sqlite3: false` — under this entry rather than silently. | **`00-foundation`**, with the Architect: either allocate the `allowBuilds` key to `00-foundation` and move it there, or add it to `DATA-01`'s file-scope by a ticket edit | A `00-foundation` ticket, or a `DATA-01` ticket edit + `publish-tickets.mjs --sync`. Until then the key stays where it is: removing it makes every install in the repository fail, which is strictly worse than a declared exception. | Nothing today. Every later module that declares a native dependency hits the same root file, which is the contention the disjoint-file-scope decomposition exists to prevent — so it should be settled before a second one lands |
 
 ## Work breakdown
 
@@ -195,13 +196,12 @@ Every item is machine-checkable unless tagged otherwise.
    **ANS-004** pinned release + profile (`DATA-05`, `DATA-06`), **REC-001** immutable turns and
    snapshots (`DATA-06`), **MON-001**, **COR-001/002**, **ADM-003**, **OPS-003** ledger
    (`DATA-07`), **PII/retention** ephemeral expiry and backup exclusion (`DATA-08`, PRD §10.4).
-8. `docs/adr/NNNN-sqlite-access-layer.md` exists and **records** the confirmed plan §8 **Q13**
-   decision — Kysely-style repositories over `better-sqlite3` accepted, Drizzle recorded as the
-   rejected alternative on the grounds stated in "Rejected alternatives" — with Status, Context,
-   Decision, Consequences and Alternatives sections, and D11 above is updated with the assigned
-   `NNNN` path. The ADR is written by the `DATA-01` Builder at implementation time; it does not
-   exist today (`docs/adr/` contains only `.gitkeep`), and it records a decision that is already
-   made rather than making one. `[machine]` — no Drizzle dependency appears in
+8. [`docs/adr/0002-sqlite-access-layer.md`](../../adr/0002-sqlite-access-layer.md) exists and
+   **records** the confirmed plan §8 **Q13** decision — Kysely-style repositories over
+   `better-sqlite3` accepted, Drizzle recorded as the rejected alternative on the grounds stated in
+   "Rejected alternatives" — with Status, Context, Decision, Consequences and Alternatives sections,
+   and D11 above carries that assigned path. The ADR was written by the `DATA-01` Builder at
+   implementation time, and it records a decision that is already made rather than making one. `[machine]` — no Drizzle dependency appears in
    `packages/database/package.json`, `packages/jobs/package.json` or the root lockfile entries for
    those packages. `[human]` — the ADR is accepted at the PRD §45.5 compatibility/security review
    for an Architecture decision.
@@ -210,6 +210,13 @@ Every item is machine-checkable unless tagged otherwise.
 
 ## Changelog
 
+- **v0.3 — 2026-08-08** — `DATA-01` delivered the access-layer ADR; **D11** and acceptance item 8
+  now name the assigned path `docs/adr/0002-sqlite-access-layer.md` (`0001` was taken by
+  `EVID-02`'s `0001-local-pii-entity-runtime.md` before this ticket ran). Path assignment only — no
+  decision, scope, ticket, dependency-edge or traceability change. Adds **M-Q4** to Open questions:
+  `DATA-01`'s declared `better-sqlite3` dependency cannot be installed without a root
+  `pnpm-workspace.yaml` build-policy key, which its file-scope assigns to `00-foundation` — raised
+  under the ticket's Feedback obligation rather than resolved locally.
 - **v0.2 — 2026-08-03** — plan §8 rewritten as a decision register; **Q13 (SQLite access layer) is
   now a confirmed architecture decision** — Kysely-style repositories over `better-sqlite3`, Drizzle
   rejected. Q13 removed from "Open questions" and recorded as decision **D11**; Drizzle added to
