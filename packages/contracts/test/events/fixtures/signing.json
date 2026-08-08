@@ -1,0 +1,37 @@
+{
+  "$comment": [
+    "FND-05 deliverable 6 — the fixed signing fixture for the PRD §34.8 replay.",
+    "",
+    "NOT A CREDENTIAL. The `secret` and `rotatedSecret` values below are constants chosen for this",
+    "fixture so the expected signature is reproducible offline. They authorise nothing, they are not",
+    "issued by anything, and no deployment may ever use them. `packages/contracts/src/events/sign.ts`",
+    "reads no environment variable and no file: the secret is always an argument (PRD §20.2).",
+    "",
+    "Every key and every value here is lower-case on purpose. FND-02's CI secret scan applies the",
+    "seven name-shaped tools/fixtures/secret-patterns.json patterns to every git-tracked file outside",
+    "docs/**, so an UPPER_SNAKE identifier ending in _SECRET / _KEY / _TOKEN / _PASSWORD /",
+    "_CREDENTIAL(S), or starting with AWS_, would fail the scan job (sub-PRD D20b).",
+    "",
+    "`timestampSeconds` is PRD §34.8's own X-AER-Timestamp value (docs/PRD.md line 2091).",
+    "`expectedSignature` was computed once, from the bytes of alert-created.signed.json, and is",
+    "COMMITTED: the suite compares against this literal, never against a sign/verify round trip, which",
+    "would pass even with the wrong signing input (ticket Test plan step 2).",
+    "",
+    "`placeholders` is the substitution map that derives every *.signed.json / *.concrete.txt file",
+    "from its byte-verbatim PRD sibling. fixtures.test.ts proves the derivation byte-for-byte, so",
+    "nothing can be smuggled into a concrete instance (ticket writeback note 3)."
+  ],
+  "secret": "fixture-webhook-signing-value-not-a-credential",
+  "rotatedSecret": "fixture-webhook-signing-value-previous-rotation",
+  "timestampSeconds": 1785726012,
+  "expectedSignature": "v1=3095bb6b211d2553072bf48aca8ad3c32b024230aa6fc235a3e71e158c0d00f0",
+  "placeholders": {
+    "evt_...": "evt_0198f3c1-4a20-7c3d-8f11-2b6d5e0a91c4",
+    "alt_...": "alt_0198f3c1-4a21-7a0e-9b52-77c1d3e84f60",
+    "wat_...": "wat_0198f3c0-1b7e-7d44-a913-5c2f9e60b8a1",
+    "rec_...": "rec_0198f3c1-4a22-7e15-8c73-4de29b501fa6",
+    "job_...": "job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359",
+    "ans_...": "ans_0198f3c1-4a23-7f26-9d84-1a3b7c9e02d5",
+    "<lowercase hex HMAC-SHA256>": "3095bb6b211d2553072bf48aca8ad3c32b024230aa6fc235a3e71e158c0d00f0"
+  }
+}
