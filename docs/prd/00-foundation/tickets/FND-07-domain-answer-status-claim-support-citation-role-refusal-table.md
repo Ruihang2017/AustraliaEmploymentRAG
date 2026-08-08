@@ -153,18 +153,31 @@ and may not import one another (sub-PRD D10), so parallel lanes share no source 
 
 1. **`REFUSAL_TABLE`** — the six §36.8 status rows as ordered data, each with its condition name, the
    PRD's condition wording and its resulting `AnswerStatus`. The three non-status rows (PII, unlawful
-   evasion, provider/budget) are modelled separately as `PreAdmissionOutcome` /
-   `JobUnavailableOutcome`, each carrying the PRD's stated consequence — including *"Search and saved
-   records remain available"* for the provider/budget row (PRD §36.8, §8.2).
-2. **`decideAnswerStatus(signals): AnswerStatus`** over an explicit signal record —
+   evasion, provider/budget) are modelled separately as `PreAdmissionOutcome` / `RefusalOutcome` /
+   `JobUnavailableOutcome` — one named outcome type per non-status row, the unlawful-evasion refusal
+   being a refusal and not a status (PRD §9.5) — each carrying the PRD's stated consequence — including
+   *"Search and saved records remain available"* for the provider/budget row (PRD §36.8, §8.2).
+2. **`decideAnswerStatus(signals): AnswerDecision`** over an explicit signal record —
    `{ outOfScope, sourceStaleOrUnavailableAndMaterial, unreconciledAuthorityConflict,
    sufficientApplicableEvidence, allMaterialClaimsSupported, materialFactUnknown }` — implementing the
    §36.8 rows with the **D13 precedence**: evaluate the restrictive conditions first
    (`OUT_OF_SCOPE` → `SOURCE_NOT_CURRENT` → `CONFLICTING_SOURCES` → `INSUFFICIENT_EVIDENCE` →
    `CONDITIONAL` → `SUPPORTED`), and never return a status more permissive than any triggered condition.
-   The function returns the status **and** the list of every condition that fired, so the caller can
-   surface all of them (PRD §36.8: uncertainty is represented by status, assumptions, missing facts and
-   conflicts — not by a single silent choice).
+   The function returns the status **and** the list of every condition that fired (an `AnswerDecision`
+   = `{ status, firedConditions }`), so the caller can surface all of them (PRD §36.8: uncertainty is
+   represented by status, assumptions, missing facts and conflicts — not by a single silent choice).
+
+   **Totality (added v0.7, sub-PRD D13a).** The six §36.8 rows do not cover their own signal record: when
+   `allMaterialClaimsSupported` is `false` and no more restrictive row fires (exactly one of the 64
+   signal combinations), no §36.8 row applies, yet
+   the function must return an `AnswerStatus`. One **derived** condition closes the gap —
+   `MATERIAL_CLAIMS_UNSUPPORTED`, firing when `allMaterialClaimsSupported === false` and no row above
+   `SUPPORTED` has fired, resolving to `INSUFFICIENT_EVIDENCE` (PRD §9.4 *"remaining unsupported claims
+   MUST be removed and the answer downgraded/refused"*; ANS-005 *"unsupported definitive claim count is
+   zero"*; D13's own "never more permissive than a triggered condition"). It is **derived, not
+   transcribed**: it is not a seventh §36.8 row, it is named in the fired-conditions list like any other
+   condition (never an unnamed default branch), and the fixture keeps it in a `derived_conditions`
+   section separate from the nine verbatim `prd_36_8` rows.
 3. **`classifyClaimSupport(claim, citations, compareAuthority): ClaimSupport`** implementing §15.5, with
    these hard rules:
    - a claim whose citations are all `BACKGROUND_ONLY` is `NOT_SUPPORTED` and can never be
@@ -188,6 +201,11 @@ and may not import one another (sub-PRD D10), so parallel lanes share no source 
    §8.4 states them.
 7. **`isDefinitiveClaim(claim): boolean`** — the predicate ANS-005's *"unsupported definitive claim count
    is zero"* is measured against, so `EVID-05` and the `21-evaluation-600` metrics count the same thing.
+   **Definition (added v0.7, sub-PRD D21):** a claim is **definitive** iff it is material, its asserted
+   short answer is `Yes` or `No` (not `Likely`, not `Depends`, not `insufficient evidence` — PRD §8.4's
+   own vocabulary, the only place the PRD grades assertiveness), and it is not asserted subject to a
+   condition or assumption (PRD §8.4 item 3). Changing this definition changes the denominator of
+   ANS-005's release-register metric in `EVID-05` and `21-evaluation-600`; both must be notified.
 8. **Purity**: no imports outside `packages/contracts` and Node built-ins; no clock, randomness or I/O
    (PRD §39.1, §45.2). No prompt strings, no provider vocabulary — PRD §9.4 requires this decision to be
    code.
@@ -207,8 +225,9 @@ and may not import one another (sub-PRD D10), so parallel lanes share no source 
       fixture's precedence section, the returned status is the more restrictive one, and the returned
       condition list contains **both** (PRD §36.8; Q-F3).
 - [ ] `[machine]` Property test (≥10,000 cases): `decideAnswerStatus` never returns `SUPPORTED` when any
-      restrictive condition is true, and never returns a status whose row is absent from the signal set
-      (PRD §36.8, ANS-005).
+      restrictive condition is true, and never returns a status whose row is absent from the signal set —
+      where the derived `MATERIAL_CLAIMS_UNSUPPORTED` condition (deliverable 2, D13a) counts as
+      `INSUFFICIENT_EVIDENCE`'s trigger (PRD §36.8, ANS-005).
 - [ ] `[machine]` Property test: a claim whose citations are all `BACKGROUND_ONLY` is never
       `DIRECTLY_SUPPORTED` or `SUPPORTED_BY_INFERENCE` — it is `NOT_SUPPORTED`
       (PRD §15.5: *"`BACKGROUND_ONLY` evidence cannot independently support a definitive legal claim"*).
