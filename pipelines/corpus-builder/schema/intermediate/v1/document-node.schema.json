@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/document-node.schema.json",
+  "title": "DocumentNode payload",
+  "description": "The stable structural identity of one node of a document, independent of any version. Feeds the corpus `document_node` table (PRD §35.2), unique on `(document_id, stable_node_key)`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["stable_source_key", "stable_node_key", "node_kind"],
+  "properties": {
+    "stable_source_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "stable_node_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "node_kind": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §15.1 node taxonomy. NOT constrained to an enum here: packages/contracts publishes no `NodeKind` family yet (Q-CRPS-4 / FND-03)."
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/source-artifact.schema.json",
+  "title": "SourceArtifact payload",
+  "description": "Output of the PRD §40.7 `fetch(descriptor, validators)` boundary. Feeds the corpus `source_artifact` table (PRD §35.3). `r2_key` is absent when licensing does not permit storing the bytes — its absence is meaningful, so it is optional rather than nullable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_key",
+    "official_url",
+    "retrieved_at",
+    "http_status",
+    "content_type",
+    "byte_length",
+    "sha256",
+    "licence_snapshot_key"
+  ],
+  "properties": {
+    "artifact_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "official_url": { "type": "string", "minLength": 1 },
+    "retrieved_at": { "$ref": "refs.schema.json#/$defs/utc_timestamp" },
+    "http_status": { "type": "integer", "minimum": 100, "maximum": 599 },
+    "etag": { "type": "string" },
+    "last_modified": { "type": "string" },
+    "content_type": { "type": "string", "minLength": 1 },
+    "byte_length": { "type": "integer", "minimum": 0 },
+    "sha256": { "$ref": "refs.schema.json#/$defs/sha256_hex" },
+    "r2_key": {
+      "type": "string",
+      "description": "Object key in artifact storage. Absent when storage is not permitted by the licence assessment (PRD §35.3)."
+    },
+    "licence_snapshot_key": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "Natural key of the licence snapshot in force when the artifact was retrieved."
+    }
+  }
+}

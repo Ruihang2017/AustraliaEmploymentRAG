@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/document-identity.schema.json",
+  "title": "DocumentIdentity payload",
+  "description": "Output of the PRD §40.7 `identify(artifact)` boundary. Feeds the corpus `legal_document` table (PRD §35.2), whose `(source_id, stable_source_key)` uniqueness the builder enforces.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stable_source_key",
+    "document_type",
+    "canonical_title",
+    "jurisdiction",
+    "authority_key"
+  ],
+  "properties": {
+    "stable_source_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "document_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §15.1 document taxonomy. NOT constrained to an enum here: packages/contracts publishes no `DocumentType` family yet (Q-CRPS-4 / FND-03). When FND-03 publishes it, this member becomes a generated enum with no other change."
+    },
+    "canonical_title": { "type": "string", "minLength": 1 },
+    "jurisdiction": { "type": "string", "minLength": 1 },
+    "authority_key": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "Natural key of the issuing authority; the builder resolves it to `authority.id`."
+    },
+    "official_identifier": { "type": "string" },
+    "neutral_citation": { "type": "string" },
+    "employer_abn": {
+      "type": "string",
+      "pattern": "^[0-9]{11}$",
+      "description": "Australian Business Number of the employer a registered agreement covers. Public register data only — never customer data (PRD §19.2, §40.8)."
+    }
+  }
+}

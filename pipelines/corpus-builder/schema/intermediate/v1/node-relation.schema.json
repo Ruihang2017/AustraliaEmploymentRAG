@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/node-relation.schema.json",
+  "title": "NodeRelation payload",
+  "description": "Output of the PRD §40.7 `extractRelations(normalised)` boundary. Feeds the immutable corpus `node_relation` table (PRD §35.2).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from_ref", "to_ref", "relation_type", "derivation", "parser_version", "confidence_state"],
+  "dependentRequired": {
+    "evidence_start": ["evidence_end", "evidence_ref"],
+    "evidence_end": ["evidence_start", "evidence_ref"]
+  },
+  "properties": {
+    "from_ref": { "$ref": "refs.schema.json#/$defs/node_ref" },
+    "to_ref": { "$ref": "refs.schema.json#/$defs/node_ref" },
+    "relation_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §15.1 relation taxonomy. NOT constrained to an enum here: packages/contracts publishes no `RelationType` family yet (Q-CRPS-4 / FND-03)."
+    },
+    "evidence_ref": {
+      "$ref": "refs.schema.json#/$defs/node_ref",
+      "description": "The node version whose text evidences the relation. Required whenever an offset range is given."
+    },
+    "evidence_start": { "$ref": "refs.schema.json#/$defs/character_offset" },
+    "evidence_end": { "$ref": "refs.schema.json#/$defs/character_offset" },
+    "derivation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How the relation was derived — the parser rule, heuristic or model that produced it."
+    },
+    "parser_version": { "type": "string", "minLength": 1 },
+    "confidence_state": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §35.2: `MODEL_SUGGESTED` cannot support definitive status. NOT constrained to an enum here: packages/contracts publishes no `ConfidenceState` family yet (Q-CRPS-4 / FND-03); `validate_record()` enforces the MODEL_SUGGESTED rule in the meantime (violation MODEL_SUGGESTED_DEFINITIVE)."
+    }
+  }
+}

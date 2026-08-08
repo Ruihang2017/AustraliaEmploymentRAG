@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/remote-descriptor.schema.json",
+  "title": "RemoteDescriptor payload",
+  "description": "Output of the PRD §40.7 `discover(cursor, since)` boundary: one candidate document located at the source, before anything is fetched.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["descriptor_key", "official_url", "discovered_at"],
+  "properties": {
+    "descriptor_key": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "Adapter-assigned stable key for this descriptor within the source."
+    },
+    "official_url": { "type": "string", "minLength": 1 },
+    "discovered_at": { "$ref": "refs.schema.json#/$defs/utc_timestamp" },
+    "etag": { "type": "string" },
+    "last_modified": { "type": "string" },
+    "content_type": { "type": "string" },
+    "document_hint": {
+      "type": "string",
+      "description": "Free-text adapter hint about what the descriptor is likely to be. Never authoritative; identity is decided by `identify()`."
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Opaque resumption cursor for the next `discover()` call."
+    }
+  }
+}

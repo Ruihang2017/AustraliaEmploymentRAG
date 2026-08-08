@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/refs.schema.json",
+  "title": "Shared reference and scalar definitions for the intermediate normalised-record contract",
+  "description": "CRPS-01 deliverable 11. A record NEVER carries a corpus primary key: the adapter does not write corpus tables (PRD §40.7), so it cannot know one. Cross-record references use natural keys, always implicitly scoped by the envelope's source_id.",
+  "$defs": {
+    "natural_key": {
+      "title": "Natural key",
+      "description": "A source-assigned stable key. Explicitly NOT a corpus primary key: the `not` clause rejects the FND-03 opaque-ID form `<prefix>_<uuidv7>` so a generic JSON-Schema validator — not only the Python one — catches the misuse.",
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^[a-z]{2,8}_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+      }
+    },
+    "node_ref": {
+      "title": "NodeRef",
+      "description": "Identifies one node version by natural key, scoped by the envelope's source_id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stable_source_key", "version_label", "stable_node_key"],
+      "properties": {
+        "stable_source_key": { "$ref": "#/$defs/natural_key" },
+        "version_label": { "$ref": "#/$defs/natural_key" },
+        "stable_node_key": { "$ref": "#/$defs/natural_key" }
+      }
+    },
+    "version_ref": {
+      "title": "VersionRef",
+      "description": "Identifies one document version by natural key, scoped by the envelope's source_id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stable_source_key", "version_label"],
+      "properties": {
+        "stable_source_key": { "$ref": "#/$defs/natural_key" },
+        "version_label": { "$ref": "#/$defs/natural_key" }
+      }
+    },
+    "utc_timestamp": {
+      "title": "UTC ISO-8601 timestamp",
+      "description": "PRD §35.1: timestamps are UTC ISO text. The `Z` suffix is mandatory — a local-time or offset form is rejected.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "legal_date": {
+      "title": "Legal date",
+      "description": "PRD §35.1: legal dates are TEXT with YYYY-MM-DD checks. Never a timestamp.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "sha256_hex": {
+      "title": "SHA-256, lowercase hex",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "semver": {
+      "title": "Semantic version",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "character_offset": {
+      "title": "Character offset",
+      "description": "CRPS-01 deliverable 12: a CHARACTER (Unicode code point) offset into the NFC-normalised canonical_text — not a UTF-8 byte index and not a UTF-16 code unit index. Ranges are half-open [start, end).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "json_string": {
+      "title": "Embedded JSON document",
+      "description": "A JSON document carried as a string, stored verbatim in the corresponding `*_json` corpus column.",
+      "type": "string"
+    }
+  }
+}

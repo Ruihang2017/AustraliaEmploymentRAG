@@ -1,0 +1,3 @@
+# CRPS-01. Keep LF in the working tree: git core.autocrlf=true would otherwise rewrite these
+# files on a Windows checkout. The repository-root .gitattributes is unallocated (breakdown plan §4).
+* text eol=lf

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/intermediate/v1/document-version.schema.json",
+  "title": "DocumentVersion payload",
+  "description": "Half of the PRD §40.7 `normalise(parsed)` output. Feeds the corpus `document_version` table (PRD §35.2), which is immutable — a correction is an appended replacement version, never an update.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stable_source_key",
+    "version_label",
+    "effective_from",
+    "legal_status",
+    "retrieved_at",
+    "content_hash",
+    "official_url",
+    "artifact_key"
+  ],
+  "properties": {
+    "stable_source_key": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "version_label": { "$ref": "refs.schema.json#/$defs/natural_key" },
+    "publication_date": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "effective_from": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "effective_to": { "$ref": "refs.schema.json#/$defs/legal_date" },
+    "legal_status": {
+      "$comment": "GENERATED from the packages/contracts `LegalStatus` family (PRD §6.7). Do not edit by hand: tests/schema/test_enum_drift.py asserts this array equals the canonical export member-for-member and in order.",
+      "type": "string",
+      "enum": [
+        "IN_FORCE",
+        "ENACTED_NOT_IN_FORCE",
+        "BILL_NOT_ENACTED",
+        "DRAFT_OR_CONSULTATION",
+        "REPEALED",
+        "SUPERSEDED",
+        "STATUS_UNCONFIRMED"
+      ],
+      "description": "PRD §15.2: legal status MUST be derived from evidenced LegalEvents. A value here is the adapter's cached observation, not the authoritative history."
+    },
+    "retrieved_at": { "$ref": "refs.schema.json#/$defs/utc_timestamp" },
+    "content_hash": { "$ref": "refs.schema.json#/$defs/sha256_hex" },
+    "official_url": { "type": "string", "minLength": 1 },
+    "artifact_key": {
+      "$ref": "refs.schema.json#/$defs/natural_key",
+      "description": "Natural key of the `source_artifact` record this version was normalised from."
+    }
+  }
+}

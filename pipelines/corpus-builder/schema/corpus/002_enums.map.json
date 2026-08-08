@@ -1,0 +1,92 @@
+{
+  "$comment": [
+    "CRPS-01 deliverable 4 — the generator input for every enumerated column's CHECK list in",
+    "001_corpus_schema.sql. The ticket names '002_enums.sql.j2 (or equivalent generator input)'; this",
+    "is the equivalent, declarative form, chosen so the repository needs no templating dependency.",
+    "",
+    "`generated`: the column's CHECK list is rendered from the packages/contracts canonical enum",
+    "export (FND-03). Editing the SQL by hand instead is a defect and fails tests/schema/",
+    "test_enum_drift.py.",
+    "",
+    "`pending`: PRD names the column as enumerated but packages/contracts publishes no family for it",
+    "yet (Q-CRPS-4 / FND-03). The placeholder renders to the empty string, so the column is plain",
+    "TEXT with no enum CHECK. Hand-copying the values here or into the SQL is expressly forbidden by",
+    "the CRPS-01 Feedback obligation: the fix is an FND-03 ticket change that adds the family, after",
+    "which the entry moves from `pending` to `generated` and the CHECK appears with no SQL edit.",
+    "",
+    "Every entry in either array MUST have a matching ${enum_check_<table>_<column>} placeholder in",
+    "001_corpus_schema.sql, and every placeholder MUST appear here exactly once."
+  ],
+  "generated": [
+    {
+      "table": "document_version",
+      "column": "legal_status",
+      "family": "LegalStatus",
+      "prd": "§6.7"
+    },
+    {
+      "table": "search_chunk",
+      "column": "index_tier",
+      "family": "IndexTier",
+      "prd": "§17.2",
+      "nullable": true,
+      "why_nullable": "CRPS-01 creates the column and assigns no value; tier assignment is CRPS-04's policy, so a chunk written by CRPS-03 before tiering runs must be representable. The CHECK still rejects any non-member value."
+    },
+    {
+      "table": "licence_assessment",
+      "column": "status",
+      "family": "LicenceAssessmentState",
+      "prd": "§11.1"
+    },
+    {
+      "table": "source",
+      "column": "coverage_status",
+      "family": "SourceCoverageStatus",
+      "prd": "§7"
+    }
+  ],
+  "pending": [
+    { "table": "source", "column": "freshness_status", "prd": "§12.1", "gap": "Q-CRPS-4 / FND-03" },
+    {
+      "table": "legal_document",
+      "column": "document_type",
+      "prd": "§15.1",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    {
+      "table": "document_node",
+      "column": "node_kind",
+      "prd": "§15.1",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    {
+      "table": "node_relation",
+      "column": "relation_type",
+      "prd": "§15.1",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    {
+      "table": "node_relation",
+      "column": "confidence_state",
+      "prd": "§35.2",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    { "table": "legal_event", "column": "event_type", "prd": "§15.1", "gap": "Q-CRPS-4 / FND-03" },
+    {
+      "table": "quarantine_item",
+      "column": "status",
+      "prd": "§35.3",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    { "table": "corpus_release", "column": "status", "prd": "§35.3", "gap": "Q-CRPS-4 / FND-03" },
+    { "table": "ingestion_run", "column": "mode", "prd": "§35.3", "gap": "Q-CRPS-4 / FND-03" },
+    { "table": "ingestion_run", "column": "status", "prd": "§35.3", "gap": "Q-CRPS-4 / FND-03" },
+    {
+      "table": "authority",
+      "column": "authority_type",
+      "prd": "§35.2",
+      "gap": "Q-CRPS-4 / FND-03"
+    },
+    { "table": "authority", "column": "court_level", "prd": "§35.2", "gap": "Q-CRPS-4 / FND-03" }
+  ]
+}

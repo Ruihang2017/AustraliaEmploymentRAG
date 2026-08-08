@@ -1,0 +1,59 @@
+{
+  "contract_version": "1.0.0",
+  "files": [
+    {
+      "count": 1,
+      "path": "document_identity.jsonl",
+      "record_type": "document_identity",
+      "sha256": "3d7673479ebd22364a6883c9946f4765f26f7f9f194a048460860f2a42231c53"
+    },
+    {
+      "count": 2,
+      "path": "document_node.jsonl",
+      "record_type": "document_node",
+      "sha256": "3ccdc3b88c3959036e7327669a60d870a06e205d4bc9d18f94e51c145fb4071d"
+    },
+    {
+      "count": 2,
+      "path": "document_version.jsonl",
+      "record_type": "document_version",
+      "sha256": "db81431fd2e00742c404c347e2705369069e87279870dd7d003fbf8c2dec6b96"
+    },
+    {
+      "count": 1,
+      "path": "legal_event.jsonl",
+      "record_type": "legal_event",
+      "sha256": "433462a77555b20c45729080df9a15d4b3561bf31b556ef9b45e4863e6449723"
+    },
+    {
+      "count": 1,
+      "path": "node_relation.jsonl",
+      "record_type": "node_relation",
+      "sha256": "5e31de36273e6fad9bf1968328e557190763f712761220562a8d4fba35c57f94"
+    },
+    {
+      "count": 2,
+      "path": "node_version.jsonl",
+      "record_type": "node_version",
+      "sha256": "1eed1bad4b4140295e64842c5bef57eb336ad273ed1571ec57e8a077432785b8"
+    },
+    {
+      "count": 1,
+      "path": "remote_descriptor.jsonl",
+      "record_type": "remote_descriptor",
+      "sha256": "683c4da64efb997360b6faf0e98e71ea99027494783a01f2f8b80d063952dc00"
+    },
+    {
+      "count": 1,
+      "path": "source_artifact.jsonl",
+      "record_type": "source_artifact",
+      "sha256": "f1f2de9056add1978d5c96be996cf587bb55e47e1bbeec683eab156f05ddb4f0"
+    },
+    {
+      "count": 1,
+      "path": "validation_finding.jsonl",
+      "record_type": "validation_finding",
+      "sha256": "9392ea21d7f10f839ecc677302e0e1bdec1f51da16ce40d97e150dc16af77d1f"
+    }
+  ]
+}
