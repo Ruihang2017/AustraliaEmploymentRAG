@@ -1,0 +1,45 @@
+{
+  "$comment": [
+    "PLTF-02 deliverable 15 — the committed substitution map that derives every recorded HTTP body",
+    "under test/fixtures/http/ from its byte-verbatim source in schemas/openapi/examples/**.",
+    "",
+    "The pattern is FND-05's (packages/contracts/test/events/fixtures/signing.json#placeholders):",
+    "the PRD's example bodies carry PLACEHOLDER ids ('ans_...', 'job_...'), which no client could",
+    "ever receive. Recording a concrete body by hand would let it drift from the document silently.",
+    "Instead the concrete body is DERIVED, and test/fixtures/drift.test.ts re-derives it on every run",
+    "and asserts byte equality — so an OpenAPI example change fails this package's suite loudly",
+    "instead of leaving a vacuous replay behind.",
+    "",
+    "job_/ans_/rec_ reuse FND-05's committed values verbatim, so a job id is the SAME string in this",
+    "package's SSE transcripts and in packages/contracts' signing fixtures.",
+    "",
+    "Every value is an opaque PRD §34.1 identifier or a fabricated example URL. NOT A CREDENTIAL:",
+    "nothing here authorises anything, and no deployment may use these values."
+  ],
+  "placeholders": {
+    "https://official.example/...": "https://official.example/act/s94",
+    "node_...": "node_0198f3c1-4a35-7096-936a-4b7f9c1e5028",
+    "auth_...": "auth_0198f3c1-4a37-72b8-b58c-6d912e3f724a",
+    "clq_...": "clq_0198f3c1-4a3b-76fc-b9c3-a1d5627380be",
+    "clm_...": "clm_0198f3c1-4a38-73c9-8690-7ea23f40835b",
+    "cit_...": "cit_0198f3c1-4a39-74da-97a1-8fb34051946c",
+    "asm_...": "asm_0198f3c1-4a3a-75eb-a8b2-90c451629a7d",
+    "ans_...": "ans_0198f3c1-4a23-7f26-9d84-1a3b7c9e02d5",
+    "job_...": "job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359",
+    "rec_...": "rec_0198f3c1-4a22-7e15-8c73-4de29b501fa6",
+    "srx_...": "srx_0198f3c1-4a31-7c52-9f26-0d3b5e7a1c84",
+    "doc_...": "doc_0198f3c1-4a33-7e74-b148-2f5d7a9c3e06",
+    "req_...": "req_0198f3c1-4a30-7b41-8e15-9c2a4d6f0b73",
+    "cr_...": "cr_0198f3c1-4a32-7d63-a037-1e4c6f8b2d95",
+    "dv_...": "dv_0198f3c1-4a34-7f85-8259-3a6e8b0d4f17",
+    "nv_...": "nv_0198f3c1-4a36-71a7-a47b-5c801d2f6139"
+  },
+  "sources": {
+    "search-request.json": "prd-34-2-search-request.json",
+    "search-response.json": "prd-34-2-search-response.json",
+    "create-answer-job.json": "prd-34-3-create-answer-job.json",
+    "answer-job-accepted.json": "prd-34-3-answer-job-accepted.json",
+    "clarification-response.json": "prd-34-3-clarification-response.json",
+    "answer-snapshot.json": "prd-34-5-answer-snapshot.json"
+  }
+}

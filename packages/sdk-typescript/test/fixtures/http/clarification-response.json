@@ -1,0 +1,13 @@
+{
+  "status": "WAITING_FOR_CLARIFICATION",
+  "clarifications": [
+    {
+      "id": "clq_0198f3c1-4a3b-76fc-b9c3-a1d5627380be",
+      "question": "Is the employer a constitutional corporation?",
+      "affects": [
+        "WORKPLACE_RELATIONS_SYSTEM"
+      ],
+      "answer_type": "YES_NO_UNKNOWN"
+    }
+  ]
+}

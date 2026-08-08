@@ -1,0 +1,3 @@
+# Build output. Package-local on purpose: the root .gitignore is FND-01's file and this ticket's
+# File-scope is packages/sdk-typescript/** only.
+dist/
