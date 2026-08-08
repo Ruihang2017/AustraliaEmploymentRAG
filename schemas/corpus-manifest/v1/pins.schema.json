@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schemas/corpus-manifest/v1/pins.schema.json",
+  "title": "CorpusRelease shared definitions — scalars, model pin and runtime pin",
+  "description": "Shared $defs for the two bundle manifests (PRD §18.4). The model and runtime pin objects exist because breakdown plan §8 Q11 (confirmed) requires the release to pin models, tokenizers and runtime metadata, and RETR-07 to verify them: a loader may only consume and verify these values, never invent a local default. Every member below is a field; CRPS-02 fixes no value for any of them.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "description": "Lowercase hex SHA-256. PRD §18.4 'artifact hashes' / 'file hashes'.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "semver": {
+      "type": "string",
+      "description": "major.minor.patch with no leading zeroes. PRD §45.4 contract versioning.",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "version_string": {
+      "type": "string",
+      "description": "A recorded version identifier. Not constrained to semver because a component version may legitimately be a tool release string; it must simply be present and non-empty.",
+      "minLength": 1
+    },
+    "utc_timestamp": {
+      "type": "string",
+      "description": "UTC ISO-8601 with a Z suffix, second precision or finer — the PRD §35.1 timestamp form.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "date_or_timestamp": {
+      "type": "string",
+      "description": "A calendar date or a UTC ISO-8601 timestamp — coverage rows carry effective dates, which are day-precision in the source material.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z)?$"
+    },
+    "decimal": {
+      "type": "string",
+      "description": "A decimal number carried as a STRING, never as a JSON float. The manifest is canonicalised, hashed and signed, and a Rust verifier must re-derive identical bytes; RFC 8785 canonicalisation of doubles requires ECMAScript Number::toString, which Python's repr does not reproduce (1e16 -> '10000000000000000' in JS, '1e+16' in Python). A float in the signed form is therefore a signature-divergence bug waiting to happen. See docs/adr/0002-corpus-release-signing.md.",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "count": {
+      "type": "integer",
+      "description": "A non-negative cardinality.",
+      "minimum": 0
+    },
+    "model_artifact": {
+      "type": "object",
+      "description": "Breakdown plan §8 Q11 'hash': the artefact identity a loader verifies before executing it. `format` records the artefact encoding so a loader can refuse an artefact it cannot execute.",
+      "additionalProperties": false,
+      "required": ["sha256", "byte_size", "format"],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Q11 'hash' — the immutable content identity of the model artefact."
+        },
+        "byte_size": {
+          "$ref": "#/$defs/count",
+          "description": "Artefact size in bytes, so a truncated download is detectable before hashing."
+        },
+        "format": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "The artefact encoding (for example an ONNX graph), so a loader can refuse an artefact it cannot execute."
+        }
+      }
+    },
+    "licence": {
+      "type": "object",
+      "description": "Breakdown plan §8 Q11 'licence information'. PRD §11.1's conservative default applies to model weights exactly as it does to source material.",
+      "additionalProperties": false,
+      "required": [
+        "identifier",
+        "url",
+        "attribution_required",
+        "redistribution_permitted",
+        "notes"
+      ],
+      "properties": {
+        "identifier": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "The licence identifier the artefact is distributed under."
+        },
+        "url": {
+          "type": ["string", "null"],
+          "description": "Where the licence text was read. Null when the licence travels with the artefact only."
+        },
+        "attribution_required": {
+          "type": "boolean",
+          "description": "Q11 'licence information' — whether use obliges attribution."
+        },
+        "redistribution_permitted": {
+          "type": "boolean",
+          "description": "Whether the artefact bytes may be redistributed; PRD §11.1's conservative default is false."
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Any condition that the two booleans cannot express."
+        }
+      }
+    },
+    "tokenizer": {
+      "type": "object",
+      "description": "Breakdown plan §8 Q11: 'Tokenization through the Hugging Face `tokenizers` Rust crate ... with a local `tokenizer.json` pinned by the release'. The artefact hash is what makes 'pinned by the release' checkable.",
+      "additionalProperties": false,
+      "required": ["id", "artifact_sha256", "max_tokens", "truncation"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Identity of the tokenizer the release pins."
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Hash of the local tokenizer.json — what makes 'pinned by the release' checkable."
+        },
+        "max_tokens": {
+          "$ref": "#/$defs/count",
+          "description": "The limit the truncation policy applies at."
+        },
+        "truncation": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Q11 'truncation' — the recorded truncation policy."
+        }
+      }
+    },
+    "model_pin": {
+      "type": "object",
+      "description": "One local model the release pins, per role. Breakdown plan §8 Q11: 'Models, tokenizers and runtime metadata are pinned in the corpus/retrieval manifest' and 'Model artefacts must carry an immutable revision identifier, hash, dimensions, normalisation, truncation and licence information'.",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "model_id",
+        "model_revision",
+        "model_artifact",
+        "dimensions",
+        "normalisation",
+        "truncation",
+        "max_tokens",
+        "tokenizer",
+        "licence",
+        "bundle_path"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Q11 puts query embedding and local cross-encoder rerank behind the same controlled local-model boundary; one entry per role the release pins.",
+          "enum": ["DOCUMENT_EMBEDDING", "QUERY_EMBEDDING", "RERANK"]
+        },
+        "model_id": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Identity of the model. The value is breakdown plan §8 Q2 (benchmark-selected); this contract fixes the field only."
+        },
+        "model_revision": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Q11 'immutable revision identifier' — a mutable tag is not acceptable."
+        },
+        "model_artifact": {
+          "$ref": "#/$defs/model_artifact",
+          "description": "Q11 'hash'; plus the artefact encoding and size."
+        },
+        "dimensions": {
+          "type": ["integer", "null"],
+          "description": "Q11 'dimensions'; null only for a role with no vector output (RERANK).",
+          "minimum": 1
+        },
+        "normalisation": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Q11 'normalisation'."
+        },
+        "truncation": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Q11 'truncation'."
+        },
+        "max_tokens": {
+          "$ref": "#/$defs/count",
+          "description": "The truncation policy is meaningless without the limit it applies at."
+        },
+        "tokenizer": {
+          "$ref": "#/$defs/tokenizer",
+          "description": "Q11 tokenizer artefact identity, pinned by the release."
+        },
+        "licence": {
+          "$ref": "#/$defs/licence",
+          "description": "Q11 'licence information'."
+        },
+        "bundle_path": {
+          "type": ["string", "null"],
+          "description": "Set ONLY when the artefact is genuinely a file inside the bundle (and therefore also in files[]); null when it is delivered to the host by configured local path. Sub-PRD D15: the manifest pins identity, and adding a model file to PRD §18.4's fixed five-entry layout is a plan/PRD writeback, not a ticket change."
+        }
+      }
+    },
+    "runtime_pin": {
+      "type": "object",
+      "description": "The local inference runtime the release was verified against. Breakdown plan §8 Q11 (confirmed): runtime family and version, CPU-only execution providers, the exact pinned `ort` crate version and the exact pinned `tokenizers` crate version. RETR-07 records the values; this is where the release states them. They are never inferred from what happens to be installed.",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "version",
+        "execution_providers",
+        "integration",
+        "tokenizer_library",
+        "pinned_by"
+      ],
+      "properties": {
+        "family": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Q11 'Runtime family' — recorded, never inferred from what happens to be installed."
+        },
+        "version": {
+          "$ref": "#/$defs/version_string",
+          "description": "The exact runtime version the release was verified against."
+        },
+        "execution_providers": {
+          "type": "array",
+          "description": "Q11 'CPU-only'; a manifest that pins a GPU provider is visibly wrong on a PRD §19.1 host.",
+          "items": { "$ref": "#/$defs/non_empty_string" }
+        },
+        "integration": {
+          "$ref": "#/$defs/crate_pin",
+          "description": "Q11 'Rust integration through the `ort` crate at an exact pinned, compatibility-verified version' — RETR-07 records the patch version it verified, and this is where the release states it."
+        },
+        "tokenizer_library": {
+          "$ref": "#/$defs/crate_pin",
+          "description": "Q11 'Tokenization through the Hugging Face `tokenizers` Rust crate at an exact pinned version'."
+        },
+        "pinned_by": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "Provenance of the pin itself — the identifier of the verification record the values came from, so a reader can trace a pin to the compatibility test that produced it."
+        }
+      }
+    },
+    "crate_pin": {
+      "type": "object",
+      "description": "An exactly pinned Rust crate. Never read from a lockfile by the builder: breakdown plan §8 Q11 makes it an explicit input.",
+      "additionalProperties": false,
+      "required": ["crate", "version"],
+      "properties": {
+        "crate": {
+          "$ref": "#/$defs/non_empty_string",
+          "description": "The crate name."
+        },
+        "version": {
+          "$ref": "#/$defs/version_string",
+          "description": "The exact pinned version — never a range."
+        }
+      }
+    }
+  }
+}

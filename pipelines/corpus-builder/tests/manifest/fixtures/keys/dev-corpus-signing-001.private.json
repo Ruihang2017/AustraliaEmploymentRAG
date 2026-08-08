@@ -1,0 +1,8 @@
+{
+  "key_id": "dev-corpus-signing-001",
+  "algorithm": "ED25519",
+  "kind": "DEVELOPMENT_ONLY",
+  "seed_b64": "vlvV3P9FWKgt6H//9jLK61my0zwmbU+Y1IMQKAJwKcg=",
+  "warning": "Development key for the CRPS-02 test suite only. It is committed on purpose so the test suite is offline and reproducible, and its identity starts with 'dev-' so any manifest it signed is identifiable as unpromotable. It MUST NEVER sign a real release. PRD section 20.2 keeps production signing credentials away from coding agents; production key custody is sub-PRD open question Q-CRPS-3 and the Founder's decision.",
+  "derivation": "sha256(b'taxrag CRPS-02 development-only corpus release signing key') - deterministic, so this file carries no entropy anyone could mistake for a real key."
+}

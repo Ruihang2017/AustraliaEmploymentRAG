@@ -1,0 +1,11 @@
+# CRPS-02. git's core.autocrlf=true (the Git-for-Windows default) rewrites LF to CRLF in the working
+# tree on checkout. Every file under this directory feeds a signed contract: the release manifest is
+# canonicalised, hashed and signed byte-wise, and a Rust verifier (RETR-01, RLSE-07) must re-derive
+# the identical bytes on a different platform. A platform-dependent line ending would make the same
+# commit produce a different signature on Windows and on Linux.
+#
+# The repository-root .gitattributes is unallocated by breakdown plan §4 and must not be touched;
+# tools/tests/frozen-paths.test.mjs anchors that rule to the root file, so a sub-directory
+# .gitattributes inside this ticket's file-scope is the permitted form (CRPS-01 precedent,
+# pipelines/corpus-builder/schema/.gitattributes).
+* text eol=lf

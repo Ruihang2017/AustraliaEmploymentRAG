@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schemas/corpus-manifest/v1/embedding-manifest.schema.json",
+  "title": "CorpusRelease embedding manifest (embedding-manifest.json)",
+  "description": "The bundle's second manifest — PRD §18.4 lists embedding-manifest.json in the fixed release layout. Basis: PRD §17.2 tiers, §17.3 'Offline/local: document embeddings', §35.3 chunk_embedding columns (profile_id, dimensions, quantisation), §14.4 'Embedding changes require a dual index, retrieval recall/resource comparison and pointer rollback', and breakdown plan §8 Q11 for model_revision, model_artifact, licence, the tokenizer artefact identity and runtime. CRPS-05 emits the instance; this member list and CRPS-05's deliverable 4 list must remain identical — on divergence THIS SCHEMA WINS and the divergence is a writeback. Consumers that transcribe this list (RETR-05, RETR-07) update their transcription through their own module's ticket; they never edit this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "profile_id",
+    "model_id",
+    "model_revision",
+    "model_artifact",
+    "licence",
+    "tokenizer",
+    "dimensions",
+    "quantisation",
+    "normalisation",
+    "distance_metric",
+    "runtime",
+    "built_at",
+    "builder_version",
+    "input_contract_version",
+    "tier_selection",
+    "vector_file",
+    "determinism",
+    "source_release_id"
+  ],
+  "properties": {
+    "manifest_version": {
+      "$ref": "pins.schema.json#/$defs/semver",
+      "description": "Contract versioning (PRD §45.4); the schema directory is v<major>, exactly as for the release manifest."
+    },
+    "profile_id": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "chunk_embedding.profile_id (PRD §35.3) — the embedding profile the vectors belong to. Must equal the release manifest's embedding_profile.profile_id."
+    },
+    "model_id": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "The model that produced the vectors (value is breakdown plan §8 Q2, benchmark-selected). A value marked as a stub ('stub' or 'stub:<seed>', the CRPS-05 deliverable 2 convention) is BLOCKING for a CANDIDATE or PUBLISHED release."
+    },
+    "model_revision": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "Breakdown plan §8 Q11 'immutable revision identifier' — a mutable tag is not acceptable."
+    },
+    "model_artifact": {
+      "$ref": "pins.schema.json#/$defs/model_artifact",
+      "description": "Q11 'hash' — the artefact identity RETR-07 verifies before executing it."
+    },
+    "licence": {
+      "$ref": "pins.schema.json#/$defs/licence",
+      "description": "Q11 'licence information'; PRD §11.1's conservative default applies to weights as it does to sources."
+    },
+    "tokenizer": {
+      "$ref": "pins.schema.json#/$defs/tokenizer",
+      "description": "Q11 'a local tokenizer.json pinned by the release' — the artefact hash makes the pin checkable."
+    },
+    "dimensions": {
+      "type": "integer",
+      "description": "chunk_embedding.dimensions (PRD §35.3). Query vectors that do not match this cannot match the indexed vectors.",
+      "minimum": 1
+    },
+    "quantisation": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "chunk_embedding.quantisation (PRD §35.3)."
+    },
+    "normalisation": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "Q11 'normalisation' — the vector normalisation applied before indexing."
+    },
+    "distance_metric": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "The metric the vector index was built for; a consumer that searches with a different metric silently returns wrong neighbours."
+    },
+    "runtime": {
+      "$ref": "pins.schema.json#/$defs/runtime_pin",
+      "description": "Breakdown plan §8 Q11 runtime pin — the runtime the embeddings were produced with. Must agree member-for-member with the release manifest's runtime."
+    },
+    "built_at": {
+      "$ref": "pins.schema.json#/$defs/utc_timestamp",
+      "description": "When the embedding pass ran."
+    },
+    "builder_version": {
+      "$ref": "pins.schema.json#/$defs/version_string",
+      "description": "The version of the embedding pipeline that produced the vectors."
+    },
+    "input_contract_version": {
+      "$ref": "pins.schema.json#/$defs/version_string",
+      "description": "The corpus/intermediate contract version the embedding pass consumed."
+    },
+    "tier_selection": {
+      "type": "object",
+      "description": "PRD §17.2 tiers — which chunk tiers were embedded, and how many chunks were embedded or skipped. PRD §14.4 requires an embedding change to be comparable, which requires knowing what was embedded.",
+      "additionalProperties": false,
+      "required": ["tiers", "chunk_count", "embedded_count", "skipped_count"],
+      "properties": {
+        "tiers": {
+          "type": "array",
+          "description": "The PRD §17.2 tiers included in this embedding pass.",
+          "items": { "$ref": "pins.schema.json#/$defs/non_empty_string" }
+        },
+        "chunk_count": { "$ref": "pins.schema.json#/$defs/count", "description": "Chunks considered." },
+        "embedded_count": { "$ref": "pins.schema.json#/$defs/count", "description": "Chunks embedded." },
+        "skipped_count": { "$ref": "pins.schema.json#/$defs/count", "description": "Chunks deliberately not embedded." }
+      }
+    },
+    "vector_file": {
+      "type": "object",
+      "description": "The vector index file this manifest describes — PRD §18.4's vectors.usearch. Its sha256 is cross-checked against the release manifest's files[] and artifacts.vector_index_sha256.",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "byte_size", "count"],
+      "properties": {
+        "path": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "Bundle-root-relative POSIX path of the vector file."
+        },
+        "sha256": { "$ref": "pins.schema.json#/$defs/sha256", "description": "SHA-256 of the vector file." },
+        "byte_size": { "$ref": "pins.schema.json#/$defs/count", "description": "Size of the vector file in bytes." },
+        "count": { "$ref": "pins.schema.json#/$defs/count", "description": "Number of vectors stored." }
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "description": "Whether the embedding pass is reproducible, and the seed it used. PRD §14.4 makes an embedding change a comparison exercise, which is only meaningful against a reproducible baseline.",
+      "additionalProperties": false,
+      "required": ["seed", "deterministic"],
+      "properties": {
+        "seed": {
+          "type": ["integer", "null"],
+          "description": "The seed used, or null when the pass takes none."
+        },
+        "deterministic": {
+          "type": "boolean",
+          "description": "Whether re-running the pass on the same inputs reproduces the same vectors."
+        }
+      }
+    },
+    "source_release_id": {
+      "type": ["string", "null"],
+      "description": "The release whose chunks were embedded, when the pass ran against an existing release; null when the embedding pass is part of the release being built."
+    }
+  }
+}

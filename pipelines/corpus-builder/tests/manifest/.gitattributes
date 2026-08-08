@@ -1,0 +1,6 @@
+# CRPS-02. The golden manifest fixture under fixtures/golden/ carries a recorded manifest_sha256 and
+# a detached Ed25519 signature over its own canonical bytes. A CRLF rewrite on checkout would change
+# neither (canonicalisation re-serialises from parsed JSON), but the development key files and the
+# fixture READMEs are read byte-wise by the scanner test, and a signed contract's fixtures must not
+# depend on the platform they were checked out on. Keep LF in the working tree too.
+* text eol=lf

@@ -1,0 +1,7 @@
+{
+  "key_id": "dev-corpus-signing-001",
+  "algorithm": "ED25519",
+  "kind": "DEVELOPMENT_ONLY",
+  "public_key_b64": "mHeCSJ0N2zkcjiSj+kqUcmDtWvPft7uyFe12oki+VL4=",
+  "warning": "The public half of the CRPS-02 development key. A verifier that trusts this identity is verifying development material; a production verifier must not carry it."
+}

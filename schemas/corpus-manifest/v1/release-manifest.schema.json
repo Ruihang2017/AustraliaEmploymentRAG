@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schemas/corpus-manifest/v1/release-manifest.schema.json",
+  "title": "CorpusRelease release manifest (release-manifest.json)",
+  "description": "PRD §18.4: 'The manifest MUST include parent release, schema/parser/chunker/embedding/index versions, artifact hashes, counts, coverage, quarantine summary, evaluation results, file hashes/sizes, build time and app/search compatibility.' Every member below maps to one of those phrases or to a PRD §35.3 corpus_release column, plus the model/tokenizer/runtime pinning members required by breakdown plan §8 Q11 (confirmed). schemas/corpus-manifest/** is PRD §44.3 serial-owned by module 04-corpus-contract; no other module may write it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "release_id",
+    "release_kind",
+    "parent_release_id",
+    "created_at",
+    "build_started_at",
+    "build_finished_at",
+    "versions",
+    "compatibility",
+    "files",
+    "artifacts",
+    "counts",
+    "coverage",
+    "quarantine",
+    "evaluation",
+    "embedding_profile",
+    "local_models",
+    "runtime",
+    "signature",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "manifest_version": {
+      "$ref": "pins.schema.json#/$defs/semver",
+      "description": "Contract versioning (PRD §45.4). The schema directory is v<major>: adding an optional member is a minor bump in place; removing or renaming a member, or tightening a type, is a major bump into a new schemas/corpus-manifest/v<N>/ directory. The verifier accepts the current and the immediately previous major."
+    },
+    "release_id": {
+      "$ref": "pins.schema.json#/$defs/non_empty_string",
+      "description": "Bundle identity — corpus_release.id (PRD §35.3)."
+    },
+    "release_kind": {
+      "type": "string",
+      "description": "Manifest-only vocabulary. CANDIDATE — built by CRPS-06, not yet published; PUBLISHED — staged by CRPS-07; SYNTHETIC_FIXTURE — generated test data (CRPS-08). PRD §12.2 requires failed/candidate material to be unable to touch active data, and breakdown plan A4 requires a signed synthetic release for RETR-01; without an explicit marker a fixture bundle is byte-indistinguishable from a promotable release. This is NOT a corpus_release.status enum value — the SQLite enum stays FND-03's.",
+      "enum": ["CANDIDATE", "PUBLISHED", "SYNTHETIC_FIXTURE"]
+    },
+    "parent_release_id": {
+      "type": ["string", "null"],
+      "description": "PRD §18.4 'parent release' — corpus_release.parent_id (§35.3). Null for the first release in a lineage."
+    },
+    "created_at": {
+      "$ref": "pins.schema.json#/$defs/utc_timestamp",
+      "description": "PRD §18.4 'build time' — when the manifest itself was created (corpus_release.created_at, §35.3)."
+    },
+    "build_started_at": {
+      "$ref": "pins.schema.json#/$defs/utc_timestamp",
+      "description": "PRD §18.4 'build time' — when the offline build began."
+    },
+    "build_finished_at": {
+      "$ref": "pins.schema.json#/$defs/utc_timestamp",
+      "description": "PRD §18.4 'build time' — when the offline build finished."
+    },
+    "versions": {
+      "type": "object",
+      "description": "PRD §18.4 'schema/parser/chunker/embedding/index versions', plus the builder and contract versions corpus_meta records so readiness (PRD §42.1) can compare them.",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "parser",
+        "chunker",
+        "embedding",
+        "index",
+        "builder",
+        "contract"
+      ],
+      "properties": {
+        "schema": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "The corpus schema version. MUST equal corpus_meta.schema_version inside corpus.sqlite (PRD §42.1: 'Readiness fails during incompatible app/corpus/schema state')."
+        },
+        "parser": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "PRD §18.4 'parser ... version' — corpus_release.parser_version (§35.3)."
+        },
+        "chunker": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "PRD §18.4 'chunker ... version'."
+        },
+        "embedding": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "PRD §18.4 'embedding ... version'."
+        },
+        "index": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "PRD §18.4 'index version'."
+        },
+        "builder": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "The corpus-builder pipeline version — corpus_meta.builder_version."
+        },
+        "contract": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "The intermediate normalised-record contract version — corpus_meta.contract_version."
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "PRD §18.4 'app/search compatibility'. PRD §21: 'Trust application/corpus artifacts only after signature/hash/compatibility verification.'",
+      "additionalProperties": false,
+      "required": ["app", "search", "corpus_schema"],
+      "properties": {
+        "app": {
+          "$ref": "#/$defs/compatibility_range",
+          "description": "The application versions this release may be loaded by."
+        },
+        "search": {
+          "$ref": "#/$defs/compatibility_range",
+          "description": "The search-engine versions this release may be loaded by."
+        },
+        "corpus_schema": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "The corpus schema version a consumer must implement."
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "PRD §18.4 'file hashes/sizes'. One entry per file in the bundle, bundle-root-relative with '/' separators, sorted by path. release-manifest.json is EXCLUDED — a manifest cannot carry its own hash; its integrity is manifest_sha256 plus the signature. Symlinks and other non-regular files are refused at build time and are a finding at verify time.",
+      "items": { "$ref": "#/$defs/file_entry" }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "PRD §18.4 'artifact hashes' — the four bundle artefacts of the §18.4 layout, each cross-checked against its files[] entry by verify_bundle().",
+      "additionalProperties": false,
+      "required": [
+        "corpus_sqlite_sha256",
+        "lexical_index_sha256",
+        "vector_index_sha256",
+        "embedding_manifest_sha256"
+      ],
+      "properties": {
+        "corpus_sqlite_sha256": {
+          "$ref": "pins.schema.json#/$defs/sha256",
+          "description": "SHA-256 of corpus.sqlite, equal to its files[] entry."
+        },
+        "lexical_index_sha256": {
+          "$ref": "pins.schema.json#/$defs/sha256",
+          "description": "DIRECTORY digest of tantivy/, which is a directory rather than a file: SHA-256 over '<relative path>\\u001f<file sha256>\\n' for every file beneath it, in sorted path order, UTF-8 encoded; an empty directory digests the empty string. RETR-01 and RLSE-07 re-implement this — see docs/adr/0002-corpus-release-signing.md."
+        },
+        "vector_index_sha256": {
+          "$ref": "pins.schema.json#/$defs/sha256",
+          "description": "SHA-256 of vectors.usearch, equal to its files[] entry."
+        },
+        "embedding_manifest_sha256": {
+          "$ref": "pins.schema.json#/$defs/sha256",
+          "description": "SHA-256 of embedding-manifest.json, equal to its files[] entry."
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "description": "PRD §18.4 'counts' — the row cardinalities of the PRD §35 corpus tables the release was built from.",
+      "additionalProperties": false,
+      "required": [
+        "sources",
+        "documents",
+        "document_versions",
+        "nodes",
+        "node_versions",
+        "relations",
+        "events",
+        "chunks",
+        "embeddings"
+      ],
+      "properties": {
+        "sources": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — source records." },
+        "documents": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — document identities." },
+        "document_versions": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — document versions." },
+        "nodes": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — document nodes." },
+        "node_versions": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — node versions." },
+        "relations": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — node relations." },
+        "events": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — legal events." },
+        "chunks": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — search chunks." },
+        "embeddings": { "$ref": "pins.schema.json#/$defs/count", "description": "PRD §18.4 'counts' — chunk embeddings." }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "description": "PRD §18.4 'coverage' — one row per source group, so a consumer can state what the release does and does not cover.",
+      "items": { "$ref": "#/$defs/coverage_entry" }
+    },
+    "quarantine": {
+      "type": "object",
+      "description": "PRD §18.4 'quarantine summary' — what the build refused to publish, and why.",
+      "additionalProperties": false,
+      "required": ["open_count", "resolved_count", "by_reason_code"],
+      "properties": {
+        "open_count": { "$ref": "pins.schema.json#/$defs/count", "description": "Quarantined items still open at build time." },
+        "resolved_count": { "$ref": "pins.schema.json#/$defs/count", "description": "Quarantined items resolved before this build." },
+        "by_reason_code": {
+          "type": "object",
+          "description": "Open map from quarantine reason code to count. Open because the reason vocabulary is FND-03's, not this contract's.",
+          "additionalProperties": { "$ref": "pins.schema.json#/$defs/count" }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "PRD §18.4 'evaluation results'. The member stays REQUIRED even when evaluation has not run: the explicit not-run shape is status NOT_RUN with a null report and empty metrics/gates, and the gating rule lives in CRPS-06. An absent member and an unevaluated release must not look the same.",
+      "additionalProperties": false,
+      "required": ["status", "report_id", "ran_at", "metrics", "gates"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "NOT_RUN — no evaluation was run for this release; PASSED / FAILED — every gate below was, or was not, satisfied.",
+          "enum": ["NOT_RUN", "PASSED", "FAILED"]
+        },
+        "report_id": {
+          "type": ["string", "null"],
+          "description": "Identity of the evaluation report (21-evaluation-600) this summary came from; null when status is NOT_RUN."
+        },
+        "ran_at": {
+          "type": ["string", "null"],
+          "description": "When the evaluation ran; null when status is NOT_RUN.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Open map from metric name to value. Values are DECIMAL STRINGS, never JSON floats — see pins.schema.json#/$defs/decimal for why the signed canonical form admits no float.",
+          "additionalProperties": { "$ref": "pins.schema.json#/$defs/decimal" }
+        },
+        "gates": {
+          "type": "array",
+          "description": "The evaluation gates and whether each was satisfied.",
+          "items": { "$ref": "#/$defs/evaluation_gate" }
+        }
+      }
+    },
+    "embedding_profile": {
+      "type": "object",
+      "description": "corpus_release.embedding_profile (PRD §35.3), expanded to the chunk_embedding columns profile_id, dimensions and quantisation. Must agree with embedding-manifest.json.",
+      "additionalProperties": false,
+      "required": ["profile_id", "model_id", "dimensions", "quantisation"],
+      "properties": {
+        "profile_id": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "corpus_release.embedding_profile — joins to chunk_embedding.profile_id."
+        },
+        "model_id": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "The model that produced the indexed vectors (value is breakdown plan §8 Q2)."
+        },
+        "dimensions": {
+          "type": "integer",
+          "description": "chunk_embedding.dimensions (PRD §35.3).",
+          "minimum": 1
+        },
+        "quantisation": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "chunk_embedding.quantisation (PRD §35.3)."
+        }
+      }
+    },
+    "local_models": {
+      "type": "array",
+      "description": "Breakdown plan §8 Q11: 'Models, tokenizers and runtime metadata are pinned in the corpus/retrieval manifest'; 'Model artefacts must carry an immutable revision identifier, hash, dimensions, normalisation, truncation and licence information'. One entry per role the release pins. A release with no entry is a defect, reported by verify_bundle() rather than by this schema (the validator subset carries no minItems).",
+      "items": { "$ref": "pins.schema.json#/$defs/model_pin" }
+    },
+    "runtime": {
+      "$ref": "pins.schema.json#/$defs/runtime_pin",
+      "description": "Breakdown plan §8 Q11: runtime family and version, CPU-only execution providers, the exact pinned `ort` crate version and the exact pinned `tokenizers` crate version. RETR-07 is the confirmed owner of the runtime and may only consume and verify these values."
+    },
+    "signature": {
+      "type": ["object", "null"],
+      "description": "PRD §18.4 'Production verifies signature'. Detached signature over canonical_bytes(manifest), which EXCLUDES `signature` and `manifest_sha256` — otherwise verification would be circular. Consequence: signed_at is outside the signed bytes and is therefore unauthenticated metadata. Null only for an unsigned CANDIDATE.",
+      "additionalProperties": false,
+      "required": ["algorithm", "key_id", "value", "signed_at"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "description": "The signature scheme. ED25519 (RFC 8032) is the recorded default — docs/adr/0002-corpus-release-signing.md.",
+          "enum": ["ED25519"]
+        },
+        "key_id": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "Identity of the signing key. A development key's id starts with 'dev-' so a development signature is identifiable in any manifest (PRD §20.2)."
+        },
+        "value": {
+          "type": "string",
+          "description": "Base64 of the 64-byte detached signature over the canonical bytes.",
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "signed_at": {
+          "$ref": "pins.schema.json#/$defs/utc_timestamp",
+          "description": "When the manifest was signed. UNAUTHENTICATED: it is outside the signed bytes by construction."
+        }
+      }
+    },
+    "manifest_sha256": {
+      "$ref": "pins.schema.json#/$defs/sha256",
+      "description": "corpus_release.manifest_sha256 (PRD §35.3) — the lowercase hex SHA-256 of canonical_bytes(manifest), which excludes `signature` and `manifest_sha256` themselves."
+    }
+  },
+  "$defs": {
+    "compatibility_range": {
+      "type": "object",
+      "description": "An inclusive version range. `max: null` means unbounded above.",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "$ref": "pins.schema.json#/$defs/version_string",
+          "description": "The lowest consumer version this release supports."
+        },
+        "max": {
+          "type": ["string", "null"],
+          "description": "The highest consumer version this release supports; null means unbounded."
+        }
+      }
+    },
+    "file_entry": {
+      "type": "object",
+      "description": "PRD §18.4 'file hashes/sizes'. `path` is bundle-root-relative with '/' separators and never escapes the bundle.",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "byte_size"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Bundle-root-relative POSIX path. No leading separator, no drive letter, no '..' segment — verify_bundle() rejects any path that escapes the bundle BEFORE reading it.",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "pins.schema.json#/$defs/sha256",
+          "description": "SHA-256 of the file's bytes."
+        },
+        "byte_size": {
+          "$ref": "pins.schema.json#/$defs/count",
+          "description": "The file's size in bytes, checked from stat() before the file is read."
+        }
+      }
+    },
+    "coverage_entry": {
+      "type": "object",
+      "description": "PRD §18.4 'coverage' — one source group's coverage and freshness at build time.",
+      "additionalProperties": false,
+      "required": [
+        "source_group_id",
+        "coverage_status",
+        "freshness_status",
+        "document_count",
+        "earliest_effective_from",
+        "latest_effective_from",
+        "last_ingestion_at"
+      ],
+      "properties": {
+        "source_group_id": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "The source group this row describes."
+        },
+        "coverage_status": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "The group's coverage state. The vocabulary is FND-03's, so this contract records the value rather than re-defining the enum."
+        },
+        "freshness_status": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "The group's freshness state. Vocabulary as above."
+        },
+        "document_count": {
+          "$ref": "pins.schema.json#/$defs/count",
+          "description": "Documents from this group included in the release."
+        },
+        "earliest_effective_from": {
+          "type": ["string", "null"],
+          "description": "Earliest effective-from date covered; null when the group contributed nothing.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z)?$"
+        },
+        "latest_effective_from": {
+          "type": ["string", "null"],
+          "description": "Latest effective-from date covered; null when the group contributed nothing.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z)?$"
+        },
+        "last_ingestion_at": {
+          "type": ["string", "null"],
+          "description": "When this group was last ingested; null when it never was.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+        }
+      }
+    },
+    "evaluation_gate": {
+      "type": "object",
+      "description": "One evaluation gate. threshold and observed are DECIMAL STRINGS, never JSON floats — the manifest is signed and a Rust verifier must re-derive identical bytes.",
+      "additionalProperties": false,
+      "required": ["name", "threshold", "observed", "passed"],
+      "properties": {
+        "name": {
+          "$ref": "pins.schema.json#/$defs/non_empty_string",
+          "description": "The gate's identifier."
+        },
+        "threshold": {
+          "$ref": "pins.schema.json#/$defs/decimal",
+          "description": "The value the gate required, as a decimal string."
+        },
+        "observed": {
+          "$ref": "pins.schema.json#/$defs/decimal",
+          "description": "The value the evaluation measured, as a decimal string."
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether the observed value satisfied the threshold."
+        }
+      }
+    }
+  }
+}
