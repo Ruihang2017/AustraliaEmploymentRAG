@@ -1,0 +1,135 @@
+{
+  "$comment": [
+    "FND-10 deliverable 10 — interval and financial-year boundary cases (sub-PRD D12 / open question Q-F4).",
+    "D12: effective intervals are CLOSED AND INCLUSIVE, [effective_from, effective_to], with",
+    "effective_to: null meaning open-ended; adjacent consolidated versions must satisfy",
+    "next.effective_from > prev.effective_to, so a SHARED boundary date is an OVERLAP.",
+    "The 30 June / 1 July boundary is the case UAT-SRCH-03 is designed to catch."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSections": ["§6.6", "§35.2"],
+  "containment": [
+    {
+      "case": "closed interval contains its lower bound",
+      "interval": { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+      "date": "2024-07-01",
+      "contains": true
+    },
+    {
+      "case": "closed interval contains its upper bound (D12 inclusive)",
+      "interval": { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+      "date": "2025-06-30",
+      "contains": true
+    },
+    {
+      "case": "the day after the upper bound is outside",
+      "interval": { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+      "date": "2025-07-01",
+      "contains": false
+    },
+    {
+      "case": "the day before the lower bound is outside",
+      "interval": { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+      "date": "2024-06-30",
+      "contains": false
+    },
+    {
+      "case": "open-ended interval contains its lower bound",
+      "interval": { "effective_from": "2026-07-01", "effective_to": null },
+      "date": "2026-07-01",
+      "contains": true
+    },
+    {
+      "case": "open-ended interval contains a far future date",
+      "interval": { "effective_from": "2026-07-01", "effective_to": null },
+      "date": "2099-12-31",
+      "contains": true
+    },
+    {
+      "case": "open-ended interval excludes the day before it starts",
+      "interval": { "effective_from": "2026-07-01", "effective_to": null },
+      "date": "2026-06-30",
+      "contains": false
+    },
+    {
+      "case": "leap day is a real calendar day",
+      "interval": { "effective_from": "2024-02-29", "effective_to": "2024-02-29" },
+      "date": "2024-02-29",
+      "contains": true
+    },
+    {
+      "case": "a malformed requested date fails closed",
+      "interval": { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+      "date": "2025-02-30",
+      "contains": false
+    }
+  ],
+  "adjacentVersions": {
+    "$comment": "Two consolidated versions that are correctly adjacent under D12: no date is in both.",
+    "versions": [
+      { "effective_from": "2024-07-01", "effective_to": "2025-06-29" },
+      { "effective_from": "2025-06-30", "effective_to": null }
+    ],
+    "dates": [
+      "2024-06-30",
+      "2024-07-01",
+      "2025-06-28",
+      "2025-06-29",
+      "2025-06-30",
+      "2025-07-01",
+      "2026-07-01"
+    ]
+  },
+  "nonOverlap": [
+    {
+      "case": "shared boundary date is an overlap (D12: next.effective_from > prev.effective_to)",
+      "versions": [
+        { "effective_from": "2024-07-01", "effective_to": "2025-06-30" },
+        { "effective_from": "2025-06-30", "effective_to": null }
+      ],
+      "expected": [{ "left": 0, "right": 1, "reason": "OVERLAP" }]
+    },
+    {
+      "case": "one clear day between them is clean",
+      "versions": [
+        { "effective_from": "2024-07-01", "effective_to": "2025-06-29" },
+        { "effective_from": "2025-06-30", "effective_to": null }
+      ],
+      "expected": []
+    },
+    {
+      "case": "non-adjacent overlap through an open-ended interval — sorted-adjacent checking misses (0,2)",
+      "versions": [
+        { "effective_from": "2024-01-01", "effective_to": null },
+        { "effective_from": "2024-02-01", "effective_to": "2024-03-01" },
+        { "effective_from": "2024-04-01", "effective_to": null }
+      ],
+      "expected": [
+        { "left": 0, "right": 1, "reason": "OVERLAP" },
+        { "left": 0, "right": 2, "reason": "OVERLAP" }
+      ]
+    },
+    {
+      "case": "an inverted interval is reported as its own defect, not as a pair",
+      "versions": [{ "effective_from": "2025-06-30", "effective_to": "2024-07-01" }],
+      "expected": [{ "left": 0, "right": 0, "reason": "INVERTED_INTERVAL" }]
+    },
+    {
+      "case": "a malformed date is reported as its own defect, not thrown",
+      "versions": [{ "effective_from": "2025-02-30", "effective_to": null }],
+      "expected": [{ "left": 0, "right": 0, "reason": "MALFORMED_DATE" }]
+    }
+  ],
+  "financialYears": [
+    { "date": "2024-07-01", "financialYear": "2024-25" },
+    { "date": "2025-06-30", "financialYear": "2024-25" },
+    { "date": "2025-07-01", "financialYear": "2025-26" },
+    { "date": "2026-06-30", "financialYear": "2025-26" },
+    { "date": "2026-07-01", "financialYear": "2026-27" },
+    { "date": "2027-06-30", "financialYear": "2026-27" },
+    { "date": "2024-02-29", "financialYear": "2023-24" },
+    { "date": "2099-07-01", "financialYear": "2099-00" }
+  ],
+  "malformedDates": ["2026-13-01", "2025-02-29", "2025-02-30", "2024-6-30", "not-a-date", ""],
+  "wellFormedDates": ["2024-02-29", "2024-07-01", "2000-02-29", "1900-03-01"]
+}

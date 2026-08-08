@@ -1,0 +1,57 @@
+{
+  "$comment": [
+    "FND-10 deliverable 10 — the PRD §36.3 ranking feature order, transcribed verbatim.",
+    "`prdText` is the PRD's own list item, character for character, including the trailing punctuation.",
+    "ORDER IS THE SAFETY PRECEDENCE. The test asserts RANKING_FEATURE_ORDER as an ARRAY against this",
+    "list, never as a set: a reordered fixture would silently delete the rule §36.3 states.",
+    "NO NUMBERS. Candidate counts, fusion weights, rerank depth and evidence-node counts are breakdown",
+    "plan §8 Q4, benchmark-selected and owned by 11-retrieval-engine (RETR-10/GOLD-15)."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "§36.3",
+  "prdLines": "2311-2323",
+  "preamble": "The versioned ranker considers, in this order of safety precedence:",
+  "closingRule": "No learned score may reintroduce a filtered item or turn regulator guidance into higher authority than the operative legislation/instrument it explains.",
+  "features": [
+    {
+      "position": 1,
+      "feature": "EXACT_IDENTIFIER_AND_PINPOINT_MATCH",
+      "prdText": "exact identifier and pinpoint match;"
+    },
+    {
+      "position": 2,
+      "feature": "HARD_APPLICABILITY_PASS",
+      "prdText": "hard applicability pass;"
+    },
+    {
+      "position": 3,
+      "feature": "AUTHORITY_LEVEL_AND_BINDING_ROLE",
+      "prdText": "authority level and binding/persuasive role;"
+    },
+    {
+      "position": 4,
+      "feature": "DIRECT_SUBJECT_TOPIC_MATCH",
+      "prdText": "direct subject/topic match;"
+    },
+    {
+      "position": 5,
+      "feature": "LEXICAL_RANK",
+      "prdText": "lexical rank;"
+    },
+    {
+      "position": 6,
+      "feature": "DENSE_RERANK_RELEVANCE",
+      "prdText": "dense/rerank relevance;"
+    },
+    {
+      "position": 7,
+      "feature": "RELATIONSHIP_RELEVANCE",
+      "prdText": "relationship relevance (amends, applies, interprets, replaces);"
+    },
+    {
+      "position": 8,
+      "feature": "SOURCE_FRESHNESS_AND_PARSER_QUALITY",
+      "prdText": "source freshness and parser quality."
+    }
+  ]
+}
