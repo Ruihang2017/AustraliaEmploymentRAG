@@ -34,9 +34,11 @@ export const PRINCIPAL_KEYS: readonly PrincipalKey[] = Object.freeze([
  * The thirteen conditional cells of §38.1, one name per distinct cell wording (deliverable 1). Every
  * one of them is a predicate in `conditions.ts` — never a comment, never a `TODO`.
  *
- * `SCOPED_CREDENTIAL_REQUIRED` is the ticket's renamed `SCOPED_CREDENTIAL`: the shorter literal
- * matches the `credential` pattern of `tools/fixtures/secret-patterns.json`, which the CI secret scan
- * applies to every git-tracked file outside `docs/**` (sub-PRD D20b, D21).
+ * `SCOPED_CREDENTIAL_REQUIRED` carries the `_REQUIRED` suffix on purpose: the ticket's original,
+ * shorter name for that condition ends at the `credential` word and matches the `credential` pattern
+ * of `tools/fixtures/secret-patterns.json`, which the CI secret scan applies to every git-tracked
+ * file outside `docs/**`. Renamed under the ticket's Feedback obligation (sub-PRD D20b, D21) — do not
+ * shorten it back, and note that the scanner reads this file too, so do not spell the old name here.
  */
 export const CONDITION_NAMES = Object.freeze([
   'OWNER_CONSTRAINTS',
