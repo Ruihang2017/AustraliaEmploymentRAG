@@ -155,7 +155,10 @@ is written by no other ticket in the plan (breakdown plan §4).
    - `SHARED_WITH_MEMBER` — "read shared" (Viewer, create/read own Research Records)
    - `GRANT_REQUIRED` — "comment if granted", "read-only export if granted", "scoped if granted"
    - `OFF_BY_DEFAULT_GRANTABLE` — "— by default" (Developer, answer creation and record access)
-   - `SCOPED_CREDENTIAL` — "scoped" (service account)
+   - `SCOPE_GRANTED` — "scoped" (service account). Renamed from `SCOPED_CREDENTIAL` (sub-PRD **D35**):
+     written as an identifier anywhere outside `docs/**` that spelling matches the `credential` pattern
+     of `tools/fixtures/secret-patterns.json` and fails the PRD §20.3 secret-scan gate (sub-PRD D20b).
+     The PRD's own cell word ("scoped") is unchanged; only the coined identifier moves.
    - `OWN_RESOURCE_ONLY` — "own usage" (Researcher, service account; view organisation usage)
    - `USAGE_SUBSET` — "API/service usage subset" (Developer, view organisation usage)
    - `LIMITED_SUBSET` — "✓ limited" (Admin, view audit/security events)
@@ -165,11 +168,41 @@ is written by no other ticket in the plan (breakdown plan §4).
      principal.
    Each condition is a named predicate over the decision input — never a comment, never a `TODO`.
 2. **`evaluate(input): Decision`** where
-   `input = { principal: { kind: 'USER'|'SERVICE_ACCOUNT', role?, grants, scopes, organizationId }, action, resource?: { organizationId, ownerId?, sharedWith?, assignedReviewerId? }, context: { ownerCount? } }`
-   and `Decision = { allowed: true; via: Permission } | { allowed: false; reason: DenyReason }` with
-   `DenyReason` including at least `NOT_A_MEMBER`, `ROLE_LACKS_PERMISSION`, `CONDITION_NOT_MET`
+
+   ```ts
+   AccessInput = {
+     principal: {
+       kind: 'USER' | 'SERVICE_ACCOUNT';
+       id: string;                       // the principal identifier the resource fields compare against
+       organizationId: string;
+       role?: Role;                      // USER only; a SERVICE_ACCOUNT carrying one is invalid
+       grants: readonly Permission[];    // explicitly granted permissions (the "if granted" cells)
+       scopes: readonly ApiScope[];      // §16.3 credential scopes (the "scoped" cells)
+     };
+     action: Permission;
+     intent?: 'READ' | 'WRITE';          // absent ⇒ treated as 'WRITE' (fail-closed)
+     resource?: { organizationId: string; ownerId?: string; sharedWith?: readonly string[]; assignedReviewerId?: string };
+     context?: {
+       ownerCount?: number;              // Owners remaining in the organisation
+       targetRole?: Role;                // the membership target's role
+       usageScope?: 'ORGANIZATION' | 'OWN' | 'API_SERVICE';
+       auditScope?: 'FULL' | 'LIMITED' | 'CREDENTIAL_EVENTS';
+     };
+   }
+   ```
+
+   and
+   `Decision = { allowed: true; via: Permission } | { allowed: false; reason: DenyReason; condition?: ConditionName }`
+   with `DenyReason` including at least `NOT_A_MEMBER`, `ROLE_LACKS_PERMISSION`, `CONDITION_NOT_MET`
    (carrying the condition name), `NOT_A_RESOURCE_MEMBER`, `CROSS_ORGANIZATION`,
-   `SEPARATE_INTERNAL_IDENTITY_REQUIRED`.
+   `SEPARATE_INTERNAL_IDENTITY_REQUIRED`, plus `RESOURCE_ABSENT` (deliverable 4's *"missing resource"*)
+   and `UNKNOWN_ACTION` (an `action` that is not a `Permission`; boundary input is untrusted).
+
+   **Every optional field is fail-closed**: absent ⇒ the condition that reads it does not hold. The
+   fields beyond the original sketch (`principal.id`, `intent`, `context.targetRole`,
+   `context.usageScope`, `context.auditScope`) exist because five §38.1 conditional cells are otherwise
+   not computable — this is ticket Feedback obligation 1 discharged; the shape is recorded as sub-PRD
+   decision **D35** and is the shape `DATA-04` and `RUNT-02` read.
 3. **Cross-organisation short-circuit.** If `resource.organizationId !== principal.organizationId`, the
    result is `{ allowed: false, reason: 'CROSS_ORGANIZATION' }` **before** any role or permission is
    consulted — PRD §21.2 *"Authorise before lookup"* and §38.1 *"a role alone never authorises a record
@@ -265,9 +298,13 @@ Reviewer steps, all offline and deterministic:
    `Date.now`, `Math.random`, `process.env` — there must be none.
 8. **Append-only manifest.** `git diff packages/domain/package.json` shows additions only.
 
-Harness: the framework `FND-01` registered, plus the property-testing library declared in
-`packages/domain/package.json` (the first ticket to add it sets the pattern the other domain tickets
-follow). Fixture: `packages/domain/test/access/prd-38-1-matrix.json`. No mocks, no network, no database.
+Harness: the framework `FND-01` registered, plus a deterministic seeded generator committed under this
+ticket's own `test/access/**` — sub-PRD **D34** forbids declaring a property-testing library in
+`packages/domain/package.json` (`tools/tests/skeleton.test.mjs` asserts every member declares no
+dependency, and `FND-08`'s purity suite greps that manifest for `fast-check`), and D10 forbids importing
+a sibling leaf's copy. The acceptance bar stays the case count (`>= 10,000`), never a library. The
+correct append to `packages/domain/package.json` under this ticket is therefore the **empty** one.
+Fixture: `packages/domain/test/access/prd-38-1-matrix.json`. No mocks, no network, no database.
 
 ## Feedback obligation
 
