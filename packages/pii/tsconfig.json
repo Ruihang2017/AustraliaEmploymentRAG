@@ -2,6 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "include": [
     "src",
-    "test/contract/types.test-d.ts"
+    "test/contract/types.test-d.ts",
+    "test/entity/types.test-d.ts",
+    "test/context/types.test-d.ts"
   ]
 }

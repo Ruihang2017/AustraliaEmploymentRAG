@@ -1,0 +1,437 @@
+{
+  "rule": "COMBINATION_RULE_V1",
+  "prdRow": "Identifying combination of rare role + tiny workplace + personal event",
+  "blocked": [
+    {
+      "id": "ctx-combo-b-01",
+      "field": "question",
+      "value": "The only night baker at the site had a stroke during the shift.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-02",
+      "field": "question",
+      "value": "Our sole drone pilot was charged with drink driving last month.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-03",
+      "field": "question",
+      "value": "The single piano tuner engaged by the site had a mental health admission.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-04",
+      "field": "question",
+      "value": "Our one saltwater crocodile keeper took stress leave after the incident.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-05",
+      "field": "question",
+      "value": "The lone avalanche forecaster suffered a heart attack on rotation.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-06",
+      "field": "question",
+      "value": "The only bagpipe instructor engaged by the site was investigated for misconduct.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-07",
+      "field": "question",
+      "value": "Our sole falconer was diagnosed with epilepsy after the incident.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-08",
+      "field": "question",
+      "value": "The only harbour pilot rostered nights disclosed a gambling problem.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-09",
+      "field": "question",
+      "value": "The single stained-glass restorer engaged this year went through IVF.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-10",
+      "field": "question",
+      "value": "Our lone night-shift mortuary technician had a workplace injury.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-11",
+      "field": "question",
+      "value": "The one third-generation cooper engaged here lost his father in April.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a bereavement",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-12",
+      "field": "question",
+      "value": "The only sign-writer engaged by the site had a miscarriage.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity plus a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-13",
+      "field": "question",
+      "value": "The only farrier at our three-person stable broke his leg at the party.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a tiny workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-14",
+      "field": "question",
+      "value": "Our sole welder in a four-person workshop declared bankruptcy.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a tiny workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-15",
+      "field": "question",
+      "value": "The single puppeteer in the two-person troupe filed for family violence leave.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a tiny workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-16",
+      "field": "question",
+      "value": "Our only interpreter on a five-person team had a stroke on shift.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a tiny workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-17",
+      "field": "question",
+      "value": "The only glassblower in a three-person studio was made redundant.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a tiny workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-18",
+      "field": "question",
+      "value": "The only beekeeper at a small business was hospitalised after an allergic reaction.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "role specificity, a small workplace and a personal event",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-19",
+      "field": "question",
+      "value": "The only paramedic in a two-person clinic was dismissed on 12/03/2024.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT",
+        "PRECISE_TIME_OR_PLACE"
+      ],
+      "note": "four dimensions, including an exact date",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-20",
+      "field": "question",
+      "value": "Our sole tram driver on the heritage route disclosed a cancer diagnosis on 4 March 2024.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "PERSONAL_EVENT",
+        "PRECISE_TIME_OR_PLACE"
+      ],
+      "note": "role specificity, a personal event and an exact date",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-21",
+      "field": "question",
+      "value": "The only cleaner at the small office was stood down on 01/02/2024.",
+      "expectedDimensions": [
+        "ROLE_SPECIFICITY",
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT",
+        "PRECISE_TIME_OR_PLACE"
+      ],
+      "note": "four dimensions, including an exact date",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-b-22",
+      "field": "question",
+      "value": "A packer at our three-person depot was terminated after the investigation.",
+      "expectedDimensions": [
+        "SMALL_WORKPLACE",
+        "PERSONAL_EVENT"
+      ],
+      "note": "a tiny workplace plus a personal event, with NO uniqueness cue — the narrowing dimension does not have to be role specificity",
+      "synthetic": true
+    }
+  ],
+  "nearMisses": [
+    {
+      "id": "ctx-combo-n-01",
+      "field": "question",
+      "value": "A cleaner at a large national retailer took personal leave last week.",
+      "note": "a common role and a personal event, nothing narrowing",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-02",
+      "field": "question",
+      "value": "One of about 400 warehouse pickers was dismissed after the audit.",
+      "note": "a large denominator",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-03",
+      "field": "question",
+      "value": "A part-time administrator was stood down during the shutdown.",
+      "note": "employment type and a personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-04",
+      "field": "question",
+      "value": "An apprentice electrician had a workplace injury on site.",
+      "note": "a common role and a personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-05",
+      "field": "question",
+      "value": "A storeperson under the modern award was made redundant.",
+      "note": "a common role and a personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-06",
+      "field": "question",
+      "value": "The dismissal took effect on 12/03/2024 after the meeting.",
+      "note": "a personal event and an exact date, with nothing identity-narrowing",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-07",
+      "field": "question",
+      "value": "The stand-down was confirmed on 4 March 2024 by letter.",
+      "note": "a personal event and an exact date",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-08",
+      "field": "question",
+      "value": "A worker was terminated on 01/02/2024 during the probation period.",
+      "note": "a personal event and an exact date",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-09",
+      "field": "question",
+      "value": "The only qualified first aid officer completed the refresher course.",
+      "note": "role specificity with no personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-10",
+      "field": "question",
+      "value": "Our three-person workshop moved onto a new enterprise agreement.",
+      "note": "a tiny workplace with no personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-11",
+      "field": "question",
+      "value": "The only forklift licence holder works the afternoon shift.",
+      "note": "role specificity with no personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-12",
+      "field": "question",
+      "value": "The sole trading entity is registered in Victoria.",
+      "note": "a uniqueness cue about an entity, not a person",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-13",
+      "field": "question",
+      "value": "Our small team of four operates two vans in regional NSW.",
+      "note": "a small workplace and a state-level location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-14",
+      "field": "question",
+      "value": "The only site in Queensland is covered by the same agreement.",
+      "note": "a uniqueness cue about a site",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-15",
+      "field": "question",
+      "value": "The worker is a level 3 cleaner working ordinary hours on weekdays.",
+      "note": "anonymous role and duties",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-16",
+      "field": "question",
+      "value": "The employee was paid about $28 an hour, roughly the award rate.",
+      "note": "approximate wage facts",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-17",
+      "field": "question",
+      "value": "The employee is aged 30-39, which the discrimination claim relies on.",
+      "note": "an age band where legally relevant",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-18",
+      "field": "question",
+      "value": "Several drivers at the depot asked about the new roster pattern.",
+      "note": "a group, not an individual",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-19",
+      "field": "question",
+      "value": "About 250 staff are covered by the enterprise agreement.",
+      "note": "workforce scale",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-20",
+      "field": "question",
+      "value": "The employer operates in VIC, QLD and SA under one agreement.",
+      "note": "multiple states",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-21",
+      "field": "question",
+      "value": "The role requires a Certificate III and two years of experience.",
+      "note": "qualifications without identity",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "ctx-combo-n-22",
+      "field": "question",
+      "value": "Overtime is paid at time and a half for the first two hours.",
+      "note": "a rate fact with no identity",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    }
+  ]
+}

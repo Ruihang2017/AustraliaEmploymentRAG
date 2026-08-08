@@ -56,5 +56,31 @@
       "field": "question",
       "value": "They posted from @zorvanth_quibble last night."
     }
+  ],
+  "stageCanaries": [
+    {
+      "id": "stage-canary-01",
+      "category": "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME",
+      "stage": "recogniseEntities",
+      "token": "Zephyrine Quorvalis",
+      "field": "question",
+      "value": "Hi Zephyrine Quorvalis, what notice period applies to a casual?"
+    },
+    {
+      "id": "stage-canary-02",
+      "category": "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME",
+      "stage": "recogniseEntities",
+      "token": "Thaddeus Wimblefarn",
+      "field": "question",
+      "value": "My employee Thaddeus Wimblefarn asked about the Sunday penalty rate."
+    },
+    {
+      "id": "stage-canary-03",
+      "category": "IDENTIFYING_COMBINATION",
+      "stage": "applyCombinationRules",
+      "token": "zephyr-glass polisher",
+      "field": "question",
+      "value": "The only zephyr-glass polisher at our three-person atelier had a stroke."
+    }
   ]
 }

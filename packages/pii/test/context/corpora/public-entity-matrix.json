@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "id": "pe-emp-01",
+      "channel": "employer",
+      "value": "Example Widgets Pty Ltd",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a plain public employer name: allowed through the channel, and the ordinary rules do not block it in free text either",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-emp-02",
+      "channel": "employer",
+      "value": "Smith & Co Pty Ltd",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a person-shaped company name — the gazetteer keeps it out of the name rules in free text",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-emp-03",
+      "channel": "employer",
+      "value": "Example Widgets Pty Ltd 0412 345 678",
+      "structuredDecision": "REJECT",
+      "freeTextDecision": "REJECT",
+      "note": "a public employer name with a private phone number appended: the span is not the whole value, so the channel does not explain it (deliverable 5)",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-emp-04",
+      "channel": "employer",
+      "value": "private.person@example.invalid",
+      "structuredDecision": "REJECT",
+      "freeTextDecision": "REJECT",
+      "note": "a personal email pasted into the employer channel: PRIVATE_CONTACT_EMAIL is not a category this channel covers, so the whole-value match does not save it",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-abn-01",
+      "channel": "abn",
+      "value": "51824753556",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a checksum-valid ABN in its own channel",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-abn-02",
+      "channel": "abn",
+      "value": "51824753557",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a checksum-FAILING ABN. Recorded honestly: no shipped detector fires on eleven bare digits, so the decision is ACCEPT either way — the checksum rule is what stops it being SUPPRESSED, and that is asserted at the predicate level in public-entity.test.ts, where it is not vacuous",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-abn-03",
+      "channel": "abn",
+      "value": "The tax file number is 123 456 782",
+      "structuredDecision": "REJECT",
+      "freeTextDecision": "REJECT",
+      "note": "a TFN smuggled through the ABN channel: the finding covers the digits, not the whole value, and TAX_FILE_NUMBER is only suppressible when the whole value is a valid ABN",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "pe-party-01",
+      "channel": "publicCaseParty",
+      "value": "Smith v Acme Pty Ltd [2024] FWC 123",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a party name accompanied by a citation-shaped reference — public material",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "pe-party-02",
+      "channel": "publicCaseParty",
+      "value": "Smith",
+      "structuredDecision": "ACCEPT",
+      "freeTextDecision": "ACCEPT",
+      "note": "a bare party name with no citation. Recorded honestly: nothing fires on one capitalised word, so the decision is ACCEPT either way — the citation requirement is what stops it being SUPPRESSED, asserted at the predicate level",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    }
+  ]
+}

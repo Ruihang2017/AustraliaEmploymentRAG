@@ -1505,6 +1505,45 @@ const canaries = [
   },
 ];
 
+/**
+ * EVID-02 deliverable 10 — the SAME manifest, extended, so `ASSR-03` has one file to read and the
+ * two suites cannot drift.
+ *
+ * A SECOND TOP-LEVEL KEY, not a new entry in `canaries`, and the reason is mechanical:
+ * `test/deterministic/leak.test.ts` asserts every member of `canaries` is REJECTed under
+ * `CONSERVATIVE_STAGE_DEFAULTS` with its declared category. These canaries are detected by
+ * `EVID-02`'s stages 4 and 6 — the placeholder stages detect neither — so adding them to `canaries`
+ * would turn `EVID-01`'s suite red for a reason that has nothing to do with leaking.
+ * `loadCanaries()` reads `.canaries` and is unaffected; `test/entity/fixture.ts#loadStageCanaries`
+ * reads this key.
+ */
+const stageCanaries = [
+  {
+    id: 'stage-canary-01',
+    category: 'EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME',
+    stage: 'recogniseEntities',
+    token: 'Zephyrine Quorvalis',
+    field: 'question',
+    value: 'Hi Zephyrine Quorvalis, what notice period applies to a casual?',
+  },
+  {
+    id: 'stage-canary-02',
+    category: 'EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME',
+    stage: 'recogniseEntities',
+    token: 'Thaddeus Wimblefarn',
+    field: 'question',
+    value: 'My employee Thaddeus Wimblefarn asked about the Sunday penalty rate.',
+  },
+  {
+    id: 'stage-canary-03',
+    category: 'IDENTIFYING_COMBINATION',
+    stage: 'applyCombinationRules',
+    token: 'zephyr-glass polisher',
+    field: 'question',
+    value: 'The only zephyr-glass polisher at our three-person atelier had a stroke.',
+  },
+];
+
 // ---------------------------------------------------------------------------------------------
 // Write
 // ---------------------------------------------------------------------------------------------
@@ -1535,7 +1574,7 @@ function write(name, data) {
 
 for (const entry of FILES) write(`${kebab(entry.category)}.json`, entry);
 write('negatives-shared.json', { cases: sharedNegatives });
-write('canaries.json', { canaries });
+write('canaries.json', { canaries, stageCanaries });
 
 process.stdout.write(
   `wrote ${String(FILES.length + 2)} corpus files: ${String(
