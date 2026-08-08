@@ -14,7 +14,7 @@ import { sourceFiles } from './support/paths.js';
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
 
-/** `-----BEGIN RSA PRIVATE KEY-----`, never written contiguously. */
+/** A PEM header line, assembled at runtime so the literal is never contiguous in a tracked file. */
 const pemHeader = ['-----BEGIN RSA PRIV', 'ATE ', 'KEY-----'].join('');
 
 /** An `AUTC-04`-shaped credential: a fixed greppable prefix plus a long opaque body. */
