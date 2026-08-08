@@ -1,0 +1,498 @@
+{
+  "$comment": [
+    "FND-10 deliverable 10 — the PRD §36.2 five-conjunct truth table, all 32 combinations.",
+    "Transcribed from docs/PRD.md §36.2 (lines 2294-2307). The five conjuncts, in the PRD order, are",
+    "listed under `conjuncts`; `basis` records the exact candidate/request input used to make each",
+    "conjunct pass or fail, so a reviewer can read this fixture without reading the test.",
+    "Row 1 is the only all-pass row. `failures` is in ELIGIBILITY_FAILURES (= PRD conjunct) order."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "§36.2",
+  "prdLines": "2294-2307",
+  "conjuncts": [
+    "requested date ∈ effective interval",
+    "requested jurisdiction intersects applicable jurisdiction",
+    "legal status is permitted by request mode",
+    "document/source use is permitted by licence assessment",
+    "version and node belong to the pinned CorpusRelease"
+  ],
+  "failureNames": [
+    "OUTSIDE_EFFECTIVE_INTERVAL",
+    "JURISDICTION_MISMATCH",
+    "STATUS_NOT_PERMITTED_BY_MODE",
+    "LICENCE_NOT_PERMITTED",
+    "NOT_IN_PINNED_RELEASE"
+  ],
+  "basis": {
+    "candidate": {
+      "effective_from": "2024-07-01",
+      "effective_to": "2025-06-30",
+      "jurisdictions": [
+        "CTH"
+      ],
+      "corpus_release_id": {
+        "PASS": "cr_pinned",
+        "FAIL": "cr_other"
+      },
+      "legal_status": {
+        "PASS": "IN_FORCE",
+        "FAIL": "REPEALED"
+      },
+      "licence_state": {
+        "PASS": "PERMITTED",
+        "FAIL": "PROHIBITED"
+      }
+    },
+    "request": {
+      "legal_as_at": {
+        "PASS": "2025-06-30",
+        "FAIL": "2025-07-01"
+      },
+      "jurisdictions": {
+        "PASS": [
+          "CTH",
+          "VIC"
+        ],
+        "FAIL": [
+          "VIC"
+        ]
+      },
+      "request_mode": "CURRENT_LAW",
+      "corpus_release_id": "cr_pinned",
+      "use": "EVIDENCE_PACK"
+    }
+  },
+  "rows": [
+    {
+      "n": 1,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": true,
+      "failures": []
+    },
+    {
+      "n": 2,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 3,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 4,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 5,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "STATUS_NOT_PERMITTED_BY_MODE"
+      ]
+    },
+    {
+      "n": 6,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 7,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 8,
+      "date": "PASS",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 9,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH"
+      ]
+    },
+    {
+      "n": 10,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 11,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 12,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 13,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE"
+      ]
+    },
+    {
+      "n": 14,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 15,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 16,
+      "date": "PASS",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 17,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL"
+      ]
+    },
+    {
+      "n": 18,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 19,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 20,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 21,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "STATUS_NOT_PERMITTED_BY_MODE"
+      ]
+    },
+    {
+      "n": 22,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 23,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 24,
+      "date": "FAIL",
+      "jurisdiction": "PASS",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 25,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH"
+      ]
+    },
+    {
+      "n": 26,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 27,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 28,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "PASS",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 29,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE"
+      ]
+    },
+    {
+      "n": 30,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "PASS",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    },
+    {
+      "n": 31,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "PASS",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED"
+      ]
+    },
+    {
+      "n": 32,
+      "date": "FAIL",
+      "jurisdiction": "FAIL",
+      "status": "FAIL",
+      "licence": "FAIL",
+      "release": "FAIL",
+      "eligible": false,
+      "failures": [
+        "OUTSIDE_EFFECTIVE_INTERVAL",
+        "JURISDICTION_MISMATCH",
+        "STATUS_NOT_PERMITTED_BY_MODE",
+        "LICENCE_NOT_PERMITTED",
+        "NOT_IN_PINNED_RELEASE"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "$comment": [
+    "FND-10 deliverable 10 — the PRD §9.1 authority hierarchy, transcribed verbatim.",
+    "`prdText` is the PRD's own sentence, character for character, including the trailing full stop.",
+    "`rank` is the PRD's numbering: 1 is the HIGHEST authority. `level` is the FND-03 identifier.",
+    "ORDER IS THE SPEC. A reordered fixture silently deletes the §9.1 rule, so the test asserts the",
+    "array in order against BOTH AUTHORITY_RANK and packages/contracts' AUTHORITY_LEVEL_VALUES."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "§9.1",
+  "prdLines": "564-573",
+  "closingRule": "The engine MUST additionally consider jurisdiction, legal date, commencement, repeal, transitional provisions, specific-versus-general rules, instrument interaction, the statutory version interpreted by a case and later amendments. Guidance MUST NOT silently override legislation, an operative instrument or binding authority.",
+  "levels": [
+    {
+      "rank": 1,
+      "level": "CONSTITUTION_AND_LEGISLATION",
+      "prdText": "Constitution and applicable legislation."
+    },
+    {
+      "rank": 2,
+      "level": "REGULATIONS_AND_LEGISLATIVE_INSTRUMENTS",
+      "prdText": "Regulations and legislative instruments."
+    },
+    {
+      "rank": 3,
+      "level": "BINDING_JUDICIAL_AUTHORITY",
+      "prdText": "Binding judicial authority."
+    },
+    {
+      "rank": 4,
+      "level": "OPERATIVE_FWC_INSTRUMENTS_AND_DECISIONS",
+      "prdText": "FWC orders, approved agreements, modern awards and decisions with operative effect."
+    },
+    {
+      "rank": 5,
+      "level": "PERSUASIVE_DECISIONS",
+      "prdText": "Persuasive court, tribunal and FWC decisions."
+    },
+    {
+      "rank": 6,
+      "level": "OFFICIAL_REGULATOR_GUIDANCE",
+      "prdText": "Official regulator guidance, rulings, decision summaries and impact materials."
+    },
+    {
+      "rank": 7,
+      "level": "EXPLANATORY_AND_INTERPRETIVE_MATERIALS",
+      "prdText": "Explanatory memoranda and interpretive materials."
+    },
+    {
+      "rank": 8,
+      "level": "BILLS_AND_NON_OPERATIVE_FUTURE_MATERIALS",
+      "prdText": "Bills, consultations and non-operative future materials."
+    }
+  ]
+}
