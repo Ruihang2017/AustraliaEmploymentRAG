@@ -1,0 +1,180 @@
+{
+  "cases": [
+    {
+      "id": "shared-n-01",
+      "field": "question",
+      "value": "The employer is Example Widgets Pty Ltd and the question is about overtime.",
+      "note": "a public employer name",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-02",
+      "field": "question",
+      "value": "The work is performed in regional NSW across two depots.",
+      "note": "a state-level work location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-03",
+      "field": "question",
+      "value": "The worker is a level 3 cleaner working ordinary hours on weekdays.",
+      "note": "anonymous role and duties",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-04",
+      "field": "question",
+      "value": "The role requires a Certificate III and two years of experience.",
+      "note": "qualifications without identity",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-05",
+      "field": "question",
+      "value": "The employment type is casual with no guaranteed hours.",
+      "note": "employment type",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-06",
+      "field": "question",
+      "value": "The matter is Smith v Example Widgets Pty Ltd [2024] FWC 123.",
+      "note": "a public case party and citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-07",
+      "field": "question",
+      "value": "The decision in Re Application by the Australian Workers Union [2023] FWCFB 45 applies.",
+      "note": "a public case citation",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-08",
+      "field": "question",
+      "value": "The employee is aged 30-39, which the discrimination claim relies on.",
+      "note": "an age band where legally relevant",
+      "prdAllowedRow": "Age band where legally relevant",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-09",
+      "field": "question",
+      "value": "Employee A worked the night shift for six months before resigning.",
+      "note": "the synthetic placeholder from the allowed column",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-10",
+      "field": "question",
+      "value": "The worker was paid about $28 an hour, roughly the award rate.",
+      "note": "approximate wage facts without identity",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-11",
+      "field": "question",
+      "value": "Overtime is paid at time and a half for the first two hours.",
+      "note": "a rate fact with no identity",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-12",
+      "field": "question",
+      "value": "The Fair Work Infoline is 13 13 94 for general enquiries.",
+      "note": "a published business line",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-13",
+      "field": "question",
+      "value": "Head office can be reached on 1300 123 456 during business hours.",
+      "note": "a published 1300 business line",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-14",
+      "field": "question",
+      "value": "The company page is linkedin.com/company/example-widgets for anyone to see.",
+      "note": "a company page, not a personal profile",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-15",
+      "field": "question",
+      "value": "The award commenced on 1 January 2010 and was varied in 2020.",
+      "note": "instrument dates",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-16",
+      "field": "question",
+      "value": "The site is around Sydney metro and the depot is near the airport.",
+      "note": "a non-precise work location",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-17",
+      "field": "question",
+      "value": "The employer operates in VIC, QLD and SA under one agreement.",
+      "note": "multiple states with no street address",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-18",
+      "field": "question",
+      "value": "The worker asked about time off in lieu after a public holiday shift.",
+      "note": "a plain legal question",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-19",
+      "field": "question",
+      "value": "About 250 staff are covered by the enterprise agreement.",
+      "note": "workforce scale",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-20",
+      "field": "question",
+      "value": "The applicant was represented at the conciliation conference in May.",
+      "note": "a procedural fact with no identity",
+      "prdAllowedRow": "\"Employee A\", \"the worker\", synthetic placeholders",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-21",
+      "field": "question",
+      "value": "The employer ABN is 51824753556 and the trading name is Example Widgets.",
+      "note": "a valid ABN in free text, authored so its observed behaviour is measured (see abn.ts)",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    },
+    {
+      "id": "shared-n-22",
+      "field": "question",
+      "value": "The public register lists the business as registered since 2015.",
+      "note": "public business information",
+      "prdAllowedRow": "Public employer name and ABN",
+      "synthetic": true
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+{
+  "category": "PRIVATE_CONTACT_EMAIL",
+  "prdRow": "Personal email, phone or private social identifier",
+  "positives": [
+    {
+      "id": "email-p-01",
+      "field": "question",
+      "value": "They asked me to write to jane.doe@example.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 50
+        }
+      ],
+      "note": "plain address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-02",
+      "field": "question",
+      "value": "They asked me to write to jane.doe @ example.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 52
+        }
+      ],
+      "note": "spaces around the @",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-03",
+      "field": "question",
+      "value": "They asked me to write to jane.doe(at)example(dot)invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 57
+        }
+      ],
+      "note": "(at)/(dot) obfuscation",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-04",
+      "field": "question",
+      "value": "They asked me to write to jane.doe＠example.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 50
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-05",
+      "field": "question",
+      "value": "They asked me to write to quiet.worker@mailbox.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "plain address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-06",
+      "field": "question",
+      "value": "They asked me to write to quiet.worker @ mailbox.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 56
+        }
+      ],
+      "note": "spaces around the @",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-07",
+      "field": "question",
+      "value": "They asked me to write to quiet.worker(at)mailbox(dot)invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 61
+        }
+      ],
+      "note": "(at)/(dot) obfuscation",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-08",
+      "field": "question",
+      "value": "They asked me to write to quiet.worker＠mailbox.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-09",
+      "field": "question",
+      "value": "They asked me to write to sam_oconnor@homemail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "plain address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-10",
+      "field": "question",
+      "value": "They asked me to write to sam_oconnor @ homemail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 56
+        }
+      ],
+      "note": "spaces around the @",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-11",
+      "field": "question",
+      "value": "They asked me to write to sam_oconnor(at)homemail(dot)invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 61
+        }
+      ],
+      "note": "(at)/(dot) obfuscation",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-12",
+      "field": "question",
+      "value": "They asked me to write to sam_oconnor＠homemail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-13",
+      "field": "question",
+      "value": "They asked me to write to r.patel99@personalmail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 56
+        }
+      ],
+      "note": "plain address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-14",
+      "field": "question",
+      "value": "They asked me to write to r.patel99 @ personalmail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 58
+        }
+      ],
+      "note": "spaces around the @",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-15",
+      "field": "question",
+      "value": "They asked me to write to r.patel99(at)personalmail(dot)invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 63
+        }
+      ],
+      "note": "(at)/(dot) obfuscation",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-16",
+      "field": "question",
+      "value": "They asked me to write to r.patel99＠personalmail.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 56
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-17",
+      "field": "question",
+      "value": "They asked me to write to k.nguyen@privatehost.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "plain address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-18",
+      "field": "question",
+      "value": "They asked me to write to k.nguyen @ privatehost.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 56
+        }
+      ],
+      "note": "spaces around the @",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-19",
+      "field": "question",
+      "value": "They asked me to write to k.nguyen(at)privatehost(dot)invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 61
+        }
+      ],
+      "note": "(at)/(dot) obfuscation",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-20",
+      "field": "question",
+      "value": "They asked me to write to k.nguyen＠privatehost.invalid about the roster change.",
+      "expected": [
+        {
+          "start": 26,
+          "end": 54
+        }
+      ],
+      "note": "full-width commercial at",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-21",
+      "field": "question",
+      "value": "Contact jane.doe@exa​mple.invalid for the payslip.",
+      "expected": [
+        {
+          "start": 8,
+          "end": 33
+        }
+      ],
+      "note": "zero-width space inside the address",
+      "synthetic": true
+    },
+    {
+      "id": "email-p-22",
+      "field": "question",
+      "value": "Write to jane.doe [at] example [dot] invalid if you need the roster.",
+      "expected": [
+        {
+          "start": 9,
+          "end": 44
+        }
+      ],
+      "note": "[at]/[dot] obfuscation",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "email-n-01",
+      "field": "question",
+      "value": "The award is published on fairwork.gov.au for anyone to read.",
+      "note": "a bare domain is not an address",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "email-n-02",
+      "field": "question",
+      "value": "We employ about 40 people at the Geelong site.",
+      "note": "no address of any kind",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    },
+    {
+      "id": "email-n-03",
+      "field": "question",
+      "value": "The decision is at https://www.fwc.gov.au/documents/decisionssigned.htm today.",
+      "note": "a public URL with no @ equivalent",
+      "prdAllowedRow": "Public case party/citation",
+      "synthetic": true
+    },
+    {
+      "id": "email-n-04",
+      "field": "question",
+      "value": "The category of the role is cleaner, level 2 under the award.",
+      "note": "the word \"category\" contains \"at\" but no address shape",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "email-n-05",
+      "field": "question",
+      "value": "Our HR inbox is monitored during business hours only.",
+      "note": "a reference to an inbox with no address",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

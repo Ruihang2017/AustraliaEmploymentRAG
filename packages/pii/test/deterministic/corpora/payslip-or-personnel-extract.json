@@ -1,0 +1,309 @@
+{
+  "category": "PAYSLIP_OR_PERSONNEL_EXTRACT",
+  "prdRow": "Employee/payroll ID, payslip content or personnel-file extract",
+  "positives": [
+    {
+      "id": "payslip-p-01",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1200.00\nNet pay $940.00\nYTD $14400.00\nSuperannuation $130.00\nTax withheld $260.00\nEmployee no 10000",
+      "expected": [
+        {
+          "start": 0,
+          "end": 131
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-02",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1237.00\nAllowances $45.00\nTax withheld $261.00\nLeave balance 38.5 hours\nYear to date $12370.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-03",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1274.00\nNet pay $1014.00\nYTD $15288.00\nSuperannuation $132.00\nTax withheld $260.00\nEmployee no 10002",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-04",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1311.00\nAllowances $45.00\nTax withheld $263.00\nLeave balance 38.5 hours\nYear to date $13110.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-05",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1348.00\nNet pay $1088.00\nYTD $16176.00\nSuperannuation $134.00\nTax withheld $260.00\nEmployee no 10004",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-06",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1385.00\nAllowances $45.00\nTax withheld $265.00\nLeave balance 38.5 hours\nYear to date $13850.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-07",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1422.00\nNet pay $1162.00\nYTD $17064.00\nSuperannuation $136.00\nTax withheld $260.00\nEmployee no 10006",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-08",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1459.00\nAllowances $45.00\nTax withheld $267.00\nLeave balance 38.5 hours\nYear to date $14590.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-09",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1496.00\nNet pay $1236.00\nYTD $17952.00\nSuperannuation $138.00\nTax withheld $260.00\nEmployee no 10008",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-10",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1533.00\nAllowances $45.00\nTax withheld $269.00\nLeave balance 38.5 hours\nYear to date $15330.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-11",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1570.00\nNet pay $1310.00\nYTD $18840.00\nSuperannuation $140.00\nTax withheld $260.00\nEmployee no 10010",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-12",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1607.00\nAllowances $45.00\nTax withheld $271.00\nLeave balance 38.5 hours\nYear to date $16070.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-13",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1644.00\nNet pay $1384.00\nYTD $19728.00\nSuperannuation $142.00\nTax withheld $260.00\nEmployee no 10012",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-14",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1681.00\nAllowances $45.00\nTax withheld $273.00\nLeave balance 38.5 hours\nYear to date $16810.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-15",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1718.00\nNet pay $1458.00\nYTD $20616.00\nSuperannuation $144.00\nTax withheld $260.00\nEmployee no 10014",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-16",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1755.00\nAllowances $45.00\nTax withheld $275.00\nLeave balance 38.5 hours\nYear to date $17550.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-17",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1792.00\nNet pay $1532.00\nYTD $21504.00\nSuperannuation $146.00\nTax withheld $260.00\nEmployee no 10016",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-18",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1829.00\nAllowances $45.00\nTax withheld $277.00\nLeave balance 38.5 hours\nYear to date $18290.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-19",
+      "field": "question",
+      "value": "Pay period 01/07 to 14/07\nGross 1866.00\nNet pay $1606.00\nYTD $22392.00\nSuperannuation $148.00\nTax withheld $260.00\nEmployee no 10018",
+      "expected": [
+        {
+          "start": 0,
+          "end": 132
+        }
+      ],
+      "note": "pasted payslip with an employee identifier",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-p-20",
+      "field": "question",
+      "value": "PAYSLIP EXTRACT\nOrdinary hours 76\nGross $1903.00\nAllowances $45.00\nTax withheld $279.00\nLeave balance 38.5 hours\nYear to date $19030.00",
+      "expected": [
+        {
+          "start": 0,
+          "end": 135
+        }
+      ],
+      "note": "pasted payslip with multiple currency amounts",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "payslip-n-01",
+      "field": "question",
+      "value": "The employee is paid about $1,200 gross per fortnight.",
+      "note": "one payslip marker in prose is an approximate wage fact",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-n-02",
+      "field": "question",
+      "value": "Superannuation is paid quarterly under the guarantee.",
+      "note": "a single marker with no structure",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-n-03",
+      "field": "question",
+      "value": "Does tax withheld from an allowance change the overtime base rate?",
+      "note": "two markers in a genuine legal question",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-n-04",
+      "field": "question",
+      "value": "The award sets ordinary hours at 38 per week.",
+      "note": "an award fact using a payslip word",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "payslip-n-05",
+      "field": "question",
+      "value": "Leave balances are shown to staff in the portal each month.",
+      "note": "a process description",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

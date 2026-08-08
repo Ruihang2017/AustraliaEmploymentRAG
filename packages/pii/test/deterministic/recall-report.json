@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "limitsVersion": 1,
+  "categories": {
+    "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME": {
+      "positives": 22,
+      "detected": 22,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "PRIVATE_CONTACT_EMAIL": {
+      "positives": 22,
+      "detected": 22,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "PRIVATE_CONTACT_PHONE": {
+      "positives": 22,
+      "detected": 22,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "PRIVATE_SOCIAL_IDENTIFIER": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "HOME_ADDRESS_OR_PRECISE_LOCATION": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "TAX_FILE_NUMBER": {
+      "positives": 24,
+      "detected": 24,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "BANK_OR_CARD_DETAIL": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "MEDICARE_NUMBER": {
+      "positives": 22,
+      "detected": 22,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "PASSPORT_NUMBER": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "DRIVER_LICENCE_NUMBER": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "EMPLOYEE_OR_PAYROLL_IDENTIFIER": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "PAYSLIP_OR_PERSONNEL_EXTRACT": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "EXACT_DATE_OF_BIRTH": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    },
+    "IDENTIFYING_COMBINATION": {
+      "positives": 0,
+      "detected": 0,
+      "recall": 0,
+      "negatives": 27,
+      "falsePositives": 0,
+      "precision": 0,
+      "deferred": 20,
+      "detectedBy": "EVID-02"
+    },
+    "REQUEST_LIMIT_EXCEEDED": {
+      "positives": 20,
+      "detected": 20,
+      "recall": 1,
+      "negatives": 20,
+      "falsePositives": 0,
+      "precision": 1,
+      "deferred": 0,
+      "detectedBy": "EVID-01"
+    }
+  },
+  "deferred": [
+    {
+      "caseId": "combo-d-01",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-02",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-03",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-04",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-05",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-06",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-07",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-08",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-09",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-10",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-11",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-12",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-13",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-14",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-15",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-16",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-17",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-18",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-19",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    },
+    {
+      "caseId": "combo-d-20",
+      "category": "IDENTIFYING_COMBINATION",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent."
+    }
+  ],
+  "minimumRecall": {
+    "TAX_FILE_NUMBER": 1,
+    "MEDICARE_NUMBER": 1,
+    "BANK_OR_CARD_DETAIL": 1
+  }
+}

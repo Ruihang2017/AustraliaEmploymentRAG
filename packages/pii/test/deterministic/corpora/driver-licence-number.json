@@ -1,0 +1,309 @@
+{
+  "category": "DRIVER_LICENCE_NUMBER",
+  "prdRow": "TFN, bank/card details, Medicare/passport/licence number",
+  "positives": [
+    {
+      "id": "licence-p-01",
+      "field": "question",
+      "value": "Their driver licence number is 12345678 and it is current.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 39
+        }
+      ],
+      "note": "driver licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-02",
+      "field": "question",
+      "value": "Licence no: 12345678 and it is current.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 20
+        }
+      ],
+      "note": "licence no label",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-03",
+      "field": "question",
+      "value": "The licence is 12345678 and it is current.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 23
+        }
+      ],
+      "note": "licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-04",
+      "field": "question",
+      "value": "Drivers licence 12345678 and it is current.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 24
+        }
+      ],
+      "note": "drivers licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-05",
+      "field": "question",
+      "value": "Their driver licence number is 9876543 and it is current.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 38
+        }
+      ],
+      "note": "driver licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-06",
+      "field": "question",
+      "value": "Licence no: 9876543 and it is current.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 19
+        }
+      ],
+      "note": "licence no label",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-07",
+      "field": "question",
+      "value": "The licence is 9876543 and it is current.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "note": "licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-08",
+      "field": "question",
+      "value": "Drivers licence 9876543 and it is current.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 23
+        }
+      ],
+      "note": "drivers licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-09",
+      "field": "question",
+      "value": "Their driver licence number is 456789 and it is current.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 37
+        }
+      ],
+      "note": "driver licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-10",
+      "field": "question",
+      "value": "Licence no: 456789 and it is current.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "licence no label",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-11",
+      "field": "question",
+      "value": "The licence is 456789 and it is current.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 21
+        }
+      ],
+      "note": "licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-12",
+      "field": "question",
+      "value": "Drivers licence 456789 and it is current.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 22
+        }
+      ],
+      "note": "drivers licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-13",
+      "field": "question",
+      "value": "Their driver licence number is S123456 and it is current.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 38
+        }
+      ],
+      "note": "driver licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-14",
+      "field": "question",
+      "value": "Licence no: S123456 and it is current.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 19
+        }
+      ],
+      "note": "licence no label",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-15",
+      "field": "question",
+      "value": "The licence is S123456 and it is current.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "note": "licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-16",
+      "field": "question",
+      "value": "Drivers licence S123456 and it is current.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 23
+        }
+      ],
+      "note": "drivers licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-17",
+      "field": "question",
+      "value": "Their driver licence number is 1234AB and it is current.",
+      "expected": [
+        {
+          "start": 31,
+          "end": 37
+        }
+      ],
+      "note": "driver licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-18",
+      "field": "question",
+      "value": "Licence no: 1234AB and it is current.",
+      "expected": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "note": "licence no label",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-19",
+      "field": "question",
+      "value": "The licence is 1234AB and it is current.",
+      "expected": [
+        {
+          "start": 15,
+          "end": 21
+        }
+      ],
+      "note": "licence context",
+      "synthetic": true
+    },
+    {
+      "id": "licence-p-20",
+      "field": "question",
+      "value": "Drivers licence 1234AB and it is current.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 22
+        }
+      ],
+      "note": "drivers licence context",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "licence-n-01",
+      "field": "question",
+      "value": "The truck fleet has 12345678 kilometres logged this year.",
+      "note": "an eight-digit figure with no licence context",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "licence-n-02",
+      "field": "question",
+      "value": "The role requires a current HR licence class for the truck.",
+      "note": "a licence CLASS identifies no person",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "licence-n-03",
+      "field": "question",
+      "value": "Our contractor number is 456789 in the supplier system.",
+      "note": "a six-digit contractor number with no licence context",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "licence-n-04",
+      "field": "question",
+      "value": "Vehicle inspections were completed for all 12 vehicles.",
+      "note": "no long numbers at all",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "licence-n-05",
+      "field": "question",
+      "value": "The award covers drivers of vehicles over 4.5 tonnes.",
+      "note": "a licence-adjacent topic with no number",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

@@ -1,0 +1,309 @@
+{
+  "category": "BANK_OR_CARD_DETAIL",
+  "prdRow": "TFN, bank/card details, Medicare/passport/licence number",
+  "positives": [
+    {
+      "id": "bank-p-01",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111111111111103 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 51
+        }
+      ],
+      "note": "plain, Luhn-valid",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-02",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111 1111 1111 1103 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-03",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111-1111-1111-1103 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-04",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111111111111111 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 51
+        }
+      ],
+      "note": "plain, Luhn-valid",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-05",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111 1111 1111 1111 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-06",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111-1111-1111-1111 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-07",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111111111111129 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 51
+        }
+      ],
+      "note": "plain, Luhn-valid",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-08",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111 1111 1111 1129 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-09",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111-1111-1111-1129 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-10",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111111111111137 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 51
+        }
+      ],
+      "note": "plain, Luhn-valid",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-11",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111 1111 1111 1137 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-12",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111-1111-1111-1137 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-13",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111111111111145 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 51
+        }
+      ],
+      "note": "plain, Luhn-valid",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-14",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111 1111 1111 1145 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "space-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-15",
+      "field": "question",
+      "value": "The reimbursement was made to card 4111-1111-1111-1145 which the employee gave me.",
+      "expected": [
+        {
+          "start": 35,
+          "end": 54
+        }
+      ],
+      "note": "hyphen-separated groups",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-16",
+      "field": "question",
+      "value": "Payroll pays into 062-000 12345678 every fortnight.",
+      "expected": [
+        {
+          "start": 18,
+          "end": 34
+        }
+      ],
+      "note": "BSB adjacent to an account number",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-17",
+      "field": "question",
+      "value": "Their nominated account is 083 004 987654321 for wages.",
+      "expected": [
+        {
+          "start": 27,
+          "end": 44
+        }
+      ],
+      "note": "space-separated BSB adjacent to an account number",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-18",
+      "field": "question",
+      "value": "Wages go to BSB 013-006 acct 45678901 each pay run.",
+      "expected": [
+        {
+          "start": 16,
+          "end": 37
+        }
+      ],
+      "note": "BSB and account separated by a label word",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-19",
+      "field": "question",
+      "value": "The card on file is ４１１１１１１１１１１１１１０３ for expenses.",
+      "expected": [
+        {
+          "start": 20,
+          "end": 36
+        }
+      ],
+      "note": "full-width digits",
+      "synthetic": true
+    },
+    {
+      "id": "bank-p-20",
+      "field": "question",
+      "value": "Card 41111111​11111111 was used for the tools.",
+      "expected": [
+        {
+          "start": 5,
+          "end": 22
+        }
+      ],
+      "note": "zero-width space inside the card number",
+      "synthetic": true
+    }
+  ],
+  "negatives": [
+    {
+      "id": "bank-n-01",
+      "field": "question",
+      "value": "Our payroll runs through BSB 062-000 with the bank.",
+      "note": "a lone BSB identifies a branch, not a person",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "bank-n-02",
+      "field": "question",
+      "value": "Reference 4111111111111112 was quoted on the remittance.",
+      "note": "sixteen-digit reference that fails Luhn",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "bank-n-03",
+      "field": "question",
+      "value": "The employee is paid $1,250 gross per fortnight.",
+      "note": "approximate wage facts with no account details",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "bank-n-04",
+      "field": "question",
+      "value": "Invoice 900000000000002 remains unpaid after 30 days.",
+      "note": "fifteen-digit invoice number failing Luhn",
+      "prdAllowedRow": "Approximate wage/rate facts without identity",
+      "synthetic": true
+    },
+    {
+      "id": "bank-n-05",
+      "field": "question",
+      "value": "Superannuation is paid quarterly to the default fund.",
+      "note": "no numbers at all",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    }
+  ],
+  "deferred": []
+}

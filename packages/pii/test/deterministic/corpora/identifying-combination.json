@@ -1,0 +1,209 @@
+{
+  "category": "IDENTIFYING_COMBINATION",
+  "prdRow": "Identifying combination of rare role + tiny workplace + personal event",
+  "positives": [],
+  "negatives": [
+    {
+      "id": "combo-n-01",
+      "field": "question",
+      "value": "A cleaner at a large national retailer was rostered on Sundays.",
+      "note": "a common role at a large workplace identifies nobody",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "combo-n-02",
+      "field": "question",
+      "value": "One of about 400 warehouse pickers took personal leave last week.",
+      "note": "a large denominator",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "combo-n-03",
+      "field": "question",
+      "value": "A level 3 chef in the hospitality sector queried the penalty rate.",
+      "note": "a role and a sector, no personal event",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "combo-n-04",
+      "field": "question",
+      "value": "Several drivers at the depot asked about the new roster pattern.",
+      "note": "a group, not an individual",
+      "prdAllowedRow": "Anonymous role, duties, qualifications and employment type",
+      "synthetic": true
+    },
+    {
+      "id": "combo-n-05",
+      "field": "question",
+      "value": "The employer has around 2,000 staff across the eastern states.",
+      "note": "workforce scale only",
+      "prdAllowedRow": "State/territory and non-precise work location",
+      "synthetic": true
+    }
+  ],
+  "deferred": [
+    {
+      "id": "combo-d-01",
+      "field": "question",
+      "value": "The only night-shift farrier at our three-person stable broke his leg at the Christmas party.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-02",
+      "field": "question",
+      "value": "Our sole female welder in a four-person workshop miscarried during the shutdown.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-03",
+      "field": "question",
+      "value": "The single apprentice glassblower at the studio came out to the team last month.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-04",
+      "field": "question",
+      "value": "The one remote-site paramedic in a two-person clinic went through a divorce in June.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-05",
+      "field": "question",
+      "value": "Our only Auslan interpreter on a five-person team had a stroke on shift.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-06",
+      "field": "question",
+      "value": "The lone night baker at the village bakery declared bankruptcy in March.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-07",
+      "field": "question",
+      "value": "Our sole drone pilot in a three-person survey crew was charged with drink driving.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-08",
+      "field": "question",
+      "value": "The only tram driver on the heritage line disclosed a cancer diagnosis.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-09",
+      "field": "question",
+      "value": "The single piano tuner employed by the school had a mental health admission.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-10",
+      "field": "question",
+      "value": "Our one saltwater crocodile handler took stress leave after the incident.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-11",
+      "field": "question",
+      "value": "The only third-generation cooper at the winery lost his father in April.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-12",
+      "field": "question",
+      "value": "Our sole night-shift mortuary technician had a workplace injury last week.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-13",
+      "field": "question",
+      "value": "The single stained-glass restorer on staff went through IVF this year.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-14",
+      "field": "question",
+      "value": "The only bagpipe instructor at the college was investigated for misconduct.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-15",
+      "field": "question",
+      "value": "Our lone avalanche forecaster at the alpine site had a heart attack.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-16",
+      "field": "question",
+      "value": "The single puppeteer in the two-person troupe filed for family violence leave.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-17",
+      "field": "question",
+      "value": "The only harbour pilot rostered nights disclosed a gambling problem.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-18",
+      "field": "question",
+      "value": "Our sole falconer at the airfield was diagnosed with epilepsy.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-19",
+      "field": "question",
+      "value": "The only sign-writer at the four-person depot had a miscarriage in July.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    },
+    {
+      "id": "combo-d-20",
+      "field": "question",
+      "value": "The single beekeeper on the estate was hospitalised after an allergic reaction.",
+      "owner": "EVID-02",
+      "reason": "PRD §37.1 blocked row 7 (identifying combination) is the combination/risk stage PRD §37.2 places after entity recognition; EVID-01 Non-goals assign it to EVID-02. Authored here so the gap is measured, not absent.",
+      "synthetic": true
+    }
+  ]
+}

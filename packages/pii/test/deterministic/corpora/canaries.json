@@ -1,0 +1,60 @@
+{
+  "canaries": [
+    {
+      "id": "canary-01",
+      "category": "EMPLOYEE_OR_PRIVATE_INDIVIDUAL_NAME",
+      "token": "Zorvanth Quibblesworth",
+      "field": "question",
+      "value": "The employee name: Zorvanth Quibblesworth and the shift was Sunday."
+    },
+    {
+      "id": "canary-02",
+      "category": "PRIVATE_CONTACT_EMAIL",
+      "token": "canary-7f3a@example.invalid",
+      "field": "question",
+      "value": "Write to canary-7f3a@example.invalid about the roster."
+    },
+    {
+      "id": "canary-03",
+      "category": "TAX_FILE_NUMBER",
+      "token": "123456802",
+      "field": "question",
+      "value": "Their tax file number is 123456802 on the form."
+    },
+    {
+      "id": "canary-04",
+      "category": "MEDICARE_NUMBER",
+      "token": "2123456703",
+      "field": "question",
+      "value": "The card shows 2123456703 for the claim."
+    },
+    {
+      "id": "canary-05",
+      "category": "BANK_OR_CARD_DETAIL",
+      "token": "4111111111111129",
+      "field": "question",
+      "value": "The card on file is 4111111111111129 for expenses."
+    },
+    {
+      "id": "canary-06",
+      "category": "PRIVATE_CONTACT_PHONE",
+      "token": "0499887766",
+      "field": "question",
+      "value": "Call them on 0499887766 after the shift."
+    },
+    {
+      "id": "canary-07",
+      "category": "HOME_ADDRESS_OR_PRECISE_LOCATION",
+      "token": "13 Frobisher Vale Street, Quibbleton NSW 2999",
+      "field": "question",
+      "value": "They live at 13 Frobisher Vale Street, Quibbleton NSW 2999 near the depot."
+    },
+    {
+      "id": "canary-08",
+      "category": "PRIVATE_SOCIAL_IDENTIFIER",
+      "token": "@zorvanth_quibble",
+      "field": "question",
+      "value": "They posted from @zorvanth_quibble last night."
+    }
+  ]
+}
