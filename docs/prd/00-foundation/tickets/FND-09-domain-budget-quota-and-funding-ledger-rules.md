@@ -196,8 +196,12 @@ per breakdown plan §1.1. `packages/domain/src/budget/**` is written by no other
 6. **`admit(input): Admission`** — requires **both** operation quota and funding-ledger balance
    (PRD §42.6). Returns `{ allowed: true, reservation }` or
    `{ allowed: false, reason }` with `reason` in `CREDIT_LIMIT_REACHED` | `RATE_LIMITED` |
-   `GENERATION_UNAVAILABLE` | `PRICE_DATA_UNAVAILABLE` | `CONCURRENCY_LIMIT` — names chosen to map 1:1
-   onto PRD §34.9 codes so `RUNT-02` translates without inventing semantics. It also returns
+   `GENERATION_UNAVAILABLE` | `PRICE_DATA_UNAVAILABLE` | `CONCURRENCY_LIMIT` — names chosen to map
+   onto PRD §34.9 codes through the exported **total** mapping `ADMISSION_REASON_TO_ERROR_CODE`
+   (five reasons onto three codes: `PRICE_DATA_UNAVAILABLE` and `CONCURRENCY_LIMIT` are **not** §34.9
+   codes, they are finer-grained causes of `GENERATION_UNAVAILABLE` (PRD §36.8 final row) and
+   `RATE_LIMITED` (PRD §38.5 puts concurrency in the same limits table) kept distinct for logs and
+   admin) so `RUNT-02` translates without inventing semantics. It also returns
    `{ limit, remaining, resetAt }` for the caller's `Retry-After` metadata, containing **no** information
    about any other tenant (PRD §38.5).
 7. **Fail-closed rule**: if the price snapshot or FX rate is absent, stale beyond a supplied maximum age,
@@ -274,7 +278,8 @@ per breakdown plan §1.1. `packages/domain/src/budget/**` is written by no other
 - [ ] `[machine]` PR states the PRD §45.4 items: requirement/UAT IDs (**OPS-003**, `E03-DOMAIN`;
       `UAT-OPS-03` and `UAT-ANS-07` are exercised downstream by `23-assurance` and `15-answer-product`),
       user-visible change and non-goals, schema/API/event compatibility impact (none — pure functions;
-      the reason names map 1:1 to §34.9 codes), tenant/PII/security impact (rate-limit metadata leaks no
+      the reason names map onto §34.9 codes through `ADMISSION_REASON_TO_ERROR_CODE`, five reasons onto
+      three codes), tenant/PII/security impact (rate-limit metadata leaks no
       cross-tenant information — §38.5), source/licence impact (none), **cost impact** (this ticket *is*
       the cost control; state the encoded ceiling and thresholds), rollback path (revert; only `RUNT-02`
       and `EVID-08` consume it), known gaps (price and FX sources are supplied inputs; the model behind
@@ -313,8 +318,13 @@ Reviewer steps, all offline and deterministic (injected clock, fixed prices, fix
     `process.env` — none.
 11. **Append-only manifest.** `git diff packages/domain/package.json` shows additions only.
 
-Harness: the framework `FND-01` registered plus the property-testing library declared in
-`packages/domain/package.json`. Fixtures: `packages/domain/test/budget/prd-24-1-budget.json` and
+Harness: the framework `FND-01` registered plus a deterministic seeded sequence generator inside
+`packages/domain/test/budget/**` — **no new package dependency**: `tools/tests/skeleton.test.mjs`
+asserts that every workspace member manifest declares no `dependencies`/`devDependencies` and it runs
+on every branch, and this ticket's File-scope forbids touching root manifests and lockfiles (CI
+installs with `--frozen-lockfile`). The acceptance bar is unchanged — it names no library, only
+"≥10,000 generated reserve/settle sequences".
+Fixtures: `packages/domain/test/budget/prd-24-1-budget.json` and
 `prd-38-5-limits.json`. No mocks beyond injected price/FX/clock inputs; no network; no provider calls.
 
 ## Feedback obligation

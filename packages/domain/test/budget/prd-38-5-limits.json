@@ -1,0 +1,153 @@
+{
+  "$comment": [
+    "FND-09 deliverable 13 — PRD §38.5 'Initial rate and concurrency defaults', transcribed verbatim",
+    "from docs/PRD.md lines 2585-2603, all seven boundaries across ALL THREE columns including the",
+    "'System hard protection' column that is easy to drop.",
+    "Where a PRD cell is prose rather than a number, 'text' keeps the cell verbatim and 'count' is",
+    "null — a prose cell is not a limit that can be arithmetic'd over.",
+    "perOrganisationConcurrencyDefaults is PRD §24.4 (lines 1315-1321), a SEPARATE statement from the",
+    "§38.5 table. §24.4's 'two Quick' and §38.5's trial 'Concurrent Quick: 1' are both transcribed",
+    "as-is and are deliberately not reconciled here.",
+    "The 'System hard protection' column is a GLOBAL number and must never appear in tenant-facing",
+    "rate-limit metadata (PRD §38.5, 'without disclosing other tenants')."
+  ],
+  "prdSection": "§38.5",
+  "prdLines": "2585-2603",
+  "rows": [
+    {
+      "boundary": "SEARCH_BURST",
+      "prdLabel": "Search burst",
+      "trial": {
+        "text": "20/min/organisation",
+        "count": 20,
+        "perMinutes": 1,
+        "period": null,
+        "scope": "ORGANISATION"
+      },
+      "paidPilot": {
+        "text": "60/min/organisation",
+        "count": 60,
+        "perMinutes": 1,
+        "period": null,
+        "scope": "ORGANISATION"
+      },
+      "systemHardProtection": {
+        "text": "100/min global initial",
+        "count": 100,
+        "perMinutes": 1,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "API_CALLS",
+      "prdLabel": "API calls",
+      "trial": {
+        "text": "500/trial",
+        "count": 500,
+        "perMinutes": null,
+        "period": "TRIAL",
+        "scope": null
+      },
+      "paidPilot": {
+        "text": "10,000/month",
+        "count": 10000,
+        "perMinutes": null,
+        "period": "MONTH",
+        "scope": null
+      },
+      "systemHardProtection": {
+        "text": "token-bucket and request-size limits",
+        "count": null,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "CONCURRENT_QUICK",
+      "prdLabel": "Concurrent Quick",
+      "trial": { "text": "1", "count": 1, "perMinutes": null, "period": null, "scope": null },
+      "paidPilot": { "text": "2", "count": 2, "perMinutes": null, "period": null, "scope": null },
+      "systemHardProtection": {
+        "text": "bounded by worker/provider",
+        "count": null,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "CONCURRENT_DEEP",
+      "prdLabel": "Concurrent Deep",
+      "trial": { "text": "1", "count": 1, "perMinutes": null, "period": null, "scope": null },
+      "paidPilot": { "text": "1", "count": 1, "perMinutes": null, "period": null, "scope": null },
+      "systemHardProtection": {
+        "text": "1 initial global worker execution",
+        "count": 1,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "CONCURRENT_EXPORT",
+      "prdLabel": "Concurrent export",
+      "trial": { "text": "1", "count": 1, "perMinutes": null, "period": null, "scope": null },
+      "paidPilot": { "text": "1", "count": 1, "perMinutes": null, "period": null, "scope": null },
+      "systemHardProtection": {
+        "text": "1 initial",
+        "count": 1,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "WEBHOOK_ENDPOINTS",
+      "prdLabel": "Webhook endpoints",
+      "trial": { "text": "2", "count": 2, "perMinutes": null, "period": null, "scope": null },
+      "paidPilot": { "text": "10", "count": 10, "perMinutes": null, "period": null, "scope": null },
+      "systemHardProtection": {
+        "text": "delivery queue isolated from research",
+        "count": null,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    },
+    {
+      "boundary": "WIDGET_SESSION_CREATION",
+      "prdLabel": "Widget session creation",
+      "trial": {
+        "text": "30/min/service account",
+        "count": 30,
+        "perMinutes": 1,
+        "period": null,
+        "scope": "SERVICE_ACCOUNT"
+      },
+      "paidPilot": {
+        "text": "120/min/service account",
+        "count": 120,
+        "perMinutes": 1,
+        "period": null,
+        "scope": "SERVICE_ACCOUNT"
+      },
+      "systemHardProtection": {
+        "text": "abuse/IP/origin protection",
+        "count": null,
+        "perMinutes": null,
+        "period": null,
+        "scope": "GLOBAL"
+      }
+    }
+  ],
+  "perOrganisationConcurrencyDefaults": {
+    "prdSection": "§24.4",
+    "prdLines": "1315-1321",
+    "prdText": "Default per-organisation concurrency: two Quick, one Deep and one export, with separate API/search burst limits and webhook queues.",
+    "quick": 2,
+    "deep": 1,
+    "export": 1
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$comment": [
+    "FND-09 deliverable 13 — PRD §24.1 'Monthly founder-funded budget', transcribed verbatim from",
+    "docs/PRD.md lines 1271-1285. The 'item' and 'planningBudget' values are the PRD's own table",
+    "cells, including the en dash (U+2013) in the ranges.",
+    "Money is written as a decimal string because JSON has no bigint; the loader converts with",
+    "BigInt(...). A$1 = 1000000 micro-AUD (PRD §34.1).",
+    "Changing any number here is a product decision (PRD §45.5), not a tuning knob; the A$50 ceiling",
+    "is not negotiable (PRD §24.1, requirement OPS-003)."
+  ],
+  "prdSection": "§24.1",
+  "prdLines": "1271-1285",
+  "lineItems": [
+    {
+      "item": "Sydney Lightsail 2 GB",
+      "planningBudget": "A$14–15",
+      "minMicroAud": "14000000",
+      "maxMicroAud": "15000000",
+      "approximate": false
+    },
+    {
+      "item": "32 GB attached storage",
+      "planningBudget": "A$4–5",
+      "minMicroAud": "4000000",
+      "maxMicroAud": "5000000",
+      "approximate": false
+    },
+    {
+      "item": "R2 public corpus",
+      "planningBudget": "A$3–4",
+      "minMicroAud": "3000000",
+      "maxMicroAud": "4000000",
+      "approximate": false
+    },
+    {
+      "item": "S3 Sydney backups/private exports",
+      "planningBudget": "A$1–2",
+      "minMicroAud": "1000000",
+      "maxMicroAud": "2000000",
+      "approximate": false
+    },
+    {
+      "item": "Cloudflare Pages/tunnel/free edge",
+      "planningBudget": "A$0 target",
+      "minMicroAud": "0",
+      "maxMicroAud": "0",
+      "approximate": false
+    },
+    {
+      "item": "Hosted model hard budget",
+      "planningBudget": "approximately A$12",
+      "minMicroAud": "12000000",
+      "maxMicroAud": "12000000",
+      "approximate": true
+    },
+    {
+      "item": "Domain/email/variance reserve",
+      "planningBudget": "A$8–12",
+      "minMicroAud": "8000000",
+      "maxMicroAud": "12000000",
+      "approximate": false
+    }
+  ],
+  "total": {
+    "item": "Total",
+    "planningBudget": "A$42–50",
+    "minMicroAud": "42000000",
+    "maxMicroAud": "50000000"
+  },
+  "hostedModelHardBudgetMicroAud": "12000000",
+  "founderMonthlyCeilingMicroAud": "50000000",
+  "warningThresholdRatio": 0.9,
+  "warningThresholdBasisPoints": "9000"
+}
