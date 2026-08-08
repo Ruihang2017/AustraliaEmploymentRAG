@@ -1,0 +1,5 @@
+# CRPS-03, mirroring the CRPS-01 precedent. Keep LF in the working tree (git core.autocrlf=true
+# would otherwise rewrite these on a Windows checkout, and the golden fixture is compared
+# byte-for-byte). The repository-root .gitattributes is unallocated by breakdown plan §4 and is not
+# touched.
+* text eol=lf

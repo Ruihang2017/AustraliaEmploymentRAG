@@ -1,0 +1,3 @@
+# CRPS-03, mirroring the CRPS-01 precedent. Keep LF in the working tree: the golden chunk fixture is
+# compared byte-for-byte, so a checkout-time CRLF rewrite would fail on Windows and pass on CI.
+* text eol=lf

@@ -1,0 +1,83 @@
+{
+  "chunker_version": "1.0.0",
+  "chunks": [
+    {
+      "char_count": 29,
+      "chunk_ordinal": 0,
+      "consolidated_node_version_ids": [],
+      "end_offset": 29,
+      "node_version_id": "nv_sec_12_heading",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 0,
+      "text_hash": "9e5f93480dbe5f4dbb331ef6f6ee8c6391a079a66e8928e215726025123ed158"
+    },
+    {
+      "char_count": 1867,
+      "chunk_ordinal": 0,
+      "consolidated_node_version_ids": [],
+      "end_offset": 1867,
+      "node_version_id": "nv_sec_12_1",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 0,
+      "text_hash": "e477db4ee0dcf0dac2d2599c1d1145407bb31149afc5c0f99a8a62108044cec8"
+    },
+    {
+      "char_count": 1400,
+      "chunk_ordinal": 1,
+      "consolidated_node_version_ids": [],
+      "end_offset": 3269,
+      "node_version_id": "nv_sec_12_1",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 1869,
+      "text_hash": "7e65f95bedc6f94e4e2414054ceceaee1292be5fd1b2ac7763f4e297546e3a78"
+    },
+    {
+      "char_count": 2000,
+      "chunk_ordinal": 2,
+      "consolidated_node_version_ids": [],
+      "end_offset": 5271,
+      "node_version_id": "nv_sec_12_1",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 3271,
+      "text_hash": "70e866a5867fbdffbd8220ec0e10b41850f20c443b7d926a0f27892460d04306"
+    },
+    {
+      "char_count": 1141,
+      "chunk_ordinal": 3,
+      "consolidated_node_version_ids": [],
+      "end_offset": 6412,
+      "node_version_id": "nv_sec_12_1",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 5271,
+      "text_hash": "5248380d2467afc6acf936f1604fb5e5454cee8b18888801cc5368dcec6bd73b"
+    },
+    {
+      "char_count": 14,
+      "chunk_ordinal": 0,
+      "consolidated_node_version_ids": [
+        "nv_sec_12_2",
+        "nv_sec_12_3"
+      ],
+      "end_offset": 14,
+      "node_version_id": "nv_sec_12_2",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 0,
+      "text_hash": "aa6f3e9895cfd8abf394f21db82bf962917d95171f09cfbcee789a89c08e96e4"
+    },
+    {
+      "char_count": 719,
+      "chunk_ordinal": 0,
+      "consolidated_node_version_ids": [],
+      "end_offset": 719,
+      "node_version_id": "nv_sec_12_4",
+      "profile_id": "chunk-default-v1",
+      "start_offset": 0,
+      "text_hash": "d4b5b68bd6deca86cdb8dbd254607071286f467f73f9dd0517ca3086af7043ea"
+    }
+  ],
+  "consolidated": 1,
+  "hard_split": 1,
+  "profile_fingerprint": "e1bd6efca7d1fad6ccf3a00ce31005d26db55c3134093fd6f7cec5e44d43a2e8",
+  "profile_id": "chunk-default-v1",
+  "segmenter_version": "1.0.0"
+}
