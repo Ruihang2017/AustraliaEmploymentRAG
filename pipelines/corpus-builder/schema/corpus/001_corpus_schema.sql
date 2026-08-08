@@ -300,7 +300,10 @@ CREATE TABLE search_chunk (
   start_offset    INTEGER NOT NULL CHECK (start_offset >= 0),
   end_offset      INTEGER NOT NULL CHECK (end_offset >= 0),
   text_hash       TEXT NOT NULL CHECK (length(text_hash) = 64 AND text_hash GLOB '[0-9a-f]*'),
-  index_tier      TEXT NOT NULL ${enum_check_search_chunk_index_tier},
+  -- NULLABLE on purpose: CRPS-01 creates the column and assigns no value (its Non-goals put tier
+  -- assignment in CRPS-04). A chunk written by CRPS-03 before the tiering pass runs must be
+  -- representable; the generated CHECK still rejects every non-member value.
+  index_tier      TEXT ${enum_check_search_chunk_index_tier},
   created_at      TEXT NOT NULL CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]*Z'),
   CHECK (end_offset >= start_offset)
 );

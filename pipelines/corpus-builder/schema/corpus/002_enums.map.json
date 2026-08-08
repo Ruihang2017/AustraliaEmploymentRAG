@@ -28,7 +28,9 @@
       "table": "search_chunk",
       "column": "index_tier",
       "family": "IndexTier",
-      "prd": "§17.2"
+      "prd": "§17.2",
+      "nullable": true,
+      "why_nullable": "CRPS-01 creates the column and assigns no value; tier assignment is CRPS-04's policy, so a chunk written by CRPS-03 before tiering runs must be representable. The CHECK still rejects any non-member value."
     },
     {
       "table": "licence_assessment",

@@ -62,7 +62,7 @@ from .schema import (
     render_corpus_ddl,
     schema_fingerprint,
 )
-from .validate import validate_record
+from .validate import jsonschema_engine, validate_record
 from .version import BUILDER_VERSION, CONTRACT_VERSION, SCHEMA_VERSION
 from .violations import VIOLATION_CODES, ContractViolation
 
@@ -94,6 +94,7 @@ __all__ = [
     "ValidationFinding",
     "VersionRef",
     "create_corpus_database",
+    "jsonschema_engine",
     "load_contract_enums",
     "open_corpus_database",
     "read_records",

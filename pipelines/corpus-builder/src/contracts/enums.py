@@ -79,7 +79,7 @@ def enum_values(family: str) -> tuple[str, ...]:
     return families[family]
 
 
-def load_enum_map() -> dict[str, list[dict[str, str]]]:
+def load_enum_map() -> dict[str, list[dict[str, Any]]]:
     """Return the `generated` / `pending` arrays of `schema/corpus/002_enums.map.json`."""
     document = json.loads(ENUM_MAP_PATH.read_text(encoding="utf-8"))
     return {
@@ -93,8 +93,12 @@ def placeholder_name(table: str, column: str) -> str:
     return f"enum_check_{table}_{column}"
 
 
-def render_enum_check(column: str, values: tuple[str, ...]) -> str:
+def render_enum_check(column: str, values: tuple[str, ...], *, nullable: bool = False) -> str:
     """Render one `CHECK (<column> IN (...))` clause.
+
+    *nullable* renders `CHECK (<column> IS NULL OR <column> IN (...))`, for a column whose value is
+    assigned by a LATER ticket: SQLite applies a `CHECK` only to non-NULL values in some engines but
+    not all readings, so the `IS NULL` arm is written explicitly rather than assumed.
 
     A member containing a single quote would require SQL escaping that would also make the drift
     comparison ambiguous; the canonical vocabulary is `SCREAMING_SNAKE_CASE`, so such a member is
@@ -109,6 +113,8 @@ def render_enum_check(column: str, values: tuple[str, ...]) -> str:
                 "canonical vocabulary must be quote-free."
             )
     rendered = ", ".join(f"'{value}'" for value in values)
+    if nullable:
+        return f"CHECK ({column} IS NULL OR {column} IN ({rendered}))"
     return f"CHECK ({column} IN ({rendered}))"
 
 
@@ -129,7 +135,9 @@ def render_enum_checks() -> dict[str, str]:
                 f"schema/corpus/002_enums.map.json maps {table}.{column} to enum family "
                 f"{family!r}, which packages/contracts does not publish. {_GAP}"
             )
-        substitutions[placeholder_name(table, column)] = render_enum_check(column, families[family])
+        substitutions[placeholder_name(table, column)] = render_enum_check(
+            column, families[family], nullable=bool(entry.get("nullable", False))
+        )
 
     for entry in enum_map["pending"]:
         substitutions[placeholder_name(entry["table"], entry["column"])] = ""

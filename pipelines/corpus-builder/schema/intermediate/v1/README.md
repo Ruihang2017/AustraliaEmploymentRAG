@@ -161,3 +161,11 @@ relative to this directory and resolve offline — nothing here fetches a URL. T
 conformance fixtures under `pipelines/corpus-builder/tests/contracts/fixtures/` are the artifact to
 test against: `valid/` is a complete coherent run covering all nine record types, and `invalid/`
 pairs each broken record with the exact violation code it must produce.
+
+The schemas use only this vocabulary: `$ref`, `$defs`, `type`, `enum`, `const`, `required`,
+`properties`, `additionalProperties`, `minLength`, `minimum`, `maximum`, `pattern`, `not`, `allOf`,
+`anyOf`, `oneOf`, `if`/`then`, `dependentRequired` — so any conforming Draft 2020-12 implementation
+in any language covers them. This repository validates with the `jsonschema` library when it is
+installed and otherwise with `src/contracts/jsonschema_min.py`, a dependency-free interpreter of
+exactly that subset; which engine ran is reported by `contracts.jsonschema_engine()`. Neither is
+part of the contract — the schema documents are.

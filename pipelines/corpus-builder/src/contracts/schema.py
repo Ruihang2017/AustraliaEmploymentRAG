@@ -93,6 +93,9 @@ def create_corpus_database(
     try:
         _configure(connection)
         connection.executescript(ddl if ddl is not None else render_corpus_ddl())
+        # A database carrying a schema but no corpus_meta row would fail the PRD §18.4 readiness
+        # comparison in a way that looks like version drift rather than an aborted build, so a
+        # failure between the two removes the half-built file instead of leaving it behind.
         connection.execute(
             "INSERT INTO corpus_meta"
             " (id, schema_version, built_at, release_id, builder_version, contract_version,"
@@ -108,6 +111,10 @@ def create_corpus_database(
                 built_at,
             ),
         )
+    except BaseException:
+        connection.close()
+        target.unlink(missing_ok=True)
+        raise
     finally:
         connection.close()
 

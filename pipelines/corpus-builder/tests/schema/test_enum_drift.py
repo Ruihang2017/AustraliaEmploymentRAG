@@ -51,7 +51,9 @@ def test_generated_check_matches_the_contracts_export(entry: dict[str, str]) -> 
         f"packages/contracts publishes no family {entry['family']!r} for "
         f"{entry['table']}.{entry['column']} (PRD {entry['prd']}). {GAP}"
     )
-    expected = render_enum_check(entry["column"], families[entry["family"]])
+    expected = render_enum_check(
+        entry["column"], families[entry["family"]], nullable=bool(entry.get("nullable", False))
+    )
     assert expected in RENDERED, (
         f"the rendered DDL does not contain the generated CHECK for "
         f"{entry['table']}.{entry['column']}: expected {expected!r}"
@@ -137,6 +139,32 @@ def test_a_non_member_value_is_rejected_by_the_database(
     }[key]
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(statements[key], parameters)
+
+
+def test_a_nullable_enum_column_accepts_null_but_still_rejects_a_non_member(
+    conn: sqlite3.Connection,
+) -> None:
+    """`search_chunk.index_tier` is assigned by CRPS-04, so an untiered chunk must be writable.
+
+    The two halves are asserted together on purpose: "nullable" must not become "unconstrained".
+    """
+    seed_corpus(conn)
+    conn.execute(
+        "INSERT INTO search_chunk (id, node_version_id, chunk_ordinal, start_offset, end_offset,"
+        " text_hash, index_tier, created_at) VALUES ('chk_untiered', 'nv_1', 11, 0, 1, ?, NULL, ?)",
+        ("b" * 64, TS),
+    )
+    stored = conn.execute(
+        "SELECT index_tier FROM search_chunk WHERE id = 'chk_untiered'"
+    ).fetchone()[0]
+    assert stored is None
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "INSERT INTO search_chunk (id, node_version_id, chunk_ordinal, start_offset,"
+            " end_offset, text_hash, index_tier, created_at) VALUES ('chk_wrong', 'nv_1', 12, 0, 1,"
+            " ?, 'NOT_A_TIER', ?)",
+            ("c" * 64, TS),
+        )
 
 
 def test_the_intermediate_legal_status_enum_matches_the_export() -> None:

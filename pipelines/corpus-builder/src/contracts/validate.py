@@ -27,6 +27,7 @@ from .violations import ContractViolation
 __all__ = [
     "CORPUS_ID_PATTERN",
     "envelope_validator",
+    "jsonschema_engine",
     "node_ref_key",
     "sha256_hex",
     "validate_record",
@@ -74,13 +75,36 @@ def _registry() -> Any:
     return registry
 
 
+def jsonschema_engine() -> str:
+    """`"jsonschema"` when the third-party library is importable, else `"jsonschema_min"`.
+
+    Which engine is in use is reportable rather than hidden, because it is the difference between
+    the contract being checked by an off-the-shelf library and being checked by the repository's own
+    generic subset validator. See `jsonschema_min` for why the fallback has to exist at all (E1: a
+    uv workspace member's declared dependency is not installed by the root `uv sync --frozen`).
+    """
+    try:
+        import jsonschema  # noqa: F401
+        import referencing  # noqa: F401
+    except ImportError:
+        return "jsonschema_min"
+    return "jsonschema"
+
+
 @lru_cache(maxsize=1)
 def envelope_validator() -> Any:
     """The compiled envelope validator, which dispatches into the nine payload schemas."""
-    from jsonschema import Draft202012Validator
-
     envelope = json.loads((INTERMEDIATE_SCHEMA_DIR / "envelope.schema.json").read_text("utf-8"))
-    return Draft202012Validator(envelope, registry=_registry())
+    if jsonschema_engine() == "jsonschema":
+        from jsonschema import Draft202012Validator
+
+        return Draft202012Validator(envelope, registry=_registry())
+
+    from .jsonschema_min import Draft202012Validator as MinValidator
+    from .jsonschema_min import load_documents
+
+    documents = load_documents(sorted(INTERMEDIATE_SCHEMA_DIR.glob("*.schema.json")))
+    return MinValidator(envelope, documents=documents)
 
 
 def _pointer(path: Iterable[Any]) -> str:
@@ -111,12 +135,15 @@ def validate_record(
     is what makes `OFFSET_OUT_OF_RANGE` checkable for a `node_relation`. Absent, the offset range is
     still checked for internal consistency (`OFFSET_RANGE_INVALID`) but not against any text.
     """
+    from .jsonschema_min import UnsupportedKeywordError
+
     try:
         return _validate(obj, node_texts or {}, record_index)
-    except ImportError:
-        # A MISSING JSON-SCHEMA LIBRARY IS NOT A DEFECT IN THE RECORD. Reporting it as
-        # SCHEMA_INVALID would turn a broken environment into "every record is invalid", which is
-        # exactly the kind of silent degradation this contract exists to prevent.
+    except (ImportError, UnsupportedKeywordError):
+        # A BROKEN VALIDATION ENVIRONMENT IS NOT A DEFECT IN THE RECORD. Reporting a missing library
+        # or a schema keyword the engine cannot enforce as SCHEMA_INVALID would turn "not checked"
+        # into "every record is invalid" — or worse, into "valid". Both are exactly the silent
+        # degradation this contract exists to prevent, so they stay loud.
         raise
     except Exception as error:  # noqa: BLE001 — a validator must never raise. See module docstring.
         return [
