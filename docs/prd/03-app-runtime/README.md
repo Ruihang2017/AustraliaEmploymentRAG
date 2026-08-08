@@ -16,7 +16,7 @@
 | Owned requirement IDs | `SEC-001`, `OPS-002`, `ANS-003` |
 | Master spec | [`docs/PRD.md`](../../PRD.md) |
 | Decomposition plan | [`docs/prd/breakdown-plan.md`](../breakdown-plan.md) §2.1, §4, §5.4, §6.2, §7 |
-| Version | v0.3 — 2026-08-08 |
+| Version | v0.4 — 2026-08-08 |
 
 ---
 
@@ -132,7 +132,7 @@ Standing reasons (not owner-based):
 
 ## 6. Open questions
 
-Ten module-local questions. None blocks wave B or Gate 1, and each has a named owner. **QR3 remains
+Eleven module-local questions. None blocks wave B or Gate 1, and each has a named owner. **QR3 remains
 deliberately open** — `RUNT-07` ships the pluggable exporter that keeps it open and answers it in no
 direction.
 
@@ -153,6 +153,7 @@ re-opens them.
 | QR8 | `AuditSink` is already the port name `AUTC-01`…`AUTC-04` inject, and `DATA-07` owns the table behind it, but neither has landed. `RUNT-07` therefore ships a minimal one-method `AuditRecordSinkPort` to be bridged later rather than squatting the name. Confirm the bridge, or rename on landing? | `02-auth-core` (`AUTC-01`) with `01-app-data` (`DATA-07`) | `AUTC-01` / `DATA-07` | `packages/observability/src/retention.ts` only | PRD §22 bullet 5; `RUNT-07` Non-goals |
 | QR9 | `retrieval_id` and `model_call_id` have no registered prefix in `FND-03`'s `RESOURCE_PREFIXES` (`srx` is the search execution, and no model-call entity is registered). `RUNT-07` validates them by generic `<2-8 lower-case letters>_<uuidv7>` shape. Register them, or keep them generic? | `00-foundation` (`FND-03`) | a `00-foundation` ticket | `packages/observability/src/fields.ts`; the emitters in `11-retrieval-engine` and `12-evidence-safety` | PRD §34.1, §42.2 |
 | QR10 | `RUNT-07` acceptance item 1 words the drop counter as "labelled by key name". The dropped key name is caller-controlled and can itself carry content, so `RUNT-07` labels it with a closed domain plus `__other__` instead. Confirm the narrowing, or re-word the ticket? | `03-app-runtime` (ticket sync) | Architect | `packages/observability` only; it closes a leak the ticket's wording does not cover and weakens no acceptance item | PRD §22 bullets 2-3, §37.2 |
+| QR11 | **PRD §34.9 has no code for HTTP 413 or 415.** Both statuses are reachable in `apps/api` the moment a body limit and a JSON content-type parser exist: Fastify raises `FST_ERR_CTP_BODY_TOO_LARGE` (413) and `FST_ERR_CTP_INVALID_MEDIA_TYPE` (415), and the closed §34.9 catalogue offers no `PAYLOAD_TOO_LARGE` / `UNSUPPORTED_MEDIA_TYPE` row. Per `RUNT-01`'s Feedback obligation ("Do not invent a code … stop at the nearest existing code"), `RUNT-01` maps both to **`400 INVALID_REQUEST`** with empty `details`. That is a **client-visible status change** (413/415 → 400), so it needs a decision, not a silent default: extend §34.9 with the two rows (a PRD §45.5 product/API change, which also means an `FND-04` OpenAPI + generated-bindings change), or confirm the collapse to `400 INVALID_REQUEST`? | **Founder** (PRD §45.5 product/API change) | a PRD §34.9 amendment, then `FND-04` (OpenAPI + generated bindings) and a `RUNT-01` follow-up ticket for `apps/api/src/errors/**` | `apps/api/src/errors/handler.ts` (`classifyError` step 3) today; every `apps/api` route that sets a body limit or accepts a non-JSON content type; any client that distinguishes 413/415 from 400 | PRD §34.9 (closed catalogue), §16.1 (uniform error body), §45.5 (product/API change needs a PRD change); `RUNT-01` Feedback obligation bullet 3 |
 
 ## 7. Work breakdown
 
@@ -214,6 +215,13 @@ Contributed-to but **not owned** here: `DEV-001` (the `/v1` contract surface is 
 
 ## 9. Changelog
 
+- **v0.4 — 2026-08-08** — `RUNT-01` writeback (Feedback obligation bullet 3, "PRD §34.9 turns out to
+  be incomplete"): §6 gains **QR11** — PRD §34.9 has no code for HTTP **413** or **415**, both of
+  which Fastify raises inside `apps/api` (`FST_ERR_CTP_BODY_TOO_LARGE`,
+  `FST_ERR_CTP_INVALID_MEDIA_TYPE`). `RUNT-01` invents no code and stops at the nearest existing one,
+  `400 INVALID_REQUEST`; the resulting client-visible status change is escalated to the **Founder** as
+  a PRD §45.5 product/API decision. No ticket id, dependency edge, file-scope or acceptance item
+  changed; `RUNT-01`'s ticket file records the same friction and the `dev:api` script-name deviation.
 - **v0.3 — 2026-08-08** — `RUNT-07` writeback: §6 gains **QR6** (no canonical log vocabulary in
   `packages/contracts`), **QR7** (no `@types/node` repo-wide), **QR8** (`AuditRecordSinkPort` vs
   `AUTC-01`'s `AuditSink`), **QR9** (no registered prefix for `retrieval_id` / `model_call_id`) and

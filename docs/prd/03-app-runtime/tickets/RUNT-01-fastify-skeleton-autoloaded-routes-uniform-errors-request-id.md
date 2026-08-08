@@ -228,9 +228,16 @@ that area's own directory. This is the property the acceptance conformance test 
 ## Deliverables
 
 1. **`apps/api/package.json` / `apps/api/tsconfig.json`** — extend the `FND-01` skeleton with the
-   Fastify runtime dependency, a `dev`/`build`/`start` script set and workspace references to
+   Fastify runtime dependency, a watch/`build`/`start` script set and workspace references to
    `packages/contracts`. No Node or pnpm version is declared here: breakdown-plan §8 **Q12** fixes
    them (Node.js `24.18.0`, pnpm `11.4.0`) and `FND-01` holds the pins.
+   **The watch script is named `dev:api`, not `dev` (v1.1).** `tools/fixtures/script-owners.json`
+   reserves the *member* script name `dev` to `RUNT-01/RUNT-05` and `tools/tests/scripts.test.mjs`
+   asserts `membersProviding('dev') === []`, so a member script literally named `dev` turns a landed
+   `00-foundation` test red. Both files are `00-foundation`'s write-scope and outside this ticket, so
+   the root `pnpm dev` hand-off needs a coordinated `00-foundation` ticket (fixture **and** test,
+   together with `RUNT-05`, the second half of that owner entry). `dev:api` is what ships here; the
+   root `pnpm dev` owner line is unchanged.
 2. **`apps/api/src/bootstrap/config.ts`** — `export interface ApiConfig`, `export function
    loadConfig(env: NodeJS.ProcessEnv): ApiConfig`. Implements the PRD §39.6 layer order (committed
    safe defaults → environment config → injected secrets → feature flags). Under
@@ -410,3 +417,26 @@ incomplete ticket (CLAUDE.md, issue #53).
 §2.1. If it is outright falsified, that overturns a team decision that seven modules depend on:
 escalate for re-review before any code lands. Never swap the registration approach silently inside
 this ticket.
+
+**4. Frictions that actually fired during implementation.**
+
+- **PRD §34.9 is incomplete for HTTP 413 and 415** (obligation 2, bullet 3). Fastify raises
+  `FST_ERR_CTP_BODY_TOO_LARGE` (413) and `FST_ERR_CTP_INVALID_MEDIA_TYPE` (415) as soon as
+  `bodyLimit` and a JSON content-type parser exist; the closed §34.9 catalogue has no row for either.
+  No code was invented: `apps/api/src/errors/handler.ts#classifyError` stops at the nearest existing
+  code, **`400 INVALID_REQUEST`** with empty `details`. Raised as **QR11** in
+  [`../README.md` §6](../README.md#6-open-questions) with the **Founder** as owner, because the
+  collapse changes the status a client sees (413/415 → 400) and extending §34.9 is a PRD §45.5
+  product/API change. Asserted by `apps/api/test/errors.test.ts` ("Fastify 4xx errors with no PRD
+  §34.9 code") and, as a writeback regression, by `apps/api/test/writeback.test.ts`.
+- **`dev` is a reserved member script name** (obligation 1). See deliverable 1 — this ticket ships
+  `dev:api`, and the root `pnpm dev` hand-off is a `00-foundation` ticket.
+
+Neither friction changed an acceptance item, a file-scope, a dependency edge or the A1 contract.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-08 | **Implementation writeback under the Feedback obligation.** Deliverable 1's script set is restated as `dev:api` (the member script name `dev` is reserved to `RUNT-01/RUNT-05` in `tools/fixtures/script-owners.json` and asserted empty by the landed `tools/tests/scripts.test.mjs`; both are `00-foundation`'s write-scope, so the root `pnpm dev` hand-off becomes a `00-foundation` ticket). New Feedback-obligation §4 records the two frictions that fired: the `dev` name, and **PRD §34.9 having no code for HTTP 413/415** — no code invented, `classifyError` stops at `400 INVALID_REQUEST`, and the gap is raised as **QR11** in the sub-PRD README §6 with the Founder as owner (sub-PRD v0.4). No acceptance item, file-scope, dependency edge or A1 contract clause changed. |
