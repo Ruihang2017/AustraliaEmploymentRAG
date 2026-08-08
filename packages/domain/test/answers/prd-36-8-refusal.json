@@ -1,0 +1,407 @@
+{
+  "$comment": [
+    "FND-07 deliverable 9. This file is the ASSERTION TARGET: it is the transcription of docs/PRD.md",
+    "and the implementation is what gets compared to it, in both directions.",
+    "Every *_text field is VERBATIM PRD prose, curly quotes included. prd-transcription.test.ts asserts",
+    "each one really occurs in docs/PRD.md, so a typo here fails rather than silently redefining the spec.",
+    "prd_36_8 holds exactly the nine PRD rows. derived_conditions is deliberately SEPARATE: it holds",
+    "sub-PRD D13a's MATERIAL_CLAIMS_UNSUPPORTED, which is derived, not a seventh table row."
+  ],
+  "prd_section": "36.8",
+  "prd_lines": "2419-2435",
+  "prd_36_8": {
+    "status_rows": [
+      {
+        "condition_text": "Evidence supports all material claims",
+        "result": "SUPPORTED",
+        "condition": "ALL_MATERIAL_CLAIMS_SUPPORTED"
+      },
+      {
+        "condition_text": "Evidence supports branches but material fact is unknown",
+        "result": "CONDITIONAL",
+        "condition": "MATERIAL_FACT_UNKNOWN"
+      },
+      {
+        "condition_text": "No sufficient applicable evidence after retrieval",
+        "result": "INSUFFICIENT_EVIDENCE",
+        "condition": "NO_SUFFICIENT_APPLICABLE_EVIDENCE"
+      },
+      {
+        "condition_text": "Applicable authorities materially conflict and cannot be reconciled",
+        "result": "CONFLICTING_SOURCES",
+        "condition": "UNRECONCILED_AUTHORITY_CONFLICT"
+      },
+      {
+        "condition_text": "Request is outside employment-law/product function",
+        "result": "OUT_OF_SCOPE",
+        "condition": "OUT_OF_SCOPE_REQUEST"
+      },
+      {
+        "condition_text": "Relevant source is stale/unavailable and could change answer",
+        "result": "SOURCE_NOT_CURRENT",
+        "condition": "SOURCE_STALE_OR_UNAVAILABLE"
+      }
+    ],
+    "non_status_rows": [
+      {
+        "condition_text": "Employee PII detected",
+        "result_text": "Request rejected before job; no answer status",
+        "kind": "PRE_ADMISSION_REJECTION",
+        "error_code": "EMPLOYEE_PII_DETECTED",
+        "prd_basis": "PRD §10.1, §37.2, §34.9"
+      },
+      {
+        "condition_text": "Unlawful operational-evasion request",
+        "result_text": "Refusal with lawful compliance/remediation alternative",
+        "kind": "REFUSAL",
+        "error_code": null,
+        "prd_basis": "PRD §9.5"
+      },
+      {
+        "condition_text": "Provider/budget unavailable",
+        "result_text": "Job unavailable; Search and saved records remain available",
+        "kind": "JOB_UNAVAILABLE",
+        "error_code": "GENERATION_UNAVAILABLE",
+        "prd_basis": "PRD §8.2, §34.9"
+      }
+    ],
+    "closing_paragraph_lines": [
+      "Words such as “definitely compliant”, “guaranteed”, “zero risk” and numeric",
+      "model-confidence percentages are prohibited. Uncertainty is represented by",
+      "status, assumptions, missing facts, conflicts and evidence roles."
+    ]
+  },
+  "derived_conditions": [
+    {
+      "condition": "MATERIAL_CLAIMS_UNSUPPORTED",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "basis": "PRD §9.4; ANS-005 (PRD §30.2); sub-PRD D13a",
+      "why": "The six §36.8 rows are not total over the signal record: exactly one of the 64 combinations fires no row while decideAnswerStatus must still return an AnswerStatus.",
+      "cases": [
+        {
+          "name": "material claims unsupported, nothing else fires",
+          "signals": {
+            "outOfScope": false,
+            "sourceStaleOrUnavailableAndMaterial": false,
+            "unreconciledAuthorityConflict": false,
+            "sufficientApplicableEvidence": true,
+            "allMaterialClaimsSupported": false,
+            "materialFactUnknown": false
+          },
+          "expected_status": "INSUFFICIENT_EVIDENCE",
+          "expected_conditions": ["MATERIAL_CLAIMS_UNSUPPORTED"]
+        },
+        {
+          "name": "a tabled row above SUPPORTED fires, so the derived condition does not",
+          "signals": {
+            "outOfScope": false,
+            "sourceStaleOrUnavailableAndMaterial": false,
+            "unreconciledAuthorityConflict": false,
+            "sufficientApplicableEvidence": true,
+            "allMaterialClaimsSupported": false,
+            "materialFactUnknown": true
+          },
+          "expected_status": "CONDITIONAL",
+          "expected_conditions": ["MATERIAL_FACT_UNKNOWN"]
+        }
+      ]
+    }
+  ],
+  "precedence": {
+    "order": [
+      "OUT_OF_SCOPE",
+      "SOURCE_NOT_CURRENT",
+      "CONFLICTING_SOURCES",
+      "INSUFFICIENT_EVIDENCE",
+      "CONDITIONAL",
+      "SUPPORTED"
+    ],
+    "basis": "sub-PRD D13 / open question Q-F3 (owner: Founder). The PRD states the conditions but not their order when two hold at once; D13 chooses most-restrictive-wins.",
+    "cases": [
+      {
+        "name": "out of scope beats a stale source",
+        "signals": {
+          "outOfScope": true,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "OUT_OF_SCOPE",
+        "expected_conditions": [
+          "OUT_OF_SCOPE_REQUEST",
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "out of scope beats conflicting sources",
+        "signals": {
+          "outOfScope": true,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "OUT_OF_SCOPE",
+        "expected_conditions": [
+          "OUT_OF_SCOPE_REQUEST",
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "out of scope beats insufficient evidence",
+        "signals": {
+          "outOfScope": true,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": false,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "OUT_OF_SCOPE",
+        "expected_conditions": [
+          "OUT_OF_SCOPE_REQUEST",
+          "NO_SUFFICIENT_APPLICABLE_EVIDENCE",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "out of scope beats an unknown material fact",
+        "signals": {
+          "outOfScope": true,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "OUT_OF_SCOPE",
+        "expected_conditions": [
+          "OUT_OF_SCOPE_REQUEST",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "a stale source beats conflicting sources",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "SOURCE_NOT_CURRENT",
+        "expected_conditions": [
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "a stale source beats insufficient evidence",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": false,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "SOURCE_NOT_CURRENT",
+        "expected_conditions": [
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "NO_SUFFICIENT_APPLICABLE_EVIDENCE",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "a stale source beats an unknown material fact",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "SOURCE_NOT_CURRENT",
+        "expected_conditions": [
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "conflicting sources beat insufficient evidence",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": false,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": false
+        },
+        "expected_status": "CONFLICTING_SOURCES",
+        "expected_conditions": [
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "NO_SUFFICIENT_APPLICABLE_EVIDENCE",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "conflicting sources beat an unknown material fact",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "CONFLICTING_SOURCES",
+        "expected_conditions": [
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "insufficient evidence beats an unknown material fact",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": false,
+          "unreconciledAuthorityConflict": false,
+          "sufficientApplicableEvidence": false,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "INSUFFICIENT_EVIDENCE",
+        "expected_conditions": [
+          "NO_SUFFICIENT_APPLICABLE_EVIDENCE",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "three conditions at once: stale source wins over conflict and unknown fact",
+        "signals": {
+          "outOfScope": false,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": true,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "SOURCE_NOT_CURRENT",
+        "expected_conditions": [
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      },
+      {
+        "name": "every condition at once: out of scope wins and all six are reported",
+        "signals": {
+          "outOfScope": true,
+          "sourceStaleOrUnavailableAndMaterial": true,
+          "unreconciledAuthorityConflict": true,
+          "sufficientApplicableEvidence": false,
+          "allMaterialClaimsSupported": true,
+          "materialFactUnknown": true
+        },
+        "expected_status": "OUT_OF_SCOPE",
+        "expected_conditions": [
+          "OUT_OF_SCOPE_REQUEST",
+          "SOURCE_STALE_OR_UNAVAILABLE",
+          "UNRECONCILED_AUTHORITY_CONFLICT",
+          "NO_SUFFICIENT_APPLICABLE_EVIDENCE",
+          "MATERIAL_FACT_UNKNOWN",
+          "ALL_MATERIAL_CLAIMS_SUPPORTED"
+        ]
+      }
+    ]
+  },
+  "answer_structure": {
+    "prd_section": "8.4",
+    "sections": [
+      {
+        "ordinal": 1,
+        "prd_text": "Short answer: Yes, No, Likely, Depends or insufficient evidence.",
+        "id": "SHORT_ANSWER"
+      },
+      { "ordinal": 2, "prd_text": "Explanation and application.", "id": "EXPLANATION_AND_APPLICATION" },
+      { "ordinal": 3, "prd_text": "Conditions and assumptions.", "id": "CONDITIONS_AND_ASSUMPTIONS" },
+      { "ordinal": 4, "prd_text": "Claim-level authorities.", "id": "CLAIM_LEVEL_AUTHORITIES" },
+      { "ordinal": 5, "prd_text": "Practical next steps/checks.", "id": "PRACTICAL_NEXT_STEPS" },
+      {
+        "ordinal": 6,
+        "prd_text": "Limitations and unresolved facts.",
+        "id": "LIMITATIONS_AND_UNRESOLVED_FACTS"
+      }
+    ],
+    "short_answer_values": ["Yes", "No", "Likely", "Depends", "insufficient evidence"]
+  },
+  "claim_support": {
+    "prd_section": "15.5",
+    "values": [
+      "DIRECTLY_SUPPORTED",
+      "SUPPORTED_BY_INFERENCE",
+      "CONDITIONAL",
+      "CONTRADICTED",
+      "NOT_SUPPORTED"
+    ],
+    "citation_roles": ["SUPPORTS", "QUALIFIES", "CONTRADICTS", "DEFINES", "BACKGROUND_ONLY"],
+    "background_only_rule": "`BACKGROUND_ONLY` evidence cannot independently support a definitive legal claim."
+  },
+  "definitive_claim": {
+    "basis": "sub-PRD D21; PRD §8.4; ANS-005 (PRD §30.2)",
+    "rule": "material, short answer Yes or No, not asserted subject to a condition or assumption",
+    "definitive_short_answers": ["Yes", "No"],
+    "non_definitive_short_answers": ["Likely", "Depends", "insufficient evidence"]
+  },
+  "prohibited_language": {
+    "prd_section": "36.8",
+    "positive": [
+      {
+        "text": "This arrangement is definitely compliant.",
+        "kind": "PROHIBITED_PHRASE",
+        "pattern": "definitely compliant"
+      },
+      {
+        "text": "Coverage is guaranteed under the award.",
+        "kind": "PROHIBITED_PHRASE",
+        "pattern": "guaranteed"
+      },
+      {
+        "text": "There is zero risk of an underpayment claim.",
+        "kind": "PROHIBITED_PHRASE",
+        "pattern": "zero risk"
+      },
+      {
+        "text": "92% confidence that clause 14 applies.",
+        "kind": "MODEL_CONFIDENCE_PERCENTAGE",
+        "pattern": "percentage adjacent to a confidence word"
+      },
+      {
+        "text": "We are 85 % certain the agreement covers the role.",
+        "kind": "MODEL_CONFIDENCE_PERCENTAGE",
+        "pattern": "percentage adjacent to a confidence word"
+      }
+    ],
+    "negative": [
+      "The superannuation guarantee rate is 12% from 1 July 2025.",
+      "There is a real risk of an adverse action claim.",
+      "A compliance notice may issue under the Act.",
+      "The employer paid 15% of ordinary time earnings.",
+      "The employer guarantees nothing in the contract of employment.",
+      ""
+    ]
+  }
+}
