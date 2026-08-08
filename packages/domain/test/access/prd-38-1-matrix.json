@@ -1,0 +1,285 @@
+{
+  "$comment": [
+    "FND-06 deliverable 8 — the PRD section 38.1 role matrix transcribed VERBATIM from",
+    "docs/PRD.md lines 2512-2535 (heading '### 38.1 Role matrix'), so the replay asserts against the",
+    "PRD's own words rather than against the implementation's interpretation.",
+    "",
+    "`prdText` is the exact cell string, tick and em-dash included. `effect` and `condition` are the",
+    "reading of that string, and packages/domain/src/access/matrix.ts must agree cell for cell —",
+    "matrix-replay.test.ts asserts the agreement in both directions, so neither side can drift.",
+    "",
+    "Row order is PRD row order and equals PERMISSION_VALUES order (packages/contracts, FND-03).",
+    "Column order is PRD column order: the five roles, then the service account.",
+    "",
+    "Renaming a member, flattening a conditional cell to ALLOW/DENY, or dropping a cell is a product",
+    "change (PRD section 45.5), not a refactor."
+  ],
+  "prdSource": "docs/PRD.md lines 2512-2535 (section 38.1 Role matrix)",
+  "ownGloss": "`Own` below means a record owned by or explicitly shared with the member inside the same organisation; the MVP has no external/public sharing.",
+  "closingRule": "All checks are permission checks plus resource membership; a role alone never authorises a record from another organisation.",
+  "principals": ["OWNER", "ADMIN", "RESEARCHER", "VIEWER", "DEVELOPER", "SERVICE_ACCOUNT"],
+  "prdPrincipalLabels": {
+    "OWNER": "Owner",
+    "ADMIN": "Admin",
+    "RESEARCHER": "Researcher",
+    "VIEWER": "Viewer",
+    "DEVELOPER": "Developer",
+    "SERVICE_ACCOUNT": "Service account"
+  },
+  "rows": [
+    {
+      "permission": "CORPUS_SEARCH_READ",
+      "prdAction": "Search/read public corpus",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "✓", "effect": "ALLOW" },
+        "VIEWER": { "prdText": "✓", "effect": "ALLOW" },
+        "DEVELOPER": { "prdText": "✓", "effect": "ALLOW" },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "effect": "CONDITIONAL",
+          "condition": "SCOPED_CREDENTIAL_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "ANSWER_CREATE",
+      "prdAction": "Create Answer/Coverage/Compare",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "✓", "effect": "ALLOW" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": {
+          "prdText": "— by default",
+          "effect": "CONDITIONAL",
+          "condition": "OFF_BY_DEFAULT_GRANTABLE"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "effect": "CONDITIONAL",
+          "condition": "SCOPED_CREDENTIAL_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "RESEARCH_RECORD_READ_WRITE_OWN",
+      "prdAction": "Create/read own Research Records",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "✓", "effect": "ALLOW" },
+        "VIEWER": {
+          "prdText": "read shared",
+          "effect": "CONDITIONAL",
+          "condition": "SHARED_WITH_MEMBER",
+          "maxIntent": "READ"
+        },
+        "DEVELOPER": {
+          "prdText": "— by default",
+          "effect": "CONDITIONAL",
+          "condition": "OFF_BY_DEFAULT_GRANTABLE"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "effect": "CONDITIONAL",
+          "condition": "SCOPED_CREDENTIAL_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "RESEARCH_RECORD_REVIEW_COMMENT",
+      "prdAction": "Review/comment shared records",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": {
+          "prdText": "✓ if assigned",
+          "effect": "CONDITIONAL",
+          "condition": "ASSIGNED_REVIEWER"
+        },
+        "VIEWER": {
+          "prdText": "comment if granted",
+          "effect": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED"
+        },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped if granted",
+          "effect": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "EXPORT_CREATE",
+      "prdAction": "Export accessible records",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "✓", "effect": "ALLOW" },
+        "VIEWER": {
+          "prdText": "read-only export if granted",
+          "effect": "CONDITIONAL",
+          "condition": "GRANT_REQUIRED",
+          "maxIntent": "READ"
+        },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "effect": "CONDITIONAL",
+          "condition": "SCOPED_CREDENTIAL_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "WATCHLIST_CREATE",
+      "prdAction": "Create watchlists",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "✓", "effect": "ALLOW" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": {
+          "prdText": "scoped",
+          "effect": "CONDITIONAL",
+          "condition": "SCOPED_CREDENTIAL_REQUIRED"
+        }
+      }
+    },
+    {
+      "permission": "MEMBERSHIP_MANAGE",
+      "prdAction": "Manage members/invitations",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": {
+          "prdText": "✓ except Owner constraints",
+          "effect": "CONDITIONAL",
+          "condition": "OWNER_CONSTRAINTS"
+        },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "MEMBERSHIP_ROLE_CHANGE",
+      "prdAction": "Change roles/remove members",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": {
+          "prdText": "✓ cannot remove/change last Owner",
+          "effect": "CONDITIONAL",
+          "condition": "LAST_OWNER_IMMUTABLE"
+        },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "ORGANIZATION_RETENTION_CONFIGURE",
+      "prdAction": "Configure retention/closure",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "—", "effect": "DENY" },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "ORGANIZATION_SECURITY_CONFIGURE",
+      "prdAction": "Configure SSO/enforce MFA",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "SERVICE_ACCOUNT_MANAGE",
+      "prdAction": "Manage service accounts/webhooks/widget",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": {
+          "prdText": "✓ within granted developer permission",
+          "effect": "CONDITIONAL",
+          "condition": "DEVELOPER_PERMISSION_GRANTED"
+        },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "USAGE_VIEW",
+      "prdAction": "View organisation usage",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": { "prdText": "✓", "effect": "ALLOW" },
+        "RESEARCHER": {
+          "prdText": "own usage",
+          "effect": "CONDITIONAL",
+          "condition": "OWN_RESOURCE_ONLY"
+        },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": {
+          "prdText": "API/service usage subset",
+          "effect": "CONDITIONAL",
+          "condition": "USAGE_SUBSET"
+        },
+        "SERVICE_ACCOUNT": {
+          "prdText": "own usage",
+          "effect": "CONDITIONAL",
+          "condition": "OWN_RESOURCE_ONLY"
+        }
+      }
+    },
+    {
+      "permission": "AUDIT_EVENT_VIEW",
+      "prdAction": "View audit/security events",
+      "cells": {
+        "OWNER": { "prdText": "✓", "effect": "ALLOW" },
+        "ADMIN": {
+          "prdText": "✓ limited",
+          "effect": "CONDITIONAL",
+          "condition": "LIMITED_SUBSET"
+        },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": {
+          "prdText": "credential events only",
+          "effect": "CONDITIONAL",
+          "condition": "CREDENTIAL_EVENTS_ONLY"
+        },
+        "SERVICE_ACCOUNT": { "prdText": "—", "effect": "DENY" }
+      }
+    },
+    {
+      "permission": "INTERNAL_ADMIN",
+      "prdAction": "Internal source/release/incident admin",
+      "cells": {
+        "OWNER": { "prdText": "—", "effect": "DENY" },
+        "ADMIN": { "prdText": "—", "effect": "DENY" },
+        "RESEARCHER": { "prdText": "—", "effect": "DENY" },
+        "VIEWER": { "prdText": "—", "effect": "DENY" },
+        "DEVELOPER": { "prdText": "—", "effect": "DENY" },
+        "SERVICE_ACCOUNT": {
+          "prdText": "separate internal identity only",
+          "effect": "CONDITIONAL",
+          "condition": "SEPARATE_INTERNAL_IDENTITY"
+        }
+      }
+    }
+  ]
+}
