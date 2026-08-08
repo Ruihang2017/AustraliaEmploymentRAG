@@ -1,0 +1,144 @@
+{
+  "$comment": [
+    "FND-08 deliverable 8. PRD §32.6 'Allowed workflow transitions' (docs/PRD.md lines 1674-1682)",
+    "transcribed VERBATIM — the four *Cell strings of each row are copy-pasted from the PRD, backticks",
+    "and wildcard wording intact — plus the twelve-pair expansion of the two wildcard rows stated in",
+    "FND-08's Background.",
+    "",
+    "The *Cell fields are the PRD. The `actors`, `conditions` and `expandsTo` fields are the",
+    "INTERPRETATION: 'Any active state' and 'Any non-archived' both denote",
+    "{DRAFT, IN_REVIEW, CUSTOMER_REVIEWED, REVIEW_REQUIRED} because ARCHIVED is the only non-active",
+    "state, each minus its self-transition. They are recorded here so a reviewer can check the",
+    "expansion against the PRD by hand without reading code.",
+    "",
+    "conditionVocabulary / materialTriggerVocabulary / actorVocabulary map each coined token back to",
+    "the PRD's own prose, so the UPPER_SNAKE names are auditable against §32.6."
+  ],
+  "prdSection": "§32.6",
+  "prdFile": "docs/PRD.md",
+  "prdLines": "1674-1682",
+  "states": ["DRAFT", "IN_REVIEW", "CUSTOMER_REVIEWED", "REVIEW_REQUIRED", "ARCHIVED"],
+  "rows": [
+    {
+      "row": 1,
+      "fromCell": "`DRAFT`",
+      "toCell": "`IN_REVIEW`",
+      "actorCell": "owner/researcher",
+      "conditionCell": "reviewer assigned; at least one saved answer",
+      "actors": ["owner", "researcher"],
+      "conditions": ["REVIEWER_ASSIGNED", "AT_LEAST_ONE_SAVED_ANSWER"],
+      "expandsTo": [["DRAFT", "IN_REVIEW"]],
+      "expansionNote": "No wildcard; the row is one ordered pair."
+    },
+    {
+      "row": 2,
+      "fromCell": "`IN_REVIEW`",
+      "toCell": "`DRAFT`",
+      "actorCell": "reviewer/owner",
+      "conditionCell": "reason required",
+      "actors": ["reviewer", "owner"],
+      "conditions": ["REASON_REQUIRED"],
+      "expandsTo": [["IN_REVIEW", "DRAFT"]],
+      "expansionNote": "No wildcard; the row is one ordered pair."
+    },
+    {
+      "row": 3,
+      "fromCell": "`IN_REVIEW`",
+      "toCell": "`CUSTOMER_REVIEWED`",
+      "actorCell": "reviewer",
+      "conditionCell": "explicit disclaimer acknowledgement",
+      "actors": ["reviewer"],
+      "conditions": ["DISCLAIMER_ACKNOWLEDGED"],
+      "expandsTo": [["IN_REVIEW", "CUSTOMER_REVIEWED"]],
+      "expansionNote": "No wildcard; the row is one ordered pair."
+    },
+    {
+      "row": 4,
+      "fromCell": "Any active state",
+      "toCell": "`REVIEW_REQUIRED`",
+      "actorCell": "system/admin/reviewer",
+      "conditionCell": "correction, source change or material issue; reason required",
+      "actors": ["system", "admin", "reviewer"],
+      "conditions": ["MATERIAL_TRIGGER", "REASON_REQUIRED"],
+      "expandsTo": [
+        ["DRAFT", "REVIEW_REQUIRED"],
+        ["IN_REVIEW", "REVIEW_REQUIRED"],
+        ["CUSTOMER_REVIEWED", "REVIEW_REQUIRED"]
+      ],
+      "expansionNote": "ARCHIVED is the only non-active state, so 'Any active state' is {DRAFT, IN_REVIEW, CUSTOMER_REVIEWED, REVIEW_REQUIRED}; REVIEW_REQUIRED -> REVIEW_REQUIRED is excluded as a self-transition."
+    },
+    {
+      "row": 5,
+      "fromCell": "`REVIEW_REQUIRED`",
+      "toCell": "`IN_REVIEW`",
+      "actorCell": "owner/reviewer",
+      "conditionCell": "replacement/rerun linked",
+      "actors": ["owner", "reviewer"],
+      "conditions": ["REPLACEMENT_OR_RERUN_LINKED"],
+      "expandsTo": [["REVIEW_REQUIRED", "IN_REVIEW"]],
+      "expansionNote": "No wildcard; the row is one ordered pair."
+    },
+    {
+      "row": 6,
+      "fromCell": "Any non-archived",
+      "toCell": "`ARCHIVED`",
+      "actorCell": "owner/admin",
+      "conditionCell": "confirmation; watches optionally retained",
+      "actors": ["owner", "admin"],
+      "conditions": ["CONFIRMATION"],
+      "expandsTo": [
+        ["DRAFT", "ARCHIVED"],
+        ["IN_REVIEW", "ARCHIVED"],
+        ["CUSTOMER_REVIEWED", "ARCHIVED"],
+        ["REVIEW_REQUIRED", "ARCHIVED"]
+      ],
+      "expansionNote": "'Any non-archived' is {DRAFT, IN_REVIEW, CUSTOMER_REVIEWED, REVIEW_REQUIRED}; ARCHIVED -> ARCHIVED is excluded as a self-transition. 'watches optionally retained' is the `retainWatches` flag on the transition input, not a separate transition or a condition."
+    },
+    {
+      "row": 7,
+      "fromCell": "`ARCHIVED`",
+      "toCell": "`DRAFT`",
+      "actorCell": "owner/admin",
+      "conditionCell": "reason required",
+      "actors": ["owner", "admin"],
+      "conditions": ["REASON_REQUIRED"],
+      "expandsTo": [["ARCHIVED", "DRAFT"]],
+      "expansionNote": "No wildcard; the row is one ordered pair."
+    }
+  ],
+  "expansion": [
+    { "n": 1, "from": "DRAFT", "to": "IN_REVIEW", "row": 1 },
+    { "n": 2, "from": "IN_REVIEW", "to": "DRAFT", "row": 2 },
+    { "n": 3, "from": "IN_REVIEW", "to": "CUSTOMER_REVIEWED", "row": 3 },
+    { "n": 4, "from": "DRAFT", "to": "REVIEW_REQUIRED", "row": 4 },
+    { "n": 5, "from": "IN_REVIEW", "to": "REVIEW_REQUIRED", "row": 4 },
+    { "n": 6, "from": "CUSTOMER_REVIEWED", "to": "REVIEW_REQUIRED", "row": 4 },
+    { "n": 7, "from": "REVIEW_REQUIRED", "to": "IN_REVIEW", "row": 5 },
+    { "n": 8, "from": "DRAFT", "to": "ARCHIVED", "row": 6 },
+    { "n": 9, "from": "IN_REVIEW", "to": "ARCHIVED", "row": 6 },
+    { "n": 10, "from": "CUSTOMER_REVIEWED", "to": "ARCHIVED", "row": 6 },
+    { "n": 11, "from": "REVIEW_REQUIRED", "to": "ARCHIVED", "row": 6 },
+    { "n": 12, "from": "ARCHIVED", "to": "DRAFT", "row": 7 }
+  ],
+  "conditionVocabulary": {
+    "REVIEWER_ASSIGNED": "reviewer assigned",
+    "AT_LEAST_ONE_SAVED_ANSWER": "at least one saved answer",
+    "REASON_REQUIRED": "reason required",
+    "DISCLAIMER_ACKNOWLEDGED": "explicit disclaimer acknowledgement",
+    "MATERIAL_TRIGGER": "correction, source change or material issue",
+    "REPLACEMENT_OR_RERUN_LINKED": "replacement/rerun linked",
+    "CONFIRMATION": "confirmation"
+  },
+  "materialTriggerVocabulary": {
+    "CORRECTION": "correction",
+    "SOURCE_CHANGE": "source change",
+    "MATERIAL_ISSUE": "material issue"
+  },
+  "actorVocabulary": {
+    "owner": "owner",
+    "researcher": "researcher",
+    "reviewer": "reviewer",
+    "system": "system",
+    "admin": "admin"
+  }
+}
