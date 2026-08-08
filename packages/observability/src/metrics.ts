@@ -1,0 +1,690 @@
+/**
+ * The metric registry — RUNT-07 Deliverable 6, covering every PRD §22 metric family.
+ *
+ * THREE INVARIANTS, all enforced at runtime and all covered by `test/metrics.test.ts`:
+ *
+ * 1. **Nothing runtime-derived ever becomes a name, a label name, a label value or a help string.**
+ *    Metric names, label names, label domains and help text are author-written literals in this
+ *    file. The only caller-supplied strings that reach a label are `enum` members (checked against a
+ *    closed domain) and opaque ids (shape-checked). There is no `hash` label kind and no free-string
+ *    label kind, so PRD §37.2's "not content or reversible hash" holds structurally.
+ * 2. **Money is integer micro-AUD.** PRD §34.1: "Integer micro-AUD for internal cost; never floating
+ *    point". A `micro_aud` metric rejects a float, `NaN`, `Infinity` and a non-safe integer, and
+ *    rejects non-integer histogram buckets at `register()` time.
+ * 3. **Cardinality is bounded.** `enum` labels are bounded by construction. `opaque_id` labels —
+ *    the only way `organization_id` may appear, which PRD §22's "tenant cost" requires — are capped:
+ *    past `maxCardinality` distinct values the label collapses to the literal `overflow` and
+ *    `observability_label_cardinality_overflow_total` increments. Overflow deliberately does NOT
+ *    throw: a tenant burst or a hostile id generator must degrade the metric, never crash the app.
+ */
+import { GENERIC_ID_PATTERN, FIELD_NAMES, MAX_ID_LENGTH } from './fields.js';
+import { isUuidV7 } from './contracts.js';
+import {
+  DROPPED_FIELD_LABELS,
+  DROP_REASONS,
+  OPERATION_CODES,
+  QUEUE_CLASSES,
+  STATUS_CODES,
+} from './vocabulary.js';
+import { MetricLabelError, MetricSpecError, MetricValueError } from './errors.js';
+
+/** The PRD §22 metric families, transcribed from the bullet's list, in its order. */
+export const PRD_22_FAMILIES = Object.freeze([
+  /** "server/disk/memory" */
+  'server_resources',
+  /** "backup lag" */
+  'backup_lag',
+  /** "app/auth/PII" */
+  'app_auth_pii',
+  /** "job queues" */
+  'job_queues',
+  /** "search latency/zero-results/release" */
+  'search',
+  /** "source freshness/quarantine/citation/evaluation" */
+  'sources',
+  /** "provider/tenant cost" */
+  'cost',
+] as const);
+
+export type Prd22Family = (typeof PRD_22_FAMILIES)[number];
+
+export type MetricType = 'counter' | 'gauge' | 'histogram';
+
+export type MetricUnit = 'count' | 'bytes' | 'ratio' | 'milliseconds' | 'seconds' | 'micro_aud';
+
+/**
+ * How a label's values are bounded. There are exactly three kinds and none of them is "any string".
+ */
+export type LabelSpec =
+  /** A closed, author-declared domain. A value outside it is rejected. */
+  | { readonly kind: 'enum'; readonly values: readonly string[] }
+  /** An opaque id, shape-checked and cardinality-capped. */
+  | { readonly kind: 'opaque_id'; readonly maxCardinality: number }
+  /** The name of a metric registered in this same registry — bounded by the registry itself. */
+  | { readonly kind: 'metric_name' };
+
+export interface MetricSpec {
+  /** `/^[a-z][a-z0-9_]{2,63}$/`. An author-written literal, never runtime-derived. */
+  readonly name: string;
+  /** The PRD §22 group this metric belongs to. */
+  readonly family: Prd22Family;
+  readonly type: MetricType;
+  readonly unit: MetricUnit;
+  /** Static, author-written prose. Never carries runtime data. */
+  readonly help: string;
+  readonly labels: Readonly<Record<string, LabelSpec>>;
+  /** Histogram bucket upper bounds, ascending. Required for `type: 'histogram'`. */
+  readonly buckets?: readonly number[];
+}
+
+/** One point of a snapshot. Histograms additionally carry `sum` and cumulative `buckets`. */
+export interface MetricSample {
+  readonly name: string;
+  readonly family: Prd22Family;
+  readonly type: MetricType;
+  readonly unit: MetricUnit;
+  readonly labels: Readonly<Record<string, string>>;
+  /** Counter/gauge: the value. Histogram: the observation count. */
+  readonly value: number;
+  readonly sum?: number;
+  readonly buckets?: readonly { readonly le: number; readonly count: number }[];
+}
+
+/**
+ * The narrow slice `src/logger.ts` depends on, so the logger does not depend on the whole registry
+ * and a consumer can pass a no-op recorder.
+ */
+export interface MetricRecorder {
+  increment(name: string, labels: Readonly<Record<string, string>>, by?: number): void;
+}
+
+export interface Registry extends MetricRecorder {
+  register(spec: MetricSpec): void;
+  set(name: string, labels: Readonly<Record<string, string>>, value: number): void;
+  observe(name: string, labels: Readonly<Record<string, string>>, value: number): void;
+  snapshot(): readonly MetricSample[];
+  spec(name: string): MetricSpec | undefined;
+  names(): readonly string[];
+}
+
+export const METRIC_NAME_PATTERN = /^[a-z][a-z0-9_]{2,63}$/;
+
+/** The literal a capped `opaque_id` label collapses to once its cardinality budget is spent. */
+export const CARDINALITY_OVERFLOW_LABEL = 'overflow';
+
+// ---------------------------------------------------------------------------------------------
+// Closed label domains used by the default inventory. All author-declared.
+// ---------------------------------------------------------------------------------------------
+
+/** Mount points PRD §39.3 gives the deployment. A path is never used as a label value. */
+export const MOUNT_LABELS = Object.freeze(['root', 'app', 'log', 'data', 'backup'] as const);
+
+/** PII admission outcome categories (PRD §37.2: "category/count/result, not content"). */
+export const PII_CATEGORIES = Object.freeze([
+  'employee_pii',
+  'contact',
+  'identifier',
+  'financial',
+  'other',
+] as const);
+
+export const PII_RESULTS = Object.freeze(['blocked', 'allowed', 'flagged'] as const);
+
+/** Provider ROLES, never vendor names — a vendor name in a metric is a contractual disclosure. */
+export const PROVIDER_LABELS = Object.freeze([
+  'primary',
+  'secondary',
+  'embedding',
+  'rerank',
+  'other',
+] as const);
+
+/** Coarse source groupings for freshness/quarantine (PRD §22). */
+export const SOURCE_GROUPS = Object.freeze([
+  'legislation',
+  'cases',
+  'rulings',
+  'guidance',
+  'other',
+] as const);
+
+/** Default tenant-label budget for `tenant_cost_micro_aud_total`. */
+export const DEFAULT_TENANT_CARDINALITY = 1000;
+
+// ---------------------------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------------------------
+
+interface Series {
+  readonly labels: Readonly<Record<string, string>>;
+  value: number;
+  sum: number;
+  counts: number[];
+}
+
+function labelKey(spec: MetricSpec, labels: Readonly<Record<string, string>>): string {
+  return Object.keys(spec.labels)
+    .sort()
+    .map((name) => `${name}=${labels[name] ?? ''}`)
+    .join('\u0000');
+}
+
+function assertBuckets(spec: MetricSpec): readonly number[] {
+  const buckets = spec.buckets;
+  if (buckets === undefined || buckets.length === 0) {
+    throw new MetricSpecError(`metric "${spec.name}" is a histogram and declares no buckets`);
+  }
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const bound of buckets) {
+    if (!Number.isFinite(bound)) {
+      throw new MetricSpecError(`metric "${spec.name}" declares a non-finite bucket bound`);
+    }
+    if (bound <= previous) {
+      throw new MetricSpecError(`metric "${spec.name}" declares bucket bounds out of ascending order`);
+    }
+    if (spec.unit === 'micro_aud' && !Number.isSafeInteger(bound)) {
+      // PRD §34.1: money never touches floating point, not even as a bucket boundary.
+      throw new MetricSpecError(
+        `metric "${spec.name}" has unit micro_aud and declares a non-integer bucket bound`,
+      );
+    }
+    previous = bound;
+  }
+  return buckets;
+}
+
+/** Creates an empty registry. Nothing is registered until `register` or `registerDefaultMetrics`. */
+export function createRegistry(): Registry {
+  const specs = new Map<string, MetricSpec>();
+  const series = new Map<string, Map<string, Series>>();
+  /** metric name → label name → the distinct opaque-id values seen so far. */
+  const seenIds = new Map<string, Map<string, Set<string>>>();
+
+  function requireSpec(name: string): MetricSpec {
+    const spec = specs.get(name);
+    if (spec === undefined) throw new MetricSpecError(`metric "${name}" is not registered`);
+    return spec;
+  }
+
+  /** Validates and, for capped opaque ids, normalises the supplied labels. Throws on any violation. */
+  function resolveLabels(
+    spec: MetricSpec,
+    labels: Readonly<Record<string, string>>,
+  ): Record<string, string> {
+    const declared = Object.keys(spec.labels);
+    for (const supplied of Object.keys(labels)) {
+      if (!Object.hasOwn(spec.labels, supplied)) {
+        // Names the metric and the offending LABEL NAME. A label name is author-declared for every
+        // metric in the default inventory; a caller that invents one gets it echoed, which is why
+        // src/logger.ts never passes a caller-derived label name.
+        throw new MetricLabelError(`metric "${spec.name}" declares no label "${supplied}"`);
+      }
+    }
+
+    const resolved: Record<string, string> = {};
+    for (const name of declared) {
+      const labelSpec = spec.labels[name] as LabelSpec;
+      const value = labels[name];
+      if (value === undefined) {
+        throw new MetricLabelError(`metric "${spec.name}" is missing declared label "${name}"`);
+      }
+      if (labelSpec.kind === 'enum') {
+        if (!labelSpec.values.includes(value)) {
+          // The VALUE is not echoed: an out-of-domain value is by definition not author-declared.
+          throw new MetricLabelError(
+            `metric "${spec.name}" label "${name}" received a value outside its declared domain`,
+          );
+        }
+        resolved[name] = value;
+        continue;
+      }
+      if (labelSpec.kind === 'metric_name') {
+        if (!specs.has(value)) {
+          throw new MetricLabelError(
+            `metric "${spec.name}" label "${name}" received a value that is not a registered metric name`,
+          );
+        }
+        resolved[name] = value;
+        continue;
+      }
+      // opaque_id
+      if (
+        value.length > MAX_ID_LENGTH ||
+        !GENERIC_ID_PATTERN.test(value) ||
+        !isUuidV7(value.slice(value.indexOf('_') + 1))
+      ) {
+        throw new MetricLabelError(
+          `metric "${spec.name}" label "${name}" received a value that is not a well-formed opaque id`,
+        );
+      }
+      let perMetric = seenIds.get(spec.name);
+      if (perMetric === undefined) {
+        perMetric = new Map<string, Set<string>>();
+        seenIds.set(spec.name, perMetric);
+      }
+      let seen = perMetric.get(name);
+      if (seen === undefined) {
+        seen = new Set<string>();
+        perMetric.set(name, seen);
+      }
+      if (!seen.has(value)) {
+        if (seen.size >= labelSpec.maxCardinality) {
+          resolved[name] = CARDINALITY_OVERFLOW_LABEL;
+          recordOverflow(spec.name);
+          continue;
+        }
+        seen.add(value);
+      }
+      resolved[name] = value;
+    }
+    return resolved;
+  }
+
+  /** Increments the overflow counter if it is registered. Never throws, never recurses into itself. */
+  function recordOverflow(metricName: string): void {
+    const overflow = specs.get(LABEL_OVERFLOW_METRIC);
+    if (overflow === undefined || metricName === LABEL_OVERFLOW_METRIC) return;
+    mutate(overflow, { metric: metricName }, (s) => {
+      s.value += 1;
+    });
+  }
+
+  function mutate(
+    spec: MetricSpec,
+    labels: Readonly<Record<string, string>>,
+    apply: (series: Series) => void,
+  ): void {
+    const resolved = resolveLabels(spec, labels);
+    let perMetric = series.get(spec.name);
+    if (perMetric === undefined) {
+      perMetric = new Map<string, Series>();
+      series.set(spec.name, perMetric);
+    }
+    const key = labelKey(spec, resolved);
+    let entry = perMetric.get(key);
+    if (entry === undefined) {
+      entry = {
+        labels: Object.freeze({ ...resolved }),
+        value: 0,
+        sum: 0,
+        counts: spec.type === 'histogram' ? new Array<number>((spec.buckets ?? []).length + 1).fill(0) : [],
+      };
+      perMetric.set(key, entry);
+    }
+    apply(entry);
+  }
+
+  function assertRecordable(spec: MetricSpec, value: number): void {
+    if (spec.unit === 'micro_aud') {
+      if (!Number.isSafeInteger(value)) {
+        throw new MetricValueError(
+          `metric "${spec.name}" has unit micro_aud and accepts only safe integers (PRD §34.1)`,
+        );
+      }
+      return;
+    }
+    if (!Number.isFinite(value)) {
+      throw new MetricValueError(`metric "${spec.name}" received a non-finite value`);
+    }
+  }
+
+  return {
+    register(spec: MetricSpec): void {
+      if (!METRIC_NAME_PATTERN.test(spec.name)) {
+        throw new MetricSpecError(`metric name "${spec.name}" is malformed`);
+      }
+      if (specs.has(spec.name)) {
+        throw new MetricSpecError(`metric "${spec.name}" is already registered`);
+      }
+      if (!PRD_22_FAMILIES.includes(spec.family)) {
+        throw new MetricSpecError(`metric "${spec.name}" declares an unknown PRD §22 family`);
+      }
+      if (spec.help.trim() === '') {
+        throw new MetricSpecError(`metric "${spec.name}" declares no help text`);
+      }
+      for (const [name, labelSpec] of Object.entries(spec.labels)) {
+        if (!METRIC_NAME_PATTERN.test(name)) {
+          throw new MetricSpecError(`metric "${spec.name}" declares a malformed label name "${name}"`);
+        }
+        if (labelSpec.kind === 'enum' && labelSpec.values.length === 0) {
+          throw new MetricSpecError(`metric "${spec.name}" label "${name}" declares an empty domain`);
+        }
+        if (labelSpec.kind === 'opaque_id' && !Number.isSafeInteger(labelSpec.maxCardinality)) {
+          throw new MetricSpecError(
+            `metric "${spec.name}" label "${name}" declares a non-integer maxCardinality`,
+          );
+        }
+        if (labelSpec.kind === 'opaque_id' && labelSpec.maxCardinality < 1) {
+          throw new MetricSpecError(
+            `metric "${spec.name}" label "${name}" declares a maxCardinality below 1`,
+          );
+        }
+      }
+      if (spec.type === 'histogram') assertBuckets(spec);
+      else if (spec.buckets !== undefined) {
+        throw new MetricSpecError(`metric "${spec.name}" is not a histogram but declares buckets`);
+      }
+      specs.set(spec.name, spec);
+    },
+
+    increment(name: string, labels: Readonly<Record<string, string>>, by = 1): void {
+      const spec = requireSpec(name);
+      if (spec.type !== 'counter') {
+        throw new MetricValueError(`metric "${name}" is a ${spec.type}, not a counter`);
+      }
+      assertRecordable(spec, by);
+      if (by < 0) throw new MetricValueError(`metric "${name}" is a counter and cannot decrease`);
+      mutate(spec, labels, (s) => {
+        s.value += by;
+      });
+    },
+
+    set(name: string, labels: Readonly<Record<string, string>>, value: number): void {
+      const spec = requireSpec(name);
+      if (spec.type !== 'gauge') {
+        throw new MetricValueError(`metric "${name}" is a ${spec.type}, not a gauge`);
+      }
+      assertRecordable(spec, value);
+      mutate(spec, labels, (s) => {
+        s.value = value;
+      });
+    },
+
+    observe(name: string, labels: Readonly<Record<string, string>>, value: number): void {
+      const spec = requireSpec(name);
+      if (spec.type !== 'histogram') {
+        throw new MetricValueError(`metric "${name}" is a ${spec.type}, not a histogram`);
+      }
+      assertRecordable(spec, value);
+      const bounds = spec.buckets ?? [];
+      mutate(spec, labels, (s) => {
+        s.value += 1;
+        s.sum += value;
+        let index = bounds.length; // the implicit +Inf bucket
+        for (let i = 0; i < bounds.length; i += 1) {
+          if (value <= (bounds[i] as number)) {
+            index = i;
+            break;
+          }
+        }
+        s.counts[index] = (s.counts[index] ?? 0) + 1;
+      });
+    },
+
+    /** A deep copy: a consumer iterating a snapshot can never observe a concurrent mutation. */
+    snapshot(): readonly MetricSample[] {
+      const out: MetricSample[] = [];
+      for (const [name, spec] of specs) {
+        const perMetric = series.get(name);
+        if (perMetric === undefined) continue;
+        for (const entry of perMetric.values()) {
+          if (spec.type === 'histogram') {
+            const bounds = spec.buckets ?? [];
+            let cumulative = 0;
+            const buckets = bounds.map((le, i) => {
+              cumulative += entry.counts[i] ?? 0;
+              return { le, count: cumulative };
+            });
+            out.push({
+              name,
+              family: spec.family,
+              type: spec.type,
+              unit: spec.unit,
+              labels: { ...entry.labels },
+              value: entry.value,
+              sum: entry.sum,
+              buckets,
+            });
+          } else {
+            out.push({
+              name,
+              family: spec.family,
+              type: spec.type,
+              unit: spec.unit,
+              labels: { ...entry.labels },
+              value: entry.value,
+            });
+          }
+        }
+      }
+      return out;
+    },
+
+    spec: (name: string) => specs.get(name),
+    names: () => [...specs.keys()],
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The default inventory — at least one metric per PRD §22 family
+// ---------------------------------------------------------------------------------------------
+
+/** The counter whose `metric` label names the metric whose label cardinality overflowed. */
+export const LABEL_OVERFLOW_METRIC = 'observability_label_cardinality_overflow_total';
+
+/** Every metric this package declares. `test/metrics.test.ts` asserts full family coverage. */
+export const DEFAULT_METRICS: readonly MetricSpec[] = Object.freeze([
+  // --- server/disk/memory ------------------------------------------------------------------------
+  {
+    name: 'process_resident_memory_bytes',
+    family: 'server_resources',
+    type: 'gauge',
+    unit: 'bytes',
+    help: 'Resident set size of the current process.',
+    labels: {},
+  },
+  {
+    name: 'process_up',
+    family: 'server_resources',
+    type: 'gauge',
+    unit: 'count',
+    help: 'One while the process is serving, zero while it is draining.',
+    labels: {},
+  },
+  {
+    name: 'disk_used_ratio',
+    family: 'server_resources',
+    type: 'gauge',
+    unit: 'ratio',
+    help: 'Used fraction of a mounted filesystem; PRD §42.2 alerts at 0.75 and 0.85.',
+    labels: { mount: { kind: 'enum', values: MOUNT_LABELS } },
+  },
+  // --- backup lag --------------------------------------------------------------------------------
+  {
+    name: 'backup_replication_lag_seconds',
+    family: 'backup_lag',
+    type: 'gauge',
+    unit: 'seconds',
+    help: 'Age of the most recent replicated backup; PRD §42.2 alerts at 10 and 15 minutes.',
+    labels: {},
+  },
+  {
+    name: 'backup_last_recovery_point_age_seconds',
+    family: 'backup_lag',
+    type: 'gauge',
+    unit: 'seconds',
+    help: 'Age of the latest usable recovery point.',
+    labels: {},
+  },
+  // --- app/auth/PII ------------------------------------------------------------------------------
+  {
+    name: 'http_requests_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Completed HTTP requests by coarse operation and status. No route path is a label.',
+    labels: {
+      operation: { kind: 'enum', values: OPERATION_CODES },
+      status: { kind: 'enum', values: STATUS_CODES },
+    },
+  },
+  {
+    name: 'auth_attempts_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Authentication attempts by outcome. No principal identifier is a label.',
+    labels: { outcome: { kind: 'enum', values: STATUS_CODES } },
+  },
+  {
+    name: 'pii_admission_results_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'PII admission decisions by category and result (PRD §37.2: category/count/result only).',
+    labels: {
+      category: { kind: 'enum', values: PII_CATEGORIES },
+      result: { kind: 'enum', values: PII_RESULTS },
+    },
+  },
+  {
+    name: 'observability_dropped_fields_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Log fields dropped by the allowlist, by bounded key label and reason. Never a value.',
+    labels: {
+      key: { kind: 'enum', values: DROPPED_FIELD_LABELS },
+      reason: { kind: 'enum', values: DROP_REASONS },
+    },
+  },
+  {
+    name: 'observability_truncated_fields_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Allowlisted string values truncated at the configured maximum length.',
+    labels: { key: { kind: 'enum', values: FIELD_NAMES } },
+  },
+  {
+    name: 'observability_record_oversized_total',
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Log records replaced by a minimal record because they exceeded the byte cap.',
+    labels: {},
+  },
+  {
+    name: LABEL_OVERFLOW_METRIC,
+    family: 'app_auth_pii',
+    type: 'counter',
+    unit: 'count',
+    help: 'Times an opaque-id label collapsed to "overflow" because its cardinality budget was spent.',
+    labels: { metric: { kind: 'metric_name' } },
+  },
+  // --- job queues (PRD §39.5) --------------------------------------------------------------------
+  {
+    name: 'job_queue_depth',
+    family: 'job_queues',
+    type: 'gauge',
+    unit: 'count',
+    help: 'Queued jobs per PRD §39.5 queue class.',
+    labels: { queue_class: { kind: 'enum', values: QUEUE_CLASSES } },
+  },
+  {
+    name: 'job_oldest_age_seconds',
+    family: 'job_queues',
+    type: 'gauge',
+    unit: 'seconds',
+    help: 'Age of the oldest queued job per class; PRD §42.2 alerts at 2 and 10 minutes.',
+    labels: { queue_class: { kind: 'enum', values: QUEUE_CLASSES } },
+  },
+  {
+    name: 'jobs_in_flight',
+    family: 'job_queues',
+    type: 'gauge',
+    unit: 'count',
+    help: 'Leased jobs currently executing per class.',
+    labels: { queue_class: { kind: 'enum', values: QUEUE_CLASSES } },
+  },
+  // --- search ------------------------------------------------------------------------------------
+  {
+    name: 'search_latency_milliseconds',
+    family: 'search',
+    type: 'histogram',
+    unit: 'milliseconds',
+    help: 'End-to-end search latency.',
+    labels: {},
+    buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+  },
+  {
+    name: 'search_zero_results_total',
+    family: 'search',
+    type: 'counter',
+    unit: 'count',
+    help: 'Searches that returned no result. The query itself is never recorded.',
+    labels: {},
+  },
+  {
+    name: 'search_active_release_info',
+    family: 'search',
+    type: 'gauge',
+    unit: 'count',
+    help: 'One for the corpus release currently serving search; zero for a release being drained.',
+    labels: { corpus_release_id: { kind: 'opaque_id', maxCardinality: 8 } },
+  },
+  // --- sources -----------------------------------------------------------------------------------
+  {
+    name: 'source_freshness_age_seconds',
+    family: 'sources',
+    type: 'gauge',
+    unit: 'seconds',
+    help: 'Age of the newest ingested document per coarse source group.',
+    labels: { source_group: { kind: 'enum', values: SOURCE_GROUPS } },
+  },
+  {
+    name: 'source_quarantine_total',
+    family: 'sources',
+    type: 'counter',
+    unit: 'count',
+    help: 'Documents quarantined during ingestion, per coarse source group.',
+    labels: { source_group: { kind: 'enum', values: SOURCE_GROUPS } },
+  },
+  {
+    name: 'citation_validation_failures_total',
+    family: 'sources',
+    type: 'counter',
+    unit: 'count',
+    help: 'Citation validator outcomes; PRD §42.2 alerts above 5% over a rolling 20.',
+    labels: { outcome: { kind: 'enum', values: STATUS_CODES } },
+  },
+  {
+    name: 'evaluation_runs_total',
+    family: 'sources',
+    type: 'counter',
+    unit: 'count',
+    help: 'Evaluation runs by outcome.',
+    labels: { outcome: { kind: 'enum', values: STATUS_CODES } },
+  },
+  // --- cost (PRD §34.1: integer micro-AUD) --------------------------------------------------------
+  {
+    name: 'provider_cost_micro_aud_total',
+    family: 'cost',
+    type: 'counter',
+    unit: 'micro_aud',
+    help: 'Provider spend in integer micro-AUD, by provider ROLE. No vendor name is a label.',
+    labels: { provider: { kind: 'enum', values: PROVIDER_LABELS } },
+  },
+  {
+    name: 'tenant_cost_micro_aud_total',
+    family: 'cost',
+    type: 'counter',
+    unit: 'micro_aud',
+    help: 'Tenant spend in integer micro-AUD; the label is capped and collapses to "overflow".',
+    labels: {
+      organization_id: { kind: 'opaque_id', maxCardinality: DEFAULT_TENANT_CARDINALITY },
+    },
+  },
+] as const satisfies readonly MetricSpec[]);
+
+/** Registers every metric in {@link DEFAULT_METRICS} into `registry`. */
+export function registerDefaultMetrics(registry: Registry): void {
+  for (const spec of DEFAULT_METRICS) registry.register(spec);
+}
+
+/** A registry pre-loaded with the whole PRD §22 inventory. */
+export function createDefaultRegistry(): Registry {
+  const registry = createRegistry();
+  registerDefaultMetrics(registry);
+  return registry;
+}

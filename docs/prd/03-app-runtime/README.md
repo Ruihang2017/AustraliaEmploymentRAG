@@ -16,7 +16,7 @@
 | Owned requirement IDs | `SEC-001`, `OPS-002`, `ANS-003` |
 | Master spec | [`docs/PRD.md`](../../PRD.md) |
 | Decomposition plan | [`docs/prd/breakdown-plan.md`](../breakdown-plan.md) §2.1, §4, §5.4, §6.2, §7 |
-| Version | v0.2 — 2026-08-03 |
+| Version | v0.3 — 2026-08-08 |
 
 ---
 
@@ -132,7 +132,9 @@ Standing reasons (not owner-based):
 
 ## 6. Open questions
 
-Five module-local questions. None blocks wave B or Gate 1, and each has a named owner.
+Ten module-local questions. None blocks wave B or Gate 1, and each has a named owner. **QR3 remains
+deliberately open** — `RUNT-07` ships the pluggable exporter that keeps it open and answers it in no
+direction.
 
 The two breakdown-plan §8 register entries this section used to track — **Q12** (exact toolchain
 versions) and **Q13** (SQLite access layer) — are **confirmed decisions** and are recorded in §4 as
@@ -146,6 +148,11 @@ re-opens them.
 | QR3 | Metrics exposition protocol/endpoint — PRD §22 names the metric families, PRD §42.1 names no metrics endpoint | `03-app-runtime` (`RUNT-07`) with `18-ops-release` (`RLSE-08`) as consumer | `RUNT-07`; confirmed by `RLSE-08` | Alerting wiring only | PRD §22, §42.2, §45.5 |
 | QR4 | Where a `maintenance`-class handler lives for a product module with **no** allocated `apps/worker/src/handlers/*` directory (PRD §39.5 names "usage reconciliation"; breakdown-plan §4 allocates no worker directory to `20-developer-platform`) | this decomposition — `docs/prd/breakdown-plan.md` §4 | first ticket that needs it (`PLTF-09` or a new `01-app-data` ticket) | Writeback target is the **plan**, not `RUNT-04`'s tree | PRD §39.5; breakdown-plan §4 |
 | QR5 | Whether the root `pnpm stack:up` / `pnpm stack:down` scripts created by `FND-01` (PRD §45.3) delegate into `infra/compose/**` with the entry point `RUNT-09` provides | `00-foundation` (`FND-01`) | `FND-01`; verified by `RUNT-09` | `RUNT-09` may not write the root `package.json` — it raises a `00-foundation` ticket instead | PRD §45.3; breakdown-plan §1.1, §4 |
+| QR6 | `packages/contracts` (`FND-03`) exports no operation/event/status vocabulary, which `RUNT-07` Deliverable 3 assumes. `RUNT-07` therefore declares it locally and temporarily in `packages/observability/src/vocabulary.ts`. Who canonicalises it into `packages/contracts`, and when? | `00-foundation` (`FND-03` is serial-owned) | a `00-foundation` ticket | Every consumer of `packages/observability` — the local file becomes a re-export, no call site changes | `RUNT-07` Feedback obligation #3; breakdown-plan §4.1 |
+| QR7 | The repository ships no `@types/node` anywhere, so no `src/**` file may import a Node built-in and still pass `pnpm typecheck`. `RUNT-07` ships a narrowly scoped ambient declaration (`packages/observability/src/node-builtins.d.ts`) declaring only the members it calls. Add `@types/node` to the root manifest instead? | `00-foundation` (root manifest + lockfile) | a `00-foundation` ticket | `RUNT-01` (Fastify), `RUNT-04` (worker) and `RUNT-05` hit the same gap in the same wave | tools/tests/skeleton.test.mjs "declares no dependency beyond the toolchain"; PRD §20.1 |
+| QR8 | `AuditSink` is already the port name `AUTC-01`…`AUTC-04` inject, and `DATA-07` owns the table behind it, but neither has landed. `RUNT-07` therefore ships a minimal one-method `AuditRecordSinkPort` to be bridged later rather than squatting the name. Confirm the bridge, or rename on landing? | `02-auth-core` (`AUTC-01`) with `01-app-data` (`DATA-07`) | `AUTC-01` / `DATA-07` | `packages/observability/src/retention.ts` only | PRD §22 bullet 5; `RUNT-07` Non-goals |
+| QR9 | `retrieval_id` and `model_call_id` have no registered prefix in `FND-03`'s `RESOURCE_PREFIXES` (`srx` is the search execution, and no model-call entity is registered). `RUNT-07` validates them by generic `<2-8 lower-case letters>_<uuidv7>` shape. Register them, or keep them generic? | `00-foundation` (`FND-03`) | a `00-foundation` ticket | `packages/observability/src/fields.ts`; the emitters in `11-retrieval-engine` and `12-evidence-safety` | PRD §34.1, §42.2 |
+| QR10 | `RUNT-07` acceptance item 1 words the drop counter as "labelled by key name". The dropped key name is caller-controlled and can itself carry content, so `RUNT-07` labels it with a closed domain plus `__other__` instead. Confirm the narrowing, or re-word the ticket? | `03-app-runtime` (ticket sync) | Architect | `packages/observability` only; it closes a leak the ticket's wording does not cover and weakens no acceptance item | PRD §22 bullets 2-3, §37.2 |
 
 ## 7. Work breakdown
 
@@ -207,6 +214,12 @@ Contributed-to but **not owned** here: `DEV-001` (the `/v1` contract surface is 
 
 ## 9. Changelog
 
+- **v0.3 — 2026-08-08** — `RUNT-07` writeback: §6 gains **QR6** (no canonical log vocabulary in
+  `packages/contracts`), **QR7** (no `@types/node` repo-wide), **QR8** (`AuditRecordSinkPort` vs
+  `AUTC-01`'s `AuditSink`), **QR9** (no registered prefix for `retrieval_id` / `model_call_id`) and
+  **QR10** (the drop counter's bounded `key` label). **QR3** is unchanged and deliberately unresolved:
+  `RUNT-07` ships a pluggable exporter plus a JSON-lines default so the protocol choice stays with
+  `RLSE-08`.
 - **v0.2 — 2026-08-03** — aligned with the `docs/prd/breakdown-plan.md` §8 decision register.
   **Q12** (exact toolchain versions) and **Q13** (SQLite access layer) are confirmed decisions: both
   leave §6 and are recorded in §4 as **D11** and **D12**, so §6 now holds only the five module-local

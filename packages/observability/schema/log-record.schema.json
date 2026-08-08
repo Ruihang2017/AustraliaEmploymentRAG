@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.example/schemas/observability/log-record/1.0.0.json",
+  "title": "taxrag bounded operational log record",
+  "description": "PRD §22 bullet 1: app, worker and search emit bounded JSON operational logs with request/job/retrieval/model/answer correlations. Consumed by services/search-rs (11-retrieval-engine), which emits conforming records without importing @taxrag/observability. No property admits free text: every string property is an opaque id, a closed-vocabulary code, a bounded version token or a hex digest.",
+  "x-generated-from": "packages/observability/src/fields.ts",
+  "x-schema-version": "1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ts",
+    "level",
+    "event",
+    "process"
+  ],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "maxLength": 24,
+      "description": "ISO-8601 UTC timestamp from the injected clock."
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "description": "Severity."
+    },
+    "process": {
+      "type": "string",
+      "enum": [
+        "app",
+        "worker",
+        "search"
+      ],
+      "description": "Emitting runtime process (PRD §39.1)."
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^req_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b1, §42.2 — request correlation"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^job_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b1, §42.2 — job correlation"
+    },
+    "retrieval_id": {
+      "type": "string",
+      "pattern": "^[a-z]{2,8}_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b1, §42.2 — retrieval correlation (no FND-03 prefix; README §6 QR9)"
+    },
+    "model_call_id": {
+      "type": "string",
+      "pattern": "^[a-z]{2,8}_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b1, §42.2 — model-metadata correlation (no FND-03 prefix; README §6 QR9)"
+    },
+    "answer_snapshot_id": {
+      "type": "string",
+      "pattern": "^ans_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b1, §42.2 — answer correlation"
+    },
+    "organization_id": {
+      "type": "string",
+      "pattern": "^org_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "RUNT-07 D2 — tenant attribution"
+    },
+    "actor_kind": {
+      "type": "string",
+      "enum": [
+        "user",
+        "service_account",
+        "widget",
+        "system",
+        "worker"
+      ],
+      "description": "RUNT-07 D2 — actor KIND only, never an actor identity"
+    },
+    "release_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+      "maxLength": 64,
+      "description": "RUNT-07 D2 — application release (PRD §22 b2)"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$",
+      "maxLength": 64,
+      "description": "RUNT-07 D2 — record schema version (PRD §34.1)"
+    },
+    "corpus_release_id": {
+      "type": "string",
+      "pattern": "^cr_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "maxLength": 45,
+      "description": "PRD §22 b2 \"versions\" — active corpus release"
+    },
+    "event": {
+      "type": "string",
+      "enum": [
+        "request.received",
+        "request.completed",
+        "request.rejected",
+        "job.leased",
+        "job.checkpointed",
+        "job.completed",
+        "job.failed",
+        "retrieval.executed",
+        "model.called",
+        "answer.committed",
+        "release.activated",
+        "corpus.release_activated",
+        "backup.completed",
+        "source.quarantined",
+        "observability.field_dropped",
+        "observability.record_oversized"
+      ],
+      "description": "RUNT-07 D3 — the bounded event code"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "search",
+        "answer",
+        "export",
+        "ingest",
+        "index",
+        "authenticate",
+        "authorize",
+        "notify",
+        "backup",
+        "evaluate",
+        "maintenance"
+      ],
+      "description": "PRD §22 b2 \"operation\""
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "failed",
+        "rejected",
+        "timeout",
+        "degraded",
+        "cancelled"
+      ],
+      "description": "PRD §22 b2 \"status\""
+    },
+    "error_code": {
+      "type": "string",
+      "enum": [
+        "INVALID_REQUEST",
+        "INVALID_LEGAL_DATE",
+        "INVALID_ABN",
+        "AUTHENTICATION_REQUIRED",
+        "MFA_REQUIRED",
+        "RECENT_AUTH_REQUIRED",
+        "RESOURCE_NOT_FOUND",
+        "IDEMPOTENCY_CONFLICT",
+        "CONCURRENT_MODIFICATION",
+        "EPHEMERAL_CONTENT_EXPIRED",
+        "EMPLOYEE_PII_DETECTED",
+        "RATE_LIMITED",
+        "CREDIT_LIMIT_REACHED",
+        "GENERATION_UNAVAILABLE",
+        "SOURCE_NOT_CURRENT",
+        "CORPUS_INCOMPATIBLE",
+        "INTERNAL_ERROR"
+      ],
+      "description": "PRD §22 b2 \"status\"; PRD §34.9 error catalogue"
+    },
+    "queue_class": {
+      "type": "string",
+      "enum": [
+        "interactive_quick",
+        "interactive_research",
+        "exports",
+        "notifications",
+        "maintenance"
+      ],
+      "description": "PRD §22 \"job queues\"; PRD §39.5"
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRD §22 b2 \"latency\""
+    },
+    "cost_micro_aud": {
+      "type": "integer",
+      "description": "PRD §22 b2 \"cost\"; PRD §34.1 integer micro-AUD"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRD §22 b2 — technical metadata (retry attempt)"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRD §22 b2 — technical metadata (result cardinality)"
+    },
+    "degraded": {
+      "type": "boolean",
+      "description": "PRD §22 — degradation is observable (OPS-002)"
+    },
+    "artifact_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "maxLength": 64,
+      "description": "PRD §22 b2 \"hashes\" — PUBLIC, IMMUTABLE artifact digests only (see FieldKind.hash)"
+    }
+  }
+}
