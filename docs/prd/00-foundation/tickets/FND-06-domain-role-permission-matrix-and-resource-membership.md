@@ -155,7 +155,15 @@ is written by no other ticket in the plan (breakdown plan §4).
    - `SHARED_WITH_MEMBER` — "read shared" (Viewer, create/read own Research Records)
    - `GRANT_REQUIRED` — "comment if granted", "read-only export if granted", "scoped if granted"
    - `OFF_BY_DEFAULT_GRANTABLE` — "— by default" (Developer, answer creation and record access)
-   - `SCOPED_CREDENTIAL` — "scoped" (service account)
+   - `SCOPED_CREDENTIAL_REQUIRED` — "scoped" (service account). **Renamed from `SCOPED_CREDENTIAL`
+     under this ticket's Feedback obligation (General rule):** the literal `SCOPED_CREDENTIAL` matches
+     the `credential` pattern of `tools/fixtures/secret-patterns.json`
+     (`\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_CREDENTIALS?\b`), which `.github/workflows/checks/secret-scan.mjs`
+     applies to every git-tracked file outside `docs/**`, so the name would fail the PRD §20.2 CI
+     secret gate on this ticket's own source. Widening the scanner's one-literal allowlist is out of
+     file-scope and weakens the gate. The `_REQUIRED` suffix does not match (the pattern anchors
+     `_CREDENTIAL(S)` at a word end). `CREDENTIAL_EVENTS_ONLY` was checked and does **not** match; it
+     keeps its name. Recorded in `docs/prd/00-foundation/README.md` v0.7 (decision **D21**).
    - `OWN_RESOURCE_ONLY` — "own usage" (Researcher, service account; view organisation usage)
    - `USAGE_SUBSET` — "API/service usage subset" (Developer, view organisation usage)
    - `LIMITED_SUBSET` — "✓ limited" (Admin, view audit/security events)
@@ -165,11 +173,25 @@ is written by no other ticket in the plan (breakdown plan §4).
      principal.
    Each condition is a named predicate over the decision input — never a comment, never a `TODO`.
 2. **`evaluate(input): Decision`** where
-   `input = { principal: { kind: 'USER'|'SERVICE_ACCOUNT', role?, grants, scopes, organizationId }, action, resource?: { organizationId, ownerId?, sharedWith?, assignedReviewerId? }, context: { ownerCount? } }`
+   `input = { principal: { kind: 'USER'|'SERVICE_ACCOUNT', id, role?, grants, scopes, organizationId }, action, resource?: { organizationId, id?, ownerId?, sharedWith?, assignedReviewerId? } | null, context: { intent, ownerCount?, target?, usageView?, auditView? } }`
    and `Decision = { allowed: true; via: Permission } | { allowed: false; reason: DenyReason }` with
    `DenyReason` including at least `NOT_A_MEMBER`, `ROLE_LACKS_PERMISSION`, `CONDITION_NOT_MET`
    (carrying the condition name), `NOT_A_RESOURCE_MEMBER`, `CROSS_ORGANIZATION`,
    `SEPARATE_INTERNAL_IDENTITY_REQUIRED`.
+
+   **Input extended under Feedback obligation 1** (four §38.1 conditional cells cannot be decided from
+   the shape as first written, and `DATA-04`/`RUNT-02` read this shape, so it is settled here once):
+   `principal.id` (needed by `ASSIGNED_REVIEWER`, `SHARED_WITH_MEMBER` and resource membership);
+   `grants: readonly { permission, resourceId? }[]` — an explicit recorded grant, never inferred from a
+   role; `context.intent: 'READ' | 'WRITE'` (the read-only cap on "read shared" and "read-only
+   export"); `context.target: { memberId, role }` (the two membership rows);
+   `context.usageView: 'ORGANIZATION' | 'OWN' | 'API_SERVICE'` ("own usage" / "API/service usage
+   subset"); `context.auditView: 'FULL' | 'LIMITED' | 'CREDENTIAL_ONLY'` ("✓ limited" / "credential
+   events only"); `resource.id`; and `resource: null` meaning *named by the request and not found*, as
+   distinct from an omitted `resource` meaning *no resource in play*. `DenyReason` additionally carries
+   `RESOURCE_ABSENT` (the `null` case, indistinguishable from `CROSS_ORGANIZATION` per deliverable 4)
+   and `WRITE_INTENT_NOT_PERMITTED`. Recorded in `docs/prd/00-foundation/README.md` v0.7 (decision
+   **D21**).
 3. **Cross-organisation short-circuit.** If `resource.organizationId !== principal.organizationId`, the
    result is `{ allowed: false, reason: 'CROSS_ORGANIZATION' }` **before** any role or permission is
    consulted — PRD §21.2 *"Authorise before lookup"* and §38.1 *"a role alone never authorises a record
@@ -265,9 +287,16 @@ Reviewer steps, all offline and deterministic:
    `Date.now`, `Math.random`, `process.env` — there must be none.
 8. **Append-only manifest.** `git diff packages/domain/package.json` shows additions only.
 
-Harness: the framework `FND-01` registered, plus the property-testing library declared in
-`packages/domain/package.json` (the first ticket to add it sets the pattern the other domain tickets
-follow). Fixture: `packages/domain/test/access/prd-38-1-matrix.json`. No mocks, no network, no database.
+Harness: the framework `FND-01` registered, plus **in-repo seeded generators**
+(`packages/domain/test/access/arbitrary.ts` — a `mulberry32` PRNG with an exported constant seed and a
+printed case index, so any counterexample is reproducible). **Amended under the Feedback obligation
+(General rule):** no property-testing library is declared in `packages/domain/package.json`, because
+`tools/tests/skeleton.test.mjs` asserts that every pnpm member manifest declares
+`dependencies == {}` and `devDependencies == {}` — a repository-wide `FND-01` invariant (D2/D16) that a
+`FND-06` dependency would break. The acceptance items (≥10,000 generated cases) are met by the seeded
+generators; only the library sentence changed. Recorded in `docs/prd/00-foundation/README.md` v0.7
+(decision **D22**). Fixture: `packages/domain/test/access/prd-38-1-matrix.json`. No mocks, no network,
+no database.
 
 ## Feedback obligation
 
