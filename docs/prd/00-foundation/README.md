@@ -11,10 +11,10 @@
 | Module | `00-foundation` |
 | Lane | `00-foundation` |
 | Ticket prefix | `FND` |
-| Tickets | 11 (`FND-01` … `FND-11`) |
+| Tickets | 12 (`FND-01` … `FND-12`) |
 | Epics | `E01-REPO`, `E02-CONTRACTS`, `E03-DOMAIN` (PRD §44.2) |
 | Depends on | nothing — this is the root module of the whole PRD DAG |
-| Version | v0.8 |
+| Version | v0.9 |
 
 ## Problem
 
@@ -25,7 +25,7 @@ migration sequence, corpus manifest schema and production deployment files"*. PR
 list and adds the reason: those artifacts sit on the critical path
 (`contracts/domain → app + corpus schemas → …`) and every other module reads them.
 
-Until they exist, **nothing else in the 237-ticket plan can start**: 24 of the 25 modules are
+Until they exist, **nothing else in the 238-ticket plan can start**: 24 of the 25 modules are
 transitively blocked on this one. Concretely, four things are missing and have exactly one safe owner:
 
 1. **Toolchain pins and a runnable workspace.** PRD §45.3 lists fourteen entry commands and states
@@ -147,7 +147,7 @@ flagged and appears in Open questions as well.
 |---|---|
 | One "contracts" ticket covering enums + OpenAPI + events | Collapses the module's seven-wide wave 3 into a serial chain and contradicts breakdown plan §4.1, which gives canonical enums, the OpenAPI root and the event root three distinct serial-owner rows. |
 | One `packages/domain` ticket | Five unrelated rule families (access, answers, workflow, budget, legal) in one write-set; the §7 lane profile for this module (max useful lanes 7) is a direct consequence of the split. It would also make every downstream module wait on all five. |
-| Fold CI into `FND-01` | `.github/workflows/**` is a separate write-set with a different blast radius, and `FND-01` is already the single wave-1 blocker for 236 tickets. Breakdown plan §5.1 assigns them separately; `RLSE-01` depends on `FND-02` alone, not on the bootstrap. |
+| Fold CI into `FND-01` | `.github/workflows/**` is a separate write-set with a different blast radius, and `FND-01` is already the single wave-1 blocker for 237 tickets. Breakdown plan §5.1 assigns them separately; `RLSE-01` depends on `FND-02` alone, not on the bootstrap. |
 | Let `01-app-data` own the enums (generate contracts from the schema) | PRD §35.1 fixes the direction: *"Enumerations use checked text values generated from `packages/contracts`."* PRD §44.3 puts canonical enums under a serial owner in the foundation. Inverting it would make every product module's controlled values depend on migration order. |
 | Hand-write the TypeScript client instead of generating it | DEV-001's acceptance evidence is literally *"Generated-client diff is clean in CI"*, and PRD §20.1 forbids hand-editing generated bindings. |
 | An enumerated `pnpm-workspace.yaml` member list | Every later module would have to edit a root file that `00-foundation` owns forever — a guaranteed serial bottleneck under parallel lanes (breakdown plan §9 R7 is the same failure mode for lockfiles). |
@@ -186,7 +186,7 @@ respectively — and neither blocks any `FND-*` ticket.
 
 ## Work breakdown
 
-`lane` = `00-foundation` and `agent` = `builder` for all eleven tickets (breakdown plan §1.1). File-scopes
+`lane` = `00-foundation` and `agent` = `builder` for all twelve tickets (breakdown plan §1.1). File-scopes
 below are write-owns and are disjoint between every pair of tickets that can run concurrently.
 
 | Ticket | Title | Size | Lane | File-scope (write-owns) | Depends on (`blocked_by`) |
@@ -202,17 +202,28 @@ below are write-owns and are disjoint between every pair of tickets that can run
 | [`FND-09`](tickets/FND-09-domain-budget-quota-and-funding-ledger-rules.md) | Domain: budget, quota and funding-ledger rules | M | `00-foundation` | `packages/domain/src/budget/**`, `packages/domain/test/budget/**` | `FND-03` |
 | [`FND-10`](tickets/FND-10-domain-temporal-applicability-and-authority-hierarchy.md) | Domain: temporal applicability and authority hierarchy | M | `00-foundation` | `packages/domain/src/legal/**`, `packages/domain/test/legal/**` | `FND-03` |
 | [`FND-11`](tickets/FND-11-repair-repo-wide-frozen-path-guard.md) | Repair the repo-wide frozen-path guard | S | `00-foundation` | `tools/tests/frozen-paths.test.mjs` | `FND-01` |
+| [`FND-12`](tickets/FND-12-repair-package-purity-import-scanner.md) | Repair the package-purity import scanner | S | `00-foundation` | `packages/contracts/test/enums/package-purity.test.ts` | `FND-04` |
 
 ### Lane shape
 
-Breakdown plan §7: 11 tickets · min waves **3** · max useful lanes **7** · peak lanes **7** · **not
+Breakdown plan §7: 12 tickets · min waves **4** · max useful lanes **4** · peak lanes **4** · **not
 fully serial**.
 
 ```text
 wave 1   FND-01
 wave 2   FND-02 │ FND-03 │ FND-11
 wave 3   FND-04 │ FND-05 │ FND-06 │ FND-07 │ FND-08 │ FND-09 │ FND-10
+wave 4   FND-12
 ```
+
+`FND-12` is `blocked_by FND-04`, so it extends this module's critical path to
+`FND-01 → FND-03 → FND-04 → FND-12` and a fourth wave becomes unavoidable. Those same four waves
+are already reached at concurrency **4** — the seven wave-3-eligible tickets simply spread over the
+last two waves — so the honest "max useful lanes" figure falls from 7 to 4. **That is a reporting
+change, not a decomposition defect:** no ticket lost a lane and no write-set became shared. A repair
+whose input is `FND-04`'s merged file cannot start before `FND-04`, and re-widening the module would
+mean either re-basing `FND-12` on `FND-03` (false — the file it repairs is `FND-04`'s) or splitting a
+wave-3 ticket; nothing here justifies either.
 
 The serialisation that does exist is intrinsic: nothing can be typechecked before the toolchain is
 pinned (`FND-01`), and no controlled value can be referenced before it is declared once (`FND-03`,
@@ -228,7 +239,7 @@ dependents:
 | `FND-01` | `FND-02`, `FND-03`, `LNCH-01` |
 | `FND-02` | `RLSE-01` |
 | `FND-03` | `FND-04`, `FND-05`, `FND-06`, `FND-07`, `FND-08`, `FND-09`, `FND-10`, `DATA-01`, `RUNT-06`, `RUNT-07`, `CRPS-01`, `EVID-01`, `EVID-07`, `GOLD-01` |
-| `FND-04` | `RUNT-01`, `RUNT-05`, `RETR-09`, `PLTF-01`, `PLTF-02`, `PLTF-03` |
+| `FND-04` | `FND-12`, `RUNT-01`, `RUNT-05`, `RETR-09`, `PLTF-01`, `PLTF-02`, `PLTF-03` |
 | `FND-05` | `WTCH-05`, `PLTF-02`, `PLTF-03` |
 | `FND-06` | `DATA-02`, `RUNT-02` |
 | `FND-07` | `EVID-04` |
@@ -236,10 +247,11 @@ dependents:
 | `FND-09` | `RUNT-02`, `EVID-08` |
 | `FND-10` | `EVID-05` |
 | `FND-11` | — |
+| `FND-12` | — |
 
 ## Acceptance — what makes this module done
 
-The module is done when all eleven tickets are delivered and the following hold. Every item names the PRD
+The module is done when all twelve tickets are delivered and the following hold. Every item names the PRD
 requirement ID or epic exit evidence it discharges.
 
 1. **`E01-REPO` exit evidence — "Clean bootstrap/build/test" (PRD §44.2).** All fourteen PRD §45.3 entry
@@ -292,3 +304,4 @@ requirement ID or epic exit evidence it discharges.
 | v0.6 | 2026-08-08 | `FND-02` implementation writeback (ticket Feedback obligation 5, plus the two allocation gaps it hit). New decision **D19**: the delegator script names the nine PRD §20.3 gate jobs invoke are fixed and recorded here — `test:openapi-compat`, `test:migrations`, `test:tenant`, `test:pii-citation`, `scan:container`, `scan:licence`, `test:integration`, `rc:restore`, `rc:evaluation`, `rc:compatibility`, `rc:rollback`, `release:artifact` — so `FND-04`, `DATA-01`, `DATA-02`, `EVID-01`, `ASSR-*` and `RLSE-01` … `RLSE-04` adopt the name their gate already calls instead of inventing one and leaving the gate vacuous forever (raised on breakdown plan §1.1 "Tests"). New decision **D20**: (a) the `setup` composite action, the check scripts and the gate fixture all live **inside** the allocated `.github/workflows/**` tree (`actions/setup/action.yml`, `checks/**`, `fixtures/**`) because breakdown plan §4 allocates `.github/actions/**` to no module — the same unallocated-path gap as **Q-F6**, recorded for the Architect rather than resolved by writing outside the file-scope; (b) the CI secret scan applies the seven *name*-shaped `secret-patterns.json` patterns to every git-tracked file outside `docs/**` and only the *value*-shaped `private-key-block` pattern inside it, because the planning corpus legitimately writes credential-shaped variable names down. **Q-F6 unchanged and still open** — the PR-contract job is the tolerant check the ticket specifies and `.github/PULL_REQUEST_TEMPLATE.md` was not edited. No pin file was touched (ticket Non-goal 1, D17). |
 | v0.7 | 2026-08-08 | `FND-07` implementation writeback (ticket Feedback obligation, General rule) — done **before** code. Two spec holes found while planning, both recorded rather than silently implemented. New decision **D13a** (refines **D13**): the PRD §36.8 table is not total over `FND-07`'s six-boolean signal record — exactly one of the 64 combinations fires no row while `decideAnswerStatus` must still return an `AnswerStatus` — closed by one **named derived** condition `MATERIAL_CLAIMS_UNSUPPORTED → INSUFFICIENT_EVIDENCE`, listed in the returned fired-conditions like any other and kept out of the fixture's verbatim `prd_36_8` section; an unnamed default branch is forbidden. Same product ambiguity as **Q-F3**, owner **Founder**, falsifiable by `21-evaluation-600` (Q-F3 updated to say so). New decision **D21**: the `definitive claim` definition ANS-005's zero-unsupported-claim metric is measured against — material, short answer `Yes`/`No`, not conditional — because none existed anywhere and choosing one silently fixes the denominator of a release-register metric in `EVID-05` and `21-evaluation-600`. The `FND-07` ticket carries both (deliverable 2 totality clause, deliverable 7 definition, the property-test acceptance item restated) plus two text corrections: deliverable 2's return type is `AnswerDecision` (its own prose and acceptance item already required status **and** fired conditions), and the third non-status row's outcome type is named `RefusalOutcome` (deliverable 1 named only two types for three rows). |
 | v0.8 | 2026-08-08 | `FND-04` implementation writeback (ticket Feedback obligation, General rule) — done **before** the document and the generator, as the rule requires. Seven new decisions. **D22** repairs `FND-01`'s two remaining bootstrap-time invariants (`tools/tests/skeleton.test.mjs` "no member declares a dependency" → "every dependency is pinned to an exact version"; `tools/tests/scripts.test.mjs` "`generate` has no workspace provider" → "`packages/contracts` provides `generate`") — the same defect class as `FND-11`, and a hard blocker on `FND-04`'s own Harness and deliverable 7 — and **amends `FND-04`'s File-scope** to add the three `tools/` paths it needs. **D23** records the derivation rules turning §16.2's `CRUD`/prose lines and §16.3's five *capability sentences* into concrete paths, every derived operation marked `derived: true` with its verbatim PRD line in the fixture. **D24** records that the endpoint fixture's authority is §16.2 + §16.3 + **§34.3** (`POST /v1/answer-jobs/{job_id}/clarifications`). **D25** records the breaking-change rule table `checkCompatibility` implements, including the request-vs-response enum-addition asymmetry (Feedback obligation 5 — it binds `PLTF-02`/`PLTF-03`). **D26** records the `servers`/path-key convention and the seven `x-` markers that make the "documented as …" acceptance items machine-decidable. **D27** records the response-envelope rule and its two PRD-mandated exemptions (§34.5 Answer Snapshot has no `request_id`; §34.3's clarification block has neither field) — the envelope is never forced onto a normative §34 shape. **D28** records the codegen strategy: an own deterministic emitter (no ADR, no third-party generator), the `.mjs`/`.ts` split under `src/openapi/**`, and the **vendored** Apache-2.0 OAS 3.1 meta-schema — which **amends `FND-04` acceptance item 16's "source/licence impact (none)"**. Four new open questions: **Q-F8** (§34.3's `CLARIFICATION_ROUND_CLOSED` is absent from §34.9 and from the registry, so the operation declares no stale-round `409` — founder), **Q-F9** (endpoints with no §34 payload, each marked in-band with its owning module), **Q-F10** (§34 enum-valued fields for families `FND-03` did not register, declared as plain strings), **Q-F11** (`test/**` is not typechecked by `packages/contracts/tsconfig.json`). **Carried in the same writeback (raised by the first review bounce of this ticket):** New decision **D29**: `pnpm generate` writes git's **checkout** form rather than always-LF, because DEV-001's named acceptance evidence — *"`pnpm generate && pnpm generated:check` exits 0 and leaves `git status --porcelain` empty"* — **failed as literally tested** under this repository's documented `core.autocrlf=true`: git checks the generated files out as CRLF, `generate` rewrote them as LF, and `git status` reported all five as modified even though `git hash-object` matched the committed blob. The repository-wide `.gitattributes` fix is **unavailable to a ticket branch** (unallocated by breakdown plan §4 and `FORBIDDEN` in `tools/tests/frozen-paths.test.mjs`), so the write step reproduces git's own checkout transformation instead — LF on CI, CRLF on a `core.autocrlf=true` checkout — while `emit()` stays pure LF, the index stays LF, and `generated:check` is **not** loosened. Regression guard: `packages/contracts/test/generated/working-tree.test.ts` (the pure newline rule in all four branches, a real `generate` followed by a real `git status --porcelain`, and `git show HEAD:` proving every committed generated blob is LF). A misleading code comment in `generated-check.mjs` claiming the acceptance form was "unaffected either way" is corrected in place. **Escalation for the Architect, non-blocking:** allocate `.gitattributes` in breakdown plan §4 and set `* text=auto eol=lf`, or every later ticket that writes a generated file repeats this rendering. **Decision numbering:** the rows this writeback adds are **D22…D29**; the prior, unmerged attempt numbered them D21…D28, and `main` has since published **D21** (`FND-07`), so every row is shifted by one and no already-published number is reused. |
+| v0.9 | 2026-08-08 | `FND-12` added — repairs the `package-purity` import scanner in `packages/contracts/test/enums/package-purity.test.ts`. Its `specifiersOf` helper matches module specifiers with text regexes rather than syntax, so it matched inside a template literal and reported generated import *text* — the literal string `${specifier}` — as an undeclared import; no manifest entry can satisfy that string, so repairing the scanner is the only correct fix. The guard's rule (**D22c**: `.mjs` tooling may import a declared devDependency and nothing else, while `dependencies` and `peerDependencies` stay empty) is **unchanged and not weakened**, and **no decision number is consumed** — `FND-12` transcribes the existing rule rather than making one. Module now **12** tickets (`FND-01` … `FND-12`); whole-PRD plan now **238** tickets. Lane shape re-measured per breakdown plan §7 to **4** min waves / **4** max useful lanes / **4** peak lanes, because `FND-12` is `blocked_by FND-04` and lengthens the module critical path — a reporting change, not a decomposition defect. Work-breakdown table, wave diagram and outbound-edges table (`FND-04` now also blocks `FND-12`; `FND-12` blocks nothing) updated to match; the ticket-count references in the Problem section (238-ticket plan) and the *Fold CI into `FND-01`* rejected-alternative row (237 tickets) refreshed for the same reason. |
