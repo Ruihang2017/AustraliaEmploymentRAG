@@ -35,6 +35,16 @@ describe('package identity', () => {
     expect(manifest.type).toBe('module');
   });
 
+  it('keeps build output out of its own lint run', () => {
+    // KNOWN FRICTION, recorded rather than worked around: `tools/eslint.config.mjs` (FND-01's file,
+    // outside this ticket's File-scope) declares no CommonJS globals and does not ignore build
+    // output, so a repo-root `pnpm lint` run AFTER `pnpm build` reports `exports`/`require` as
+    // undefined in `dist/cjs`. CI never runs `pnpm build`, and `dist/` is git-ignored, so the
+    // standing gate is green on every state this ticket produces. The durable fix is one line —
+    // `'**/dist/**'` in that config's `ignores` — and belongs to FND-01/FND-02.
+    expect(manifest.scripts['lint']).toContain('--ignore-pattern dist');
+  });
+
   it('delegates generation to the contracts package, running no second generator', () => {
     expect(manifest.scripts['generate']).toBe('node ../contracts/src/openapi/generate.mjs');
     expect(manifest.scripts['generated:check']).toBe('node ../contracts/src/openapi/generated-check.mjs');

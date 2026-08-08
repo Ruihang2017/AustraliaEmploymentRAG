@@ -202,3 +202,11 @@ the dependency expressible, switching over is a one-file change.
 | `pnpm generate` / `pnpm generated:check` | delegate to `packages/contracts`' generator |
 
 The toolchain is `FND-01`'s and is not re-pinned here: Node `24.18.0`, pnpm `11.4.0`.
+
+`dist/` is git-ignored and this package's own `lint` script excludes it. **Known friction:** the
+repository-root `pnpm lint` also runs eslint over the whole tree with `tools/eslint.config.mjs`,
+which declares no CommonJS globals and does not ignore build output — so running `pnpm lint` from
+the root *after* `pnpm build` reports `exports`/`require` as undefined in `dist/cjs`. CI never runs
+`pnpm build`, so the standing gate is unaffected. The durable fix is one line (`'**/dist/**'` in
+that config's `ignores`) and belongs to `FND-01`/`FND-02`, not to this ticket's File-scope; it is
+recorded as a writeback.
