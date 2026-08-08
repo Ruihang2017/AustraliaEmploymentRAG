@@ -5,6 +5,13 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node --import ./src/bootstrap/register-ts-resolve.mjs src/server.ts",
+    "dev:api": "node --watch --import ./src/bootstrap/register-ts-resolve.mjs src/server.ts"
+  },
+  "dependencies": {
+    "fastify": "5.11.3"
   }
 }
