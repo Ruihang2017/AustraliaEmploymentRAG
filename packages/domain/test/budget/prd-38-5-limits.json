@@ -1,0 +1,53 @@
+{
+  "$comment": [
+    "FND-09 deliverable 13 — PRD §38.5's initial rate and concurrency defaults, transcribed VERBATIM,",
+    "with ALL THREE columns. The 'System hard protection' column is the one that is easy to drop and",
+    "three of its cells are prose, so every cell is stored as the PRD's own text and asserted against",
+    "docs/PRD.md by test/budget/prd-38-5-limits.test.ts.",
+    "The closing paragraph is stored as the PRD's WRAPPED lines (`closingLines`) so it can be matched",
+    "verbatim, and as the unwrapped sentences (`closingRules`) that LIMIT_DEFAULTS_V1 carries. The test",
+    "asserts one is the unwrapping of the other, so neither can drift.",
+    "§24.4's per-organisation concurrency defaults are transcribed here too: they are the second half of",
+    "the ticket's §38.5 acceptance line, and §24.4 says TWO Quick where §38.5's trial column says ONE.",
+    "Both numbers are recorded; neither is reconciled in packages/domain (RUNT-02 selects per tier)."
+  ],
+  "prdFile": "docs/PRD.md",
+  "prdSection": "§38.5",
+  "prdLines": "2585-2600",
+  "heading": "### 38.5 Initial rate and concurrency defaults",
+  "boundaries": [
+    { "key": "SEARCH_BURST", "boundary": "Search burst", "trial": "20/min/organisation", "paidPilot": "60/min/organisation", "systemHardProtection": "100/min global initial" },
+    { "key": "API_CALLS", "boundary": "API calls", "trial": "500/trial", "paidPilot": "10,000/month", "systemHardProtection": "token-bucket and request-size limits" },
+    { "key": "CONCURRENT_QUICK", "boundary": "Concurrent Quick", "trial": "1", "paidPilot": "2", "systemHardProtection": "bounded by worker/provider" },
+    { "key": "CONCURRENT_DEEP", "boundary": "Concurrent Deep", "trial": "1", "paidPilot": "1", "systemHardProtection": "1 initial global worker execution" },
+    { "key": "CONCURRENT_EXPORT", "boundary": "Concurrent export", "trial": "1", "paidPilot": "1", "systemHardProtection": "1 initial" },
+    { "key": "WEBHOOK_ENDPOINTS", "boundary": "Webhook endpoints", "trial": "2", "paidPilot": "10", "systemHardProtection": "delivery queue isolated from research" },
+    { "key": "WIDGET_SESSION_CREATION", "boundary": "Widget session creation", "trial": "30/min/service account", "paidPilot": "120/min/service account", "systemHardProtection": "abuse/IP/origin protection" }
+  ],
+  "closingLines": [
+    "Rate-limit responses include `Retry-After`, limit, remaining and reset metadata",
+    "without disclosing other tenants. Search, answer credits, advanced-task credits,",
+    "API calls and provider cost are separate ledgers; exhausting one does not",
+    "misreport the others."
+  ],
+  "closingRules": [
+    "Rate-limit responses include `Retry-After`, limit, remaining and reset metadata without disclosing other tenants.",
+    "Search, answer credits, advanced-task credits, API calls and provider cost are separate ledgers; exhausting one does not misreport the others."
+  ],
+  "quotaLedgerKinds": ["SEARCH", "ANSWER_CREDITS", "ADVANCED_TASK_CREDITS", "API_CALLS", "PROVIDER_COST"],
+  "section24_4": {
+    "prdSection": "§24.4",
+    "prdLines": "1315-1320",
+    "heading": "### 24.4 Funding ledgers and concurrency",
+    "sentence": "Customer variable cost MUST be prepaid or BYOK; the system MUST NOT create unsecured founder liability. Default per-organisation concurrency: two Quick, one Deep and one export, with separate API/search burst limits and webhook queues.",
+    "fundingLedgerLines": [
+      "- `FOUNDER_PLATFORM_BUDGET`: trial/internal usage.",
+      "- `CUSTOMER_PREPAID_OR_BYOK`: customer-funded variable model cost."
+    ],
+    "concurrency": { "QUICK": "2", "DEEP": "1", "EXPORT": "1" }
+  },
+  "section8_2": {
+    "prdSection": "§8.2",
+    "sentence": "Search MUST remain usable when the AI budget is exhausted."
+  }
+}
