@@ -5,6 +5,17 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:migrations": "vitest run test/migrate",
+    "db:migrate": "node src/migrate/cli.mjs migrate",
+    "db:status": "node src/migrate/cli.mjs status",
+    "db:new": "node src/migrate/cli.mjs new"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0"
   }
 }

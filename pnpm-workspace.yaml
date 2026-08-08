@@ -2,3 +2,13 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'tests/*'
+# `better-sqlite3` (DATA-01, packages/database) is the workspace's first native dependency. pnpm 11
+# defaults `strictDepBuilds` to true, so an install that neither allows nor denies a package with a
+# `binding.gyp` exits `ERR_PNPM_IGNORED_BUILDS`; the key has to be present one way or the other.
+#
+# `false` is deliberate, not a stub. better-sqlite3 13.x declares no `install`/`postinstall` script
+# and ships N-API prebuilds inside its own tarball, so denying the source build costs nothing and
+# keeps a C++ toolchain off the critical path of every developer machine and CI runner. Setting it
+# `true` would opt into `node-gyp` on any platform whose prebuild is missing.
+allowBuilds:
+  better-sqlite3: false
