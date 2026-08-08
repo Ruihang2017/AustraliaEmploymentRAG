@@ -1,0 +1,20 @@
+id: 1
+event: job.started
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:01Z"}
+
+id: 2
+event: stage.changed
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:02Z","stage":"VALIDATING_CITATIONS","message":"Validating citations"}
+
+id: 3
+event: clarification.required
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:03Z"}
+
+id: 4
+event: answer.section
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:04Z"}
+
+id: 5
+event: citation.added
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:05Z"}
+

@@ -4,7 +4,26 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "types": "dist/esm/sdk-typescript/src/sdk.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/sdk-typescript/src/sdk.d.ts",
+      "import": "./dist/esm/sdk-typescript/src/sdk.js",
+      "require": "./dist/cjs/sdk-typescript/src/sdk.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "parity",
+    "README.md"
+  ],
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.cjs.json && node scripts/finish-cjs.mjs",
+    "lint": "eslint --config ../../tools/eslint.config.mjs . --ignore-pattern dist",
+    "generate": "node ../contracts/src/openapi/generate.mjs",
+    "generated:check": "node ../contracts/src/openapi/generated-check.mjs"
   }
 }

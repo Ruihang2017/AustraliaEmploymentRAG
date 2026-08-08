@@ -1,0 +1,16 @@
+id: 4
+event: answer.section
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:04Z"}
+
+id: 5
+event: citation.added
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:05Z"}
+
+id: 6
+event: heartbeat
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:06Z"}
+
+id: 7
+event: job.completed
+data: {"schema_version":"1.0","job_id":"job_0198f3be-2c90-7b31-b0a4-6f8e12cd7359","occurred_at":"2026-08-03T03:00:07Z","answer_snapshot_id":"ans_0198f3c1-4a23-7f26-9d84-1a3b7c9e02d5"}
+

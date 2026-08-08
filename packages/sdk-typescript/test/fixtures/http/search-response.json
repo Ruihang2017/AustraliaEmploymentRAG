@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "request_id": "req_0198f3c1-4a30-7b41-8e15-9c2a4d6f0b73",
+  "search_execution_id": "srx_0198f3c1-4a31-7c52-9f26-0d3b5e7a1c84",
+  "corpus_release_id": "cr_0198f3c1-4a32-7d63-a037-1e4c6f8b2d95",
+  "legal_as_at": "2026-08-03",
+  "applied_filters": {
+    "jurisdictions": [
+      "CTH",
+      "VIC"
+    ],
+    "legal_statuses": [
+      "IN_FORCE"
+    ]
+  },
+  "results": [
+    {
+      "document_id": "doc_0198f3c1-4a33-7e74-b148-2f5d7a9c3e06",
+      "document_version_id": "dv_0198f3c1-4a34-7f85-8259-3a6e8b0d4f17",
+      "node_id": "node_0198f3c1-4a35-7096-936a-4b7f9c1e5028",
+      "node_version_id": "nv_0198f3c1-4a36-71a7-a47b-5c801d2f6139",
+      "title": "Official source title",
+      "document_type": "ACT",
+      "authority": {
+        "id": "auth_0198f3c1-4a37-72b8-b58c-6d912e3f724a",
+        "name": "Official authority"
+      },
+      "jurisdictions": [
+        "CTH"
+      ],
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-07-01",
+      "effective_to": null,
+      "pinpoint": "s 94(5)",
+      "snippet": {
+        "text": "Exact source text…",
+        "start_offset": 120,
+        "end_offset": 198
+      },
+      "match_reasons": [
+        "EXACT_PROVISION",
+        "LEXICAL"
+      ],
+      "freshness": "CURRENT",
+      "official_url": "https://official.example/act/s94"
+    }
+  ],
+  "next_cursor": null,
+  "warnings": []
+}
