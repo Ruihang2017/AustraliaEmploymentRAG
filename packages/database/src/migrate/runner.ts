@@ -141,6 +141,42 @@ function readLedger(db: Database.Database): LedgerRow[] {
     .all();
 }
 
+/**
+ * Every index in the database that currently carries uniqueness, lower-cased.
+ *
+ * Feeds `assertExpandOnly`'s `DROP INDEX` rule (ticket deliverable 6): dropping a plain lookup index
+ * is an ordinary expand-phase change, dropping a *unique* one silently removes a constraint and has
+ * to go through the contract phase.
+ *
+ * `pragma index_list(<t>)` is the authority rather than `sqlite_master.sql`, because it reports
+ * uniqueness for indexes SQLite created implicitly (`UNIQUE`/`PRIMARY KEY` column constraints,
+ * `origin` `u`/`pk`) which have no `CREATE INDEX` text to parse. Those `sqlite_autoindex_*` entries
+ * cannot be dropped by name anyway, but including them keeps the set a strict superset of what a
+ * migration could name.
+ */
+function readUniqueIndexNames(db: Database.Database): ReadonlySet<string> {
+  const unique = new Set<string>();
+  const tables = db
+    .prepare<[], { name: string }>(
+      "select name from sqlite_master where type = 'table' and name not like 'sqlite_%'",
+    )
+    .all();
+
+  for (const { name } of tables) {
+    // `pragma index_list` takes an identifier, not a bound parameter; the names come from
+    // sqlite_master, and `"` is doubled so an exotic table name cannot break out of the quoting.
+    const indexes = db.pragma(`index_list("${name.split('"').join('""')}")`) as {
+      name: string;
+      unique: number;
+    }[];
+    for (const index of indexes) {
+      if (index.unique === 1) unique.add(index.name.toLowerCase());
+    }
+  }
+
+  return unique;
+}
+
 function toApplied(row: LedgerRow): AppliedMigration {
   return {
     name: row.name,
@@ -283,7 +319,10 @@ export async function runMigrations(options: RunMigrationsOptions): Promise<Migr
         }
       }
 
-      assertExpandOnly(sql, { name, ...header });
+      // Read fresh for every migration, not once per run: an earlier migration in this same run may
+      // have created (or dropped) a unique index, and the policy check must see the database as it
+      // is at the moment this file is about to run.
+      assertExpandOnly(sql, { name, ...header, uniqueIndexNames: readUniqueIndexNames(db) });
 
       const checksum = migrationChecksum(sql);
       const row = applyOne(db, { name, sql, checksum, phase: header.phase, runId });

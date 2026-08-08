@@ -136,14 +136,108 @@ describe('assertExpandOnly (DATA-01 deliverable 6, PRD §20.4)', () => {
     ).toContain('UPDATE without WHERE');
   });
 
-  it('rejects every DROP INDEX in an expand migration, not only a unique one', () => {
-    // Whether an index carries uniqueness is not decidable from one file's text — the
-    // `CREATE UNIQUE INDEX` may be months of migrations away. The rejection is therefore a strict
-    // superset of the ticket's rule, and the escape hatch is the ticket's own `-- aer:phase
-    // contract` opt-in.
-    expect(
-      expectRejected('destructive', '20260803120500_drop-index.sql', 'DESTRUCTIVE_STATEMENT').message,
-    ).toContain('DROP INDEX');
+  describe('DROP INDEX is conditioned on uniqueness (ticket deliverable 6)', () => {
+    const dropIndex = (target: string): string =>
+      ['-- aer:phase expand', `DROP INDEX ${target};`, ''].join('\n');
+
+    const check = (target: string, uniqueIndexNames?: ReadonlySet<string>): void => {
+      const sql = dropIndex(target);
+      assertExpandOnly(sql, { name: 'd.sql', phase: 'expand', uniqueIndexNames });
+    };
+
+    it('rejects a DROP INDEX naming a uniqueness-carrying index', () => {
+      let thrown: unknown;
+      try {
+        check('alpha_email_uidx', new Set(['alpha_email_uidx']));
+      } catch (error) {
+        thrown = error;
+      }
+      const error = thrown as MigrationError;
+      expect(error.code).toBe('DESTRUCTIVE_STATEMENT');
+      expect(error.message).toContain('DROP INDEX alpha_email_uidx (unique index)');
+    });
+
+    it('allows a DROP INDEX naming a non-unique index', () => {
+      expect(() => check('alpha_created_at_idx', new Set(['alpha_email_uidx']))).not.toThrow();
+    });
+
+    it('allows a DROP INDEX when the database carries no unique index at all', () => {
+      expect(() => check('alpha_created_at_idx', new Set())).not.toThrow();
+    });
+
+    it('fails closed when uniqueIndexNames is absent — "unknown" is not "not unique"', () => {
+      let thrown: unknown;
+      try {
+        check('alpha_created_at_idx');
+      } catch (error) {
+        thrown = error;
+      }
+      const error = thrown as MigrationError;
+      expect(error.code).toBe('DESTRUCTIVE_STATEMENT');
+      expect(error.message).toContain('index uniqueness unknown');
+    });
+
+    it.each([
+      ['"alpha_email_uidx"', 'double-quoted'],
+      ['[alpha_email_uidx]', 'bracket-quoted'],
+      ['`alpha_email_uidx`', 'backtick-quoted'],
+      ['main.alpha_email_uidx', 'schema-qualified'],
+      ['ALPHA_EMAIL_UIDX', 'differently-cased'],
+      ['IF EXISTS alpha_email_uidx', 'IF EXISTS'],
+      ['main."ALPHA_EMAIL_UIDX"', 'schema-qualified and quoted'],
+    ])('still matches a %s target (%s)', (target) => {
+      expect(() => check(target, new Set(['alpha_email_uidx']))).toThrowError(
+        expect.objectContaining({ code: 'DESTRUCTIVE_STATEMENT' }),
+      );
+    });
+
+    it('does not confuse a similarly-named non-unique index for the unique one', () => {
+      expect(() => check('alpha_email_uidx_old', new Set(['alpha_email_uidx']))).not.toThrow();
+    });
+
+    it('lets a contract migration drop a unique index', () => {
+      const sql = [
+        '-- aer:phase contract',
+        '-- aer:expanded-in 20260803120000_alpha',
+        'DROP INDEX alpha_email_uidx;',
+        '',
+      ].join('\n');
+      expect(() =>
+        assertExpandOnly(sql, {
+          name: 'c.sql',
+          ...parseMigrationHeader(sql, 'c.sql'),
+          uniqueIndexNames: new Set(['alpha_email_uidx']),
+        }),
+      ).not.toThrow();
+    });
+
+    it('does not false-positive on DROP INDEX inside a comment or string literal', () => {
+      const sql = [
+        '-- aer:phase expand',
+        '-- we will never DROP INDEX alpha_email_uidx here',
+        "INSERT INTO note (body) VALUES ('DROP INDEX alpha_email_uidx');",
+        '',
+      ].join('\n');
+      expect(() =>
+        assertExpandOnly(sql, { name: 'n.sql', phase: 'expand', uniqueIndexNames: new Set() }),
+      ).not.toThrow();
+    });
+
+    it('rejects the destructive fixture, whose index is unique in the live database', () => {
+      const name = '20260803120500_drop-index.sql';
+      const sql = read('destructive', name);
+      let thrown: unknown;
+      try {
+        assertExpandOnly(sql, {
+          name,
+          ...parseMigrationHeader(sql, name),
+          uniqueIndexNames: new Set(['fixture_alpha_created_at_idx']),
+        });
+      } catch (error) {
+        thrown = error;
+      }
+      expect((thrown as MigrationError).code).toBe('DESTRUCTIVE_STATEMENT');
+    });
   });
 
   it('rejects a migration body that drives its own transaction', () => {
@@ -178,11 +272,15 @@ describe('assertExpandOnly (DATA-01 deliverable 6, PRD §20.4)', () => {
     const sql = ['-- aer:phase expand', 'DROP TABLE a;', 'DROP INDEX b;', ''].join('\n');
     let thrown: unknown;
     try {
-      assertExpandOnly(sql, { name: 'multi.sql', phase: 'expand' });
+      assertExpandOnly(sql, {
+        name: 'multi.sql',
+        phase: 'expand',
+        uniqueIndexNames: new Set(['b']),
+      });
     } catch (error) {
       thrown = error;
     }
     const error = thrown as MigrationError;
-    expect(error.violations).toEqual(['line 2: DROP TABLE', 'line 3: DROP INDEX']);
+    expect(error.violations).toEqual(['line 2: DROP TABLE', 'line 3: DROP INDEX b (unique index)']);
   });
 });

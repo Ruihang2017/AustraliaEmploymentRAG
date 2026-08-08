@@ -439,6 +439,118 @@ describe('migrationStatus and assertSchemaUpToDate', () => {
     });
   });
 
+});
+
+describe('DROP INDEX uniqueness is read from the live database (ticket deliverable 6)', () => {
+    /** Creates one table carrying both a unique and a plain index, as migration 1 of the run. */
+    const SETUP = [
+      '-- aer:phase expand',
+      'CREATE TABLE widget (id TEXT PRIMARY KEY, email TEXT NOT NULL, created_at TEXT NOT NULL);',
+      'CREATE UNIQUE INDEX widget_email_uidx ON widget (email);',
+      'CREATE INDEX widget_created_at_idx ON widget (created_at);',
+      '',
+    ].join('\n');
+
+    it('applies an expand migration that drops a NON-unique index', async () => {
+      await withTempMigrations('good', async ({ migrationsDir, databasePath }) => {
+        writeFileSync(join(migrationsDir, '20260803140000_widget.sql'), SETUP);
+        writeFileSync(
+          join(migrationsDir, '20260803150000_widget-reindex.sql'),
+          ['-- aer:phase expand', 'DROP INDEX widget_created_at_idx;', ''].join('\n'),
+        );
+
+        const report = await runMigrations({ databasePath, migrationsDir });
+        expect(report.applied.map((row) => row.name)).toContain(
+          '20260803150000_widget-reindex.sql',
+        );
+
+        const db = new Database(databasePath, { readonly: true });
+        try {
+          const indexes = db
+            .prepare<[], { name: string }>("select name from sqlite_master where type = 'index'")
+            .all()
+            .map((row) => row.name);
+          expect(indexes).not.toContain('widget_created_at_idx');
+          expect(indexes).toContain('widget_email_uidx');
+        } finally {
+          db.close();
+        }
+      });
+    });
+
+    it('refuses an expand migration that drops a UNIQUE index created by an earlier run', async () => {
+      await withTempMigrations('good', async ({ migrationsDir, databasePath }) => {
+        const setupPath = join(migrationsDir, '20260803140000_widget.sql');
+        writeFileSync(setupPath, SETUP);
+        await runMigrations({ databasePath, migrationsDir });
+
+        writeFileSync(
+          join(migrationsDir, '20260803150000_widget-dropuidx.sql'),
+          ['-- aer:phase expand', 'DROP INDEX widget_email_uidx;', ''].join('\n'),
+        );
+
+        let thrown: unknown;
+        try {
+          await runMigrations({ databasePath, migrationsDir });
+        } catch (error) {
+          thrown = error;
+        }
+        const error = thrown as MigrationError;
+        expect(error.code).toBe('DESTRUCTIVE_STATEMENT');
+        expect(error.message).toContain('widget_email_uidx');
+        expect(error.message).toContain('unique index');
+
+        // The unique index is still there, and the refused migration is not in the ledger.
+        expect(ledger(databasePath).map((row) => row.name)).not.toContain(
+          '20260803150000_widget-dropuidx.sql',
+        );
+      });
+    });
+
+    it('refuses a unique index created EARLIER IN THE SAME RUN — the set is re-read per migration', async () => {
+      await withTempMigrations('good', async ({ migrationsDir, databasePath }) => {
+        writeFileSync(join(migrationsDir, '20260803140000_widget.sql'), SETUP);
+        writeFileSync(
+          join(migrationsDir, '20260803150000_widget-dropuidx.sql'),
+          ['-- aer:phase expand', 'DROP INDEX widget_email_uidx;', ''].join('\n'),
+        );
+
+        let thrown: unknown;
+        try {
+          await runMigrations({ databasePath, migrationsDir });
+        } catch (error) {
+          thrown = error;
+        }
+        expect((thrown as MigrationError).code).toBe('DESTRUCTIVE_STATEMENT');
+        expect((thrown as MigrationError).message).toContain('widget_email_uidx');
+      });
+    });
+
+    it('lets a contract migration drop the unique index in a later run', async () => {
+      await withTempMigrations('good', async ({ migrationsDir, databasePath }) => {
+        writeFileSync(join(migrationsDir, '20260803140000_widget.sql'), SETUP);
+        await runMigrations({ databasePath, migrationsDir });
+
+        writeFileSync(
+          join(migrationsDir, '20260803150000_widget-dropuidx.sql'),
+          [
+            '-- aer:phase contract',
+            '-- aer:expanded-in 20260803140000_widget',
+            'DROP INDEX widget_email_uidx;',
+            '',
+          ].join('\n'),
+        );
+
+        const report = await runMigrations({ databasePath, migrationsDir });
+        expect(report.deferred).toEqual([]);
+        expect(report.applied.map((row) => row.name)).toContain(
+          '20260803150000_widget-dropuidx.sql',
+        );
+      });
+    });
+});
+
+describe('fixture hygiene', () => {
   it('leaves fixtures/ out of the shipped migrations directory', () => {
     expect(fixture('good')).toContain('fixtures');
     expect(REPO_MIGRATIONS_DIR).not.toContain('fixtures');

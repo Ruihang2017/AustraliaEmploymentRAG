@@ -183,7 +183,34 @@ interface Violation {
 
 const ALTER_TABLE = /\balter\s+table\b/i;
 
-function findViolations(statements: readonly Statement[]): Violation[] {
+/** A bare, `"…"`, `[…]` or `` `…` `` quoted SQLite identifier. */
+const IDENTIFIER = String.raw`(?:"[^"]*"|\[[^\]]*\]|` + '`[^`]*`' + String.raw`|[A-Za-z_][A-Za-z0-9_$]*)`;
+
+const DROP_INDEX = new RegExp(
+  String.raw`\bdrop\s+index\s+(?:if\s+exists\s+)?(${IDENTIFIER}(?:\s*\.\s*${IDENTIFIER})?)`,
+  'i',
+);
+
+/**
+ * Normalises an index name for comparison against `uniqueIndexNames`: drops any `schema.` qualifier,
+ * removes the quoting, and lower-cases. SQLite identifiers are case-insensitive, and `main.foo`,
+ * `"foo"` and `foo` all name the same index.
+ */
+function normaliseIndexName(raw: string): string {
+  const last = raw.split('.').at(-1)?.trim() ?? raw.trim();
+  const unquoted =
+    (last.startsWith('"') && last.endsWith('"')) ||
+    (last.startsWith('[') && last.endsWith(']')) ||
+    (last.startsWith('`') && last.endsWith('`'))
+      ? last.slice(1, -1)
+      : last;
+  return unquoted.toLowerCase();
+}
+
+function findViolations(
+  statements: readonly Statement[],
+  uniqueIndexNames: ReadonlySet<string> | undefined,
+): Violation[] {
   const violations: Violation[] = [];
 
   for (const statement of statements) {
@@ -195,14 +222,37 @@ function findViolations(statements: readonly Statement[]): Violation[] {
       violations.push({ construct: 'DROP TABLE', offset: statement.offset + dropTable.index });
     }
 
-    // `DROP INDEX` is rejected outright, not only for a uniqueness-carrying index. Whether an index
-    // carries uniqueness is not decidable from one file's text — the `CREATE UNIQUE INDEX` may be in
-    // a migration applied months earlier. This is a strict superset of the ticket's rule, and the
-    // documented escape hatch is exactly the one the ticket already provides: declare the migration
-    // `-- aer:phase contract`.
-    const dropIndex = /\bdrop\s+index\b/i.exec(text);
+    // `DROP INDEX` is rejected only for a *uniqueness-carrying* index (ticket deliverable 6):
+    // dropping and rebuilding a plain lookup index is a legitimate expand-phase change, whereas
+    // dropping a unique index silently removes a constraint old readers still rely on.
+    //
+    // Uniqueness is not decidable from one file's text — the `CREATE UNIQUE INDEX` may be months of
+    // migrations away — so the *runner* supplies the live set from `pragma index_list` before each
+    // apply. When that set is absent (a caller with no database in hand) the check **fails closed**
+    // and rejects, because "unknown" must never read as "not unique".
+    const dropIndex = DROP_INDEX.exec(text);
     if (dropIndex) {
-      violations.push({ construct: 'DROP INDEX', offset: statement.offset + dropIndex.index });
+      const raw = dropIndex[1] as string;
+      const indexName = normaliseIndexName(raw);
+      if (uniqueIndexNames === undefined) {
+        violations.push({
+          construct: `DROP INDEX ${raw.trim()} (index uniqueness unknown — no live database to check against)`,
+          offset: statement.offset + dropIndex.index,
+        });
+      } else if (uniqueIndexNames.has(indexName)) {
+        violations.push({
+          construct: `DROP INDEX ${raw.trim()} (unique index)`,
+          offset: statement.offset + dropIndex.index,
+        });
+      }
+    } else if (/\bdrop\s+index\b/i.test(text)) {
+      // `DROP INDEX` whose target this scanner could not parse. Fail closed rather than wave it
+      // through — an unparseable target is exactly the case where a mistake would be invisible.
+      const fallback = /\bdrop\s+index\b/i.exec(text) as RegExpExecArray;
+      violations.push({
+        construct: 'DROP INDEX (target index name could not be parsed)',
+        offset: statement.offset + fallback.index,
+      });
     }
 
     if (ALTER_TABLE.test(text)) {
@@ -270,6 +320,16 @@ function findTransactionControl(statements: readonly Statement[]): Violation[] {
 
 export interface ExpandOnlyMeta extends MigrationHeader {
   name: string;
+  /**
+   * Names of the indexes that currently carry uniqueness, lower-cased, as read from the live
+   * database by the runner (`pragma index_list` filtered on `unique = 1`) immediately before this
+   * migration is applied.
+   *
+   * Omitting it is **not** a way to opt out of the check: an absent set makes every `DROP INDEX` a
+   * violation (fail closed), because a caller with no database in hand cannot show that the index
+   * is safe to drop.
+   */
+  uniqueIndexNames?: ReadonlySet<string> | undefined;
 }
 
 /**
@@ -297,7 +357,7 @@ export function assertExpandOnly(sql: string, meta: ExpandOnlyMeta): void {
 
   if (meta.phase === 'contract') return;
 
-  const violations = findViolations(statements);
+  const violations = findViolations(statements, meta.uniqueIndexNames);
   if (violations.length === 0) return;
 
   const described = violations.map(
