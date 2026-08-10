@@ -4,6 +4,7 @@
     "src",
     "test/contract/types.test-d.ts",
     "test/entity/types.test-d.ts",
-    "test/context/types.test-d.ts"
+    "test/context/types.test-d.ts",
+    "test/availability/types.test-d.ts"
   ]
 }
