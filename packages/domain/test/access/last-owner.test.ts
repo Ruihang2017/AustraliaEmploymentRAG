@@ -54,6 +54,36 @@ describe('ownerCount === 1: nobody may touch that Owner', () => {
     });
     expect(decision.allowed).toBe(false);
   });
+
+  it('an absent targetRole is fail-closed for MEMBERSHIP_ROLE_CHANGE, even for the Owner column (D37c, regression)', () => {
+    // The mirror of the ownerCount case above: a caller that supplies ownerCount but omits
+    // targetRole must not fall through `isLastOwnerTarget` (which requires targetRole === 'OWNER')
+    // into the OWNER cell's unconditional ALLOW. Every column that reaches this stage — OWNER and
+    // ADMIN, the only two non-DENY cells for this action — must deny it.
+    for (const column of ['OWNER', 'ADMIN'] as const) {
+      const decision = evaluate({
+        principal: principalFor(column),
+        action: 'MEMBERSHIP_ROLE_CHANGE',
+        context: { ownerCount: 1 },
+      });
+      expect(decision, column).toEqual({
+        allowed: false,
+        reason: 'CONDITION_NOT_MET',
+        condition: 'LAST_OWNER_IMMUTABLE',
+      });
+    }
+  });
+
+  it('MEMBERSHIP_MANAGE is deliberately exempt: an absent targetRole does not itself deny an Owner invitation (D37c)', () => {
+    // MEMBERSHIP_MANAGE also covers inviting a not-yet-existing member, which legitimately has no
+    // target role to state. Only the ownerCount-based last-Owner check applies to it, unchanged.
+    const decision = evaluate({
+      principal: principalFor('OWNER'),
+      action: 'MEMBERSHIP_MANAGE',
+      context: {},
+    });
+    expect(decision).toEqual({ allowed: true, via: 'MEMBERSHIP_MANAGE' });
+  });
 });
 
 describe('ownerCount === 2: the Owner may act, the Admin may not (D37b)', () => {

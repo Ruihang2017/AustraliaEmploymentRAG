@@ -161,6 +161,20 @@ export function evaluate(input: AccessInput): Decision {
   // 4a: PRD §8.1's last-Owner MUST overrides even an ALLOW cell (sub-PRD D37a). §38.1 spells it only
   // in the Admin cell; §8.1 states it of everyone, and this ticket's acceptance requires it of the
   // Owner too. This is the ONLY §8-beats-§38.1 override in the leaf.
+  //
+  // MEMBERSHIP_ROLE_CHANGE cannot decide the last-Owner MUST without knowing the target's current
+  // role, so an absent `context.targetRole` is fail-closed here too (sub-PRD D37c) — matching the
+  // ADMIN column's own LAST_OWNER_IMMUTABLE predicate, which already denies when `targetRole` is
+  // absent. Without this, `isLastOwnerTarget` (which requires `targetRole === 'OWNER'`) never fires
+  // for a caller that supplies `ownerCount` but omits `targetRole`, and the OWNER/ADMIN cells being
+  // ALLOW/CONDITIONAL-on-a-different-predicate means nothing else denies it — a fail-open bypass of
+  // the "no actor may remove or demote the last Owner" MUST.
+  //
+  // MEMBERSHIP_MANAGE is deliberately exempt: it also covers inviting a not-yet-existing member, which
+  // has no target role to state (sub-PRD D37c).
+  if (action === 'MEMBERSHIP_ROLE_CHANGE' && input.context?.targetRole === undefined) {
+    return deniedByCondition('CONDITION_NOT_MET', 'LAST_OWNER_IMMUTABLE');
+  }
   if (MEMBERSHIP_ACTIONS.includes(action) && isLastOwnerTarget(input.context)) {
     return deniedByCondition('CONDITION_NOT_MET', 'LAST_OWNER_IMMUTABLE');
   }

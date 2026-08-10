@@ -112,6 +112,19 @@ describe('every optional field is fail-closed when absent', () => {
     ).toEqual({ allowed: false, reason: 'CONDITION_NOT_MET', condition: 'LAST_OWNER_IMMUTABLE' });
   });
 
+  it('targetRole absent denies the OWNER column too for MEMBERSHIP_ROLE_CHANGE (D37c, symmetric with ADMIN)', () => {
+    // Regression: OWNER's cell is an unconditional ALLOW, so the ADMIN-only assertion above cannot
+    // catch a fail-open on this column. A caller that supplies ownerCount but omits targetRole must
+    // not reach that ALLOW cell.
+    expect(
+      evaluate({
+        principal: principalFor('OWNER'),
+        action: 'MEMBERSHIP_ROLE_CHANGE',
+        context: { ownerCount: 1 },
+      }),
+    ).toEqual({ allowed: false, reason: 'CONDITION_NOT_MET', condition: 'LAST_OWNER_IMMUTABLE' });
+  });
+
   it('an absent context denies every context-reading cell', () => {
     for (const [action, column, condition] of [
       ['MEMBERSHIP_MANAGE', 'ADMIN', 'OWNER_CONSTRAINTS'],
