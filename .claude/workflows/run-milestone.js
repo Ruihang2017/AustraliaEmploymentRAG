@@ -144,7 +144,13 @@ async function runTicket(t, opts) {
 
   log('[' + t.id + '] builder: implementing on ' + branch)
   let build = await agent(
-    'Builder stage. Ticket: ' + t.path + '. ' + planForBuilder + 'Create branch ' + branch +
+    'Builder stage. Ticket: ' + t.path + '. ' + planForBuilder +
+    'FIRST, before creating any branch: run `git fetch origin` and check whether `origin/' + branch + '` already exists. ' +
+    'If it exists and is NOT already merged into ' + cfg.defaultBranch + ' (`git merge-base --is-ancestor origin/' + branch + ' origin/' + cfg.defaultBranch + '` fails), ' +
+    'STOP: do not build, do not branch over it, do not reset, rebase, force-push or delete it. A previous run already built this ticket and its work is unmerged; ' +
+    'building anyway produces a second implementation that cannot be reconciled with the first. Report the stop by returning testsPassed=false with ' +
+    'testOutput = "STOP: origin/' + branch + ' already exists and is unmerged (sha <short-sha>) — a previous run built this ticket; a human must decide before it is rebuilt." ' +
+    'Otherwise create branch ' + branch +
     ' from ' + cfg.defaultBranch + ', implement it there, commit, run the tests. Do NOT merge and do NOT touch the tracker. ' +
     'Return branch (must be ' + branch + '), testsPassed, testOutput (paste real output), deviations.',
     Object.assign({ agentType: 'builder', label: 'build:' + t.id, phase: P, schema: BUILD }, buildIsolation)

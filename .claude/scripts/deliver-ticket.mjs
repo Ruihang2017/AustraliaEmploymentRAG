@@ -253,6 +253,47 @@ const resolvePrBody = () => {
   return buildBody()
 }
 
+// Divergence guard — run immediately BEFORE any push of the TICKET branch.
+//
+// Incident (concurrency-6 run, terminated mid-flight): some ticket branches were already
+// on origin when the run died. A later run rebuilt ticket FND-06 from scratch on the same
+// branch name, producing a SECOND independent implementation. Neither head was an ancestor
+// of the other. Nothing noticed until push time, where git emitted its generic
+// "non-fast-forward" hint and delivery aborted on an opaque message.
+//
+// Two independent builds of one ticket cannot be merged or rebased — they touch the same
+// files and the same functions with different implementations, and any hand-merged result
+// would be code no reviewer ever judged. So: detect it here and STOP with a message that
+// names both shas. Never force-push, never rebase, never delete — the choice of which
+// build survives is a human judgement call, and this script does not make it.
+const shortSha = (ref) => {
+  const r = tryGit(['rev-parse', '--short', ref])
+  return r.ok ? r.out.trim() : '(unknown)'
+}
+// true = safe to push. Calls finish() (never returns) when the branch has diverged.
+const assertBranchNotDiverged = () => {
+  // A branch that does not exist on origin is the normal first-delivery case, so a failed
+  // fetch is NOT an error here — it just means there is nothing remote to compare against.
+  const fetched = tryGit(['fetch', 'origin', BRANCH])
+  let remoteRef = ''
+  if (fetched.ok && tryGit(['rev-parse', '--verify', '--quiet', 'FETCH_HEAD']).ok) remoteRef = 'FETCH_HEAD'
+  else if (tryGit(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${BRANCH}`]).ok) remoteRef = `refs/remotes/origin/${BRANCH}`
+  if (!remoteRef) return true // nothing on origin for this branch — push is a plain create
+
+  if (tryGit(['merge-base', '--is-ancestor', remoteRef, BRANCH]).ok) return true // fast-forward
+
+  const remoteSha = shortSha(remoteRef)
+  const localSha = shortSha(BRANCH)
+  note(`DIVERGED: origin/${BRANCH} (${remoteSha}) is NOT an ancestor of local ${BRANCH} (${localSha}) — refusing to push`)
+  note(`two independent builds of ticket ${ID} exist on branch ${BRANCH}: remote ${remoteSha} (pushed by an earlier run) and local ${localSha} (this run)`)
+  note('they cannot be merged or rebased — same files, same functions, different implementations; any combined result would be code no reviewer judged')
+  note(`a HUMAN must choose which build to keep, then delete/replace the other: inspect with \`git log --oneline ${remoteSha}..${localSha}\` and \`git log --oneline ${localSha}..${remoteSha}\`, and \`git diff ${remoteSha} ${localSha}\``)
+  note(`nothing was pushed, forced, rebased or deleted; ticket ${ID} is NOT delivered`)
+  console.log(`= diverged ${BRANCH}: remote ${remoteSha} vs local ${localSha} — human decision required`)
+  finish(0)
+  return false // unreachable (finish exits) — kept so the call site reads as a guard
+}
+
 // find an existing PR/MR for the branch; returns { number, url } or null
 // OPEN-FIRST is load-bearing, not a preference. `--state all` is deliberate (a run that
 // paused after opening a PR must find THAT PR again instead of opening a duplicate, and a
@@ -374,6 +415,8 @@ try {
       // stderr lines (the MR URL) are captured even on a successful push.
       const closes = ISSUE_ARG && Number(ISSUE_ARG) > 0 ? `Closes #${Number(ISSUE_ARG)}. ` : ''
       const desc = `${closes}Delivered by the three-agent pipeline (ticket ${ID}); plan docs/plans/${ID}.md; Reviewer verdict CLEAR — posted as a comment on the issue.`
+      // same divergence guard as the pr path — this push also publishes the ticket branch
+      assertBranchNotDiverged()
       const pushArgs = ['push', '-o', 'merge_request.create', '-o', `merge_request.target=${DEFAULT_BRANCH}`,
         '-o', `merge_request.title=${prTitle()}`, '-o', `merge_request.description=${desc}`, '-u', 'origin', BRANCH]
       const res = spawnSync('git', pushArgs, { encoding: 'utf8' })
@@ -400,7 +443,11 @@ try {
     }
   } else {
     // ---- pr path ----
-    // 3a. push the ticket branch so the forge has it (AC2: branch exists on remote)
+    // 3a. push the ticket branch so the forge has it (AC2: branch exists on remote).
+    // Divergence guard first: a remote head that is not contained in the local head means a
+    // previous run already built this ticket — stop with a named-sha message instead of
+    // letting git's opaque non-fast-forward hint surface at push time.
+    assertBranchNotDiverged()
     const pb = tryGit(['push', '-u', 'origin', BRANCH])
     if (pb.ok) { checks.branchPushed = true; console.log(`+ pushed  ${BRANCH} -> origin`) }
     else { note(`branch push failed: ${lastLine(pb.out)} — cannot open a PR without it`); finish(0) }
