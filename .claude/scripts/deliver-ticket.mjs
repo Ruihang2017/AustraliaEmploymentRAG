@@ -254,11 +254,27 @@ const resolvePrBody = () => {
 }
 
 // find an existing PR/MR for the branch; returns { number, url } or null
+// OPEN-FIRST is load-bearing, not a preference. `--state all` is deliberate (a run that
+// paused after opening a PR must find THAT PR again instead of opening a duplicate, and a
+// MERGED PR must still be returned so the alreadyMerged path below stays correct) — but a
+// plain "first of --state all" hit delivery three times in one session: delete a ticket
+// branch on the remote (cleanup, or an interrupted run) and GitHub auto-closes its PR;
+// recreate the branch with different history and that CLOSED PR now points at commits that
+// no longer exist. It cannot be merged and `gh pr reopen` refuses it, so returning it set
+// checks.prExists, skipped `pr create`, and every future run died on
+// "GraphQL: Pull Request is not mergeable" — the ticket was blocked forever until a human
+// opened a replacement PR by hand. So: OPEN wins; else MERGED (the work landed); a
+// CLOSED-only branch is reported and treated as "no PR", letting `pr create` open a fresh one.
 const findPr = () => {
   try {
     if (PLATFORM === 'gh') {
-      const arr = JSON.parse(cli(['pr', 'list', '--head', BRANCH, '--state', 'all', '--json', 'number,url']))
-      return arr && arr[0] ? { number: arr[0].number, url: arr[0].url } : null
+      const arr = JSON.parse(cli(['pr', 'list', '--head', BRANCH, '--state', 'all', '--json', 'number,url,state']))
+      if (!Array.isArray(arr) || !arr.length) return null
+      const stateOf = (p) => String(p && p.state || '').toUpperCase()
+      const usable = arr.find((p) => stateOf(p) === 'OPEN') || arr.find((p) => stateOf(p) === 'MERGED')
+      if (usable) return { number: usable.number, url: usable.url }
+      note(`existing PR(s) for ${BRANCH} are closed and cannot be merged (${arr.map((p) => '#' + p.number).join(', ')}) — opening a new PR`)
+      return null
     }
     const text = cli(['mr', 'list', '--source-branch', BRANCH])
     const m = text.match(/!(\d+)/)
