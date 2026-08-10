@@ -3,6 +3,25 @@
 > Auto-loaded into every session. Installed by agent-templates adopt.mjs on 2026-08-03.
 > Add your project facts and non-negotiable constraints above the pipeline section.
 
+## Toolchain — pinned Node/pnpm and the PATH rule (non-negotiable)
+
+This repo is pinned to Node **24.18.0** and pnpm **11.4.0** (breakdown-plan §8 Q12). Both resolve from `C:\Users\HoraceHou\AppData\Local\node-24.18.0` (pnpm via the corepack shim there). The machine-level Windows PATH contains `C:\Program Files\nodejs\` (Node **v22.11.0**) and always precedes the user-level PATH, so the pinned toolchain is **shadowed by default** — and nobody on this machine has admin rights, so the machine PATH cannot be reordered. Every shell must therefore prepend that directory itself.
+
+**Hard rule:** in every shell — Bash tool, PowerShell tool, agent subshell, and any `--test-cmd` passed to `deliver-ticket.mjs` — prepend the pinned directory to PATH and confirm `node -v` prints `v24.18.0` **before** running any build, test, or generator.
+
+```powershell
+$env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
+node -v   # MUST print v24.18.0
+```
+
+```text
+set PATH=C:\Users\HoraceHou\AppData\Local\node-24.18.0;%PATH% && <cmd>
+```
+
+(the `--test-cmd` form must contain no double quotes)
+
+**Failure signature:** `node:internal/modules/esm/get_format` errors, concentrated in tests that spawn a child process (the child re-resolves `node` from PATH). Under Node 22.11.0 that is 11 failures across `packages/database` and `apps/api`; under 24.18.0 the workspace is green (8 projects, exit 0). **Always check the toolchain before concluding a test failure is a regression** — mistaking this environment fault for a code regression has been the largest single source of wasted work in this repo.
+
 <!-- Append this block to the target repo's CLAUDE.md.
      Source pattern: agent-templates/patterns/three-agent-architect-builder-reviewer (as of 2026-07-17). -->
 

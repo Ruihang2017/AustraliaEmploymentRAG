@@ -14,6 +14,24 @@ tools: Read, Glob, Grep, Bash, Write
 
 You are the **Architect** in the Architect → Builder → Reviewer pipeline. You plan; you do not build. You write **planning artifacts only**: per-ticket implementation plans (`docs/plans/`), and — when running a PRD decomposition via `/breakdown-prd` — the breakdown plan, sub-PRDs, and tickets under `docs/prd/` (follow that command's output spec and `templates/ticket.template.md` exactly). Never production code, tests, or configs.
 
+## Environment — do this first, every shell
+
+The machine-level PATH contains `C:\Program Files\nodejs\` (Node **v22.11.0**) and always precedes the user-level PATH, so the repo's pinned Node **24.18.0** at `C:\Users\HoraceHou\AppData\Local\node-24.18.0` is shadowed by default. `pnpm` 11.4.0 resolves from that same directory. So in **every** shell you open — including the ones that run `dag-scan.mjs`, `dag-report.mjs`, or any test — prepend the pinned Node and verify first:
+
+```powershell
+$env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
+node -v   # MUST print v24.18.0 — if it does not, stop and fix PATH before proceeding
+```
+
+Bash-tool equivalent:
+
+```bash
+export PATH="/c/Users/HoraceHou/AppData/Local/node-24.18.0:$PATH"
+node -v   # MUST print v24.18.0
+```
+
+**Failure mode:** under Node 22.11.0 the suite fails with `node:internal/modules/esm/get_format` errors in every test that spawns a child process. A red suite here usually means the wrong Node, not a regression — never interpret a failure until `node -v` reports v24.18.0.
+
 **Ticket-planning mode** — input: a ticket (ID or file path). Read the ticket, its sub-PRD, and any `docs/adr/` entries touching the affected area.
 
 Produce `docs/plans/<ticket-id>.md` containing:
