@@ -7,7 +7,8 @@
  * unallocated by breakdown plan §4, so a file committed with LF is checked out with CRLF on Windows
  * and with LF in CI. Every read in this module therefore normalises `\r\n` -> `\n`;
  * `tools/tests/line-endings.test.mjs` solves the same problem the same way, by reading the committed
- * blob. `committedBlob()` below is the authoritative-bytes escape hatch for the tests that need it.
+ * blob. `committedBlobs()` and `committedBlob()` below are the authoritative-bytes escape hatches
+ * for the tests that need them.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -51,14 +52,96 @@ export function rawBody(name: string): string {
   return text.endsWith('\n') ? text.slice(0, -1) : text;
 }
 
-/** The committed bytes of a repo-relative path, or `null` when it is not committed yet. */
-export function committedBlob(relativePath: string): Buffer | null {
-  const result = spawnSync('git', ['show', `HEAD:${relativePath}`], {
+/**
+ * The committed bytes of repo-relative paths, or `null` for paths not committed yet.
+ *
+ * FND-14: committed blobs must be read in ONE git process. A reader that spawns one process per file
+ * is a defect in this repository, not a style preference. 13 × `git show` cost 610 ms idle and
+ * 2102 ms under a 20-way CPU burn, timing the LF check out at 5145 ms against vitest's 5000 ms
+ * default during the 8-project parallel `pnpm test`; the package run alone was green in 3.91 s.
+ * One `git cat-file --batch` over the same 13 paths costs 70 ms idle / 200 ms loaded.
+ *
+ * Transferable lesson: a test that spawns a process per item is measured in the parallel workspace
+ * run, never in the single-package run. The property being read — LF in every committed blob (PRD
+ * §20.1 / sub-PRD D29) — is unchanged, and batching must never become sampling.
+ */
+export function committedBlobs(relativePaths: readonly string[]): Map<string, Buffer | null> {
+  if (relativePaths.length === 0) return new Map();
+
+  for (const relativePath of relativePaths) {
+    if (relativePath.includes('\n') || relativePath.includes('\r')) {
+      throw new Error(`invalid committed-blob path containing a line break: ${relativePath}`);
+    }
+  }
+
+  const result = spawnSync('git', ['cat-file', '--batch'], {
     cwd: REPO_ROOT,
     encoding: 'buffer',
-    maxBuffer: 32 * 1024 * 1024,
+    input: Buffer.from(relativePaths.map((path) => `HEAD:${path}\n`).join(''), 'utf8'),
+    maxBuffer: 64 * 1024 * 1024,
   });
-  return result.status === 0 ? result.stdout : null;
+
+  const stderr = Buffer.isBuffer(result.stderr)
+    ? result.stderr.toString('utf8')
+    : String(result.stderr ?? '');
+  const fail = (relativePath: string, reason: string): never => {
+    throw new Error(`git cat-file --batch failed for ${relativePath}: ${reason}; stderr: ${stderr}`);
+  };
+  const firstPath = relativePaths[0] as string;
+  if (result.error) fail(firstPath, result.error.message);
+  if (result.status !== 0) fail(firstPath, `exit status ${String(result.status)}`);
+  if (!result.stdout || !Buffer.isBuffer(result.stdout)) fail(firstPath, 'missing stdout');
+
+  const stdout = result.stdout;
+  const blobs = new Map<string, Buffer | null>();
+  let offset = 0;
+  let responseCount = 0;
+  for (const relativePath of relativePaths) {
+    const headerEnd = stdout.indexOf(0x0a, offset);
+    if (headerEnd === -1) {
+      fail(
+        relativePath,
+        `response count ${responseCount} differs from request count ${relativePaths.length}: header has no terminating LF`,
+      );
+    }
+
+    const header = stdout.subarray(offset, headerEnd).toString('utf8');
+    const fields = header.split(' ');
+    const last = fields.at(-1) ?? fail(relativePath, `unparseable header: ${header}`);
+    if (last.length === 0) fail(relativePath, `unparseable header: ${header}`);
+    if (fields.length < 2) fail(relativePath, `unparseable header: ${header}`);
+    offset = headerEnd + 1;
+
+    if (last === 'missing') {
+      blobs.set(relativePath, null);
+      responseCount += 1;
+      continue;
+    }
+
+    if (fields.length !== 3 || !fields[0]) fail(relativePath, `unparseable header: ${header}`);
+    const type = fields.at(-2);
+    if (type !== 'blob') fail(relativePath, `declared type is not blob: ${header}`);
+    if (!/^\d+$/.test(last)) fail(relativePath, `invalid declared size: ${header}`);
+    const size = Number(last);
+    if (!Number.isSafeInteger(size) || size < 0) fail(relativePath, `invalid declared size: ${header}`);
+    const contentEnd = offset + size;
+    if (contentEnd >= stdout.length) fail(relativePath, `declared size runs past stdout: ${header}`);
+    if (stdout[contentEnd] !== 0x0a) fail(relativePath, `response has no trailing LF: ${header}`);
+    blobs.set(relativePath, Buffer.from(stdout.subarray(offset, contentEnd)));
+    offset = contentEnd + 1;
+    responseCount += 1;
+  }
+
+  if (responseCount !== relativePaths.length) {
+    fail(firstPath, `response count ${responseCount} differs from request count ${relativePaths.length}`);
+  }
+  if (offset !== stdout.length) fail(firstPath, `${stdout.length - offset} unconsumed stdout bytes`);
+  return blobs;
+}
+
+/** The committed bytes of a repo-relative path, or `null` when it is not committed yet. */
+export function committedBlob(relativePath: string): Buffer | null {
+  return committedBlobs([relativePath]).get(relativePath) ?? null;
 }
 
 export interface RegistryEntry {

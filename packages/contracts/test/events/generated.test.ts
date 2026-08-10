@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { GENERATED_DIR, committedGeneratedFiles, emit } from '../../src/events/codegen/emit.mjs';
-import { PACKAGE_ROOT, committedBlob } from './support/load.js';
+import { PACKAGE_ROOT, committedBlobs } from './support/load.js';
 
 const BANNER = '// GENERATED FROM schemas/events/** — DO NOT EDIT (PRD §20.1)';
 
@@ -31,6 +31,11 @@ function differences(expected: Map<string, string>, onDisk: Map<string, string>)
   }
   for (const path of onDisk.keys()) if (!expected.has(path)) problems.push(`stale: ${path}`);
   return problems;
+}
+
+/** The CR test the LF check runs. Shared with the control below so both exercise the same code. */
+function hasCr(blob: Buffer): boolean {
+  return blob.includes(0x0d);
 }
 
 function diskImage(): Map<string, string> {
@@ -113,15 +118,45 @@ describe('the committed tree matches the emitter (acceptance item 11)', () => {
     expect(differences(emitted, stale)).toEqual([`stale: ${GENERATED_DIR}/sse/v1/rogue.ts`]);
   });
 
-  it('stores every generated file as LF in the committed blob', () => {
-    let checked = 0;
-    for (const path of emitted.keys()) {
-      const blob = committedBlob(`packages/contracts/${path}`);
-      if (blob === null) continue; // first run on a fresh branch, before the commit
-      expect(blob.includes(0x0d), `${path} has CRLF in the committed blob`).toBe(false);
-      checked += 1;
-    }
-    expect(checked === 0 || checked === emitted.size).toBe(true);
+  it(
+    'stores every generated file as LF in the committed blob',
+    () => {
+      // FND-14: one `git cat-file --batch` process for all 13 paths. See committedBlobs() in
+      // support/load.ts for why one process per file is a defect here.
+      const paths = [...emitted.keys()];
+      const blobs = committedBlobs(paths.map((path) => `packages/contracts/${path}`));
+      let checked = 0;
+      for (const path of emitted.keys()) {
+        const blob = blobs.get(`packages/contracts/${path}`) ?? null;
+        if (blob === null) continue; // first run on a fresh branch, before the commit
+        expect(hasCr(blob), `${path} has CRLF in the committed blob`).toBe(false);
+        checked += 1;
+      }
+      expect(checked === 0 || checked === emitted.size).toBe(true);
+    },
+    // A process spawn's latency is governed by machine load, not by the work it does, so vitest's
+    // generic 5 s default is the wrong instrument here (FND-14). 30 s is ~150x the measured
+    // single-spawn cost under a 20-way CPU burn (200 ms) and still fails fast if the spawn hangs.
+    30_000,
+  );
+
+  it(
+    'reads a committed and a missing path in one batch (protocol control)',
+    () => {
+      const missing = 'packages/contracts/src/events/generated/zz-does-not-exist.ts';
+      const present = `packages/contracts/${GENERATED_DIR}/registry.ts`;
+      const requested = [missing, present]; // missing deliberately first
+      const blobs = committedBlobs(requested);
+      expect(blobs.size).toBe(requested.length);
+      expect(blobs.get(missing)).toBeNull();
+      expect(Buffer.isBuffer(blobs.get(present))).toBe(true);
+    },
+    30_000,
+  );
+
+  it('detects CR in a buffer (CR-detection control)', () => {
+    expect(hasCr(Buffer.from('a\r\nb', 'utf8'))).toBe(true);
+    expect(hasCr(Buffer.from('a\nb', 'utf8'))).toBe(false);
   });
 });
 
