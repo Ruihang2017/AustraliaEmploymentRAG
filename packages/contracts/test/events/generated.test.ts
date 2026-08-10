@@ -140,19 +140,18 @@ describe('the committed tree matches the emitter (acceptance item 11)', () => {
     30_000,
   );
 
-  it(
-    'reads a committed and a missing path in one batch (protocol control)',
-    () => {
-      const missing = 'packages/contracts/src/events/generated/zz-does-not-exist.ts';
-      const present = `packages/contracts/${GENERATED_DIR}/registry.ts`;
-      const requested = [missing, present]; // missing deliberately first
-      const blobs = committedBlobs(requested);
-      expect(blobs.size).toBe(requested.length);
-      expect(blobs.get(missing)).toBeNull();
-      expect(Buffer.isBuffer(blobs.get(present))).toBe(true);
-    },
-    30_000,
-  );
+  it('reads a committed and a missing path in one batch (protocol control)', () => {
+    // FND-14: this control runs in milliseconds — no spawn latency is under test here (that's
+    // the LF-check `it` above), so it keeps vitest's default 5 s timeout and stays a fast,
+    // unambiguous signal if a hanging spawn regresses the batch protocol.
+    const missing = 'packages/contracts/src/events/generated/zz-does-not-exist.ts';
+    const present = `packages/contracts/${GENERATED_DIR}/registry.ts`;
+    const requested = [missing, present]; // missing deliberately first
+    const blobs = committedBlobs(requested);
+    expect(blobs.size).toBe(requested.length);
+    expect(blobs.get(missing)).toBeNull();
+    expect(Buffer.isBuffer(blobs.get(present))).toBe(true);
+  });
 
   it('detects CR in a buffer (CR-detection control)', () => {
     expect(hasCr(Buffer.from('a\r\nb', 'utf8'))).toBe(true);
