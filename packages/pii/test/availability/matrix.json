@@ -1,0 +1,673 @@
+{
+  "basis": "PRD Sec10.1 final bullet; Sec36.8 last two rows; Sec34.9 GENERATION_UNAVAILABLE row; sub-PRD D5",
+  "rows": [
+    {
+      "id": "search--authoritative--no-switch",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "search--authoritative--switch-false",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "search--authoritative--switch-true",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "search--not-authoritative--no-switch",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "search--not-authoritative--switch-false",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "search--not-authoritative--switch-true",
+      "operation": "PUBLIC_LEGAL_SEARCH",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "ask--authoritative--no-switch",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "ask--authoritative--switch-false",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "ask--authoritative--switch-true",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": []
+      }
+    },
+    {
+      "id": "ask--not-authoritative--no-switch",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "ask--not-authoritative--switch-false",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "ask--not-authoritative--switch-true",
+      "operation": "FREE_TEXT_ASK",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "compare--authoritative--no-switch",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "compare--authoritative--switch-false",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "compare--authoritative--switch-true",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": []
+      }
+    },
+    {
+      "id": "compare--not-authoritative--no-switch",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "compare--not-authoritative--switch-false",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "compare--not-authoritative--switch-true",
+      "operation": "FREE_TEXT_COMPARE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "coverage--authoritative--no-switch",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "coverage--authoritative--switch-false",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "coverage--authoritative--switch-true",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": []
+      }
+    },
+    {
+      "id": "coverage--not-authoritative--no-switch",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "coverage--not-authoritative--switch-false",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "coverage--not-authoritative--switch-true",
+      "operation": "FREE_TEXT_COVERAGE",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "FAIL_CLOSED",
+        "errorCode": "GENERATION_UNAVAILABLE",
+        "httpStatus": 503,
+        "reason": "PII_DETECTION_UNAVAILABLE",
+        "affectedStages": [
+          "entity"
+        ]
+      }
+    },
+    {
+      "id": "saved-record--authoritative--no-switch",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "saved-record--authoritative--switch-false",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "saved-record--authoritative--switch-true",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "saved-record--not-authoritative--no-switch",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "saved-record--not-authoritative--switch-false",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "saved-record--not-authoritative--switch-true",
+      "operation": "SAVED_RECORD_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--authoritative--no-switch",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--authoritative--switch-false",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--authoritative--switch-true",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--not-authoritative--no-switch",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--not-authoritative--switch-false",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "existing-answer--not-authoritative--switch-true",
+      "operation": "EXISTING_ANSWER_READ",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--authoritative--no-switch",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--authoritative--switch-false",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--authoritative--switch-true",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "AUTHORITATIVE",
+        "affectedStages": []
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--not-authoritative--no-switch",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": null,
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--not-authoritative--switch-false",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": false
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    },
+    {
+      "id": "export-snapshot--not-authoritative--switch-true",
+      "operation": "EXPORT_OF_EXISTING_SNAPSHOT",
+      "availability": {
+        "state": "NOT_AUTHORITATIVE",
+        "affectedStages": [
+          "entity"
+        ]
+      },
+      "killSwitch": {
+        "piiDetection": true
+      },
+      "expect": {
+        "outcome": "PROCEED"
+      }
+    }
+  ]
+}

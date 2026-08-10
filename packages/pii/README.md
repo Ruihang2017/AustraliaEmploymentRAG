@@ -254,3 +254,41 @@ asserts that the ONLY decision changes are the twenty deferred cases, named by i
 The canary manifest `test/deterministic/corpora/canaries.json` gained a second key, `stageCanaries`,
 for the stage-4/6 paths — the same file, so `ASSR-03` reads one manifest and the two suites cannot
 drift.
+
+## The PRD Sec10.1 availability split (EVID-03)
+
+PRD Sec10.1 says: "If authoritative detection is unavailable, public legal search MAY continue but
+free-text Ask/Compare/Coverage MUST fail closed."
+
+| Operation | Detector availability | Decision |
+|---|---|---|
+| Public legal search | Not authoritative | Continue |
+| Free-text Ask | Not authoritative | Fail closed |
+| Free-text Compare | Not authoritative | Fail closed |
+| Free-text Coverage | Not authoritative | Fail closed |
+
+The Sec37.2 health inputs are `limits`, `deterministic`, `entity`, and `context`. PRD Sec10.1's
+"MUST combine" basis means there is no middle grade: all four must be `READY` for an
+`AUTHORITATIVE` result; one `DEGRADED` or `UNAVAILABLE` stage makes the result
+`NOT_AUTHORITATIVE`. This conservative rule is a writeback candidate for
+`docs/prd/12-evidence-safety/README.md` D5; EVID-03 does not edit that document.
+
+Three distinct causes map to `GENERATION_UNAVAILABLE` (503): `PII_DETECTION_UNAVAILABLE` is owned
+here, `BUDGET_UNAVAILABLE` belongs to EVID-08, and `PROVIDER_UNAVAILABLE` belongs to EVID-07. The
+reason remains distinct even though the public error code and status are shared.
+
+The probe is a contract, not a scheduler. It never scans sample text, opens no file or socket, and
+makes no network call. The host supplies observations and any transition timestamp.
+
+```ts
+import { DEFAULT_ENTITY_RECOGNISER } from './src/context/stages.js';
+import {
+  aggregateDetectorHealth,
+  createDetectorProbe,
+  decideOperationAdmission,
+} from './src/availability/index.js';
+
+const probe = createDetectorProbe(DEFAULT_ENTITY_RECOGNISER);
+const availability = aggregateDetectorHealth(probe.check());
+const decision = decideOperationAdmission('FREE_TEXT_ASK', availability);
+```
