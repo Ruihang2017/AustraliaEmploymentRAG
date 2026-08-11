@@ -46,12 +46,22 @@ If `node -v` does not report v24.18.0, do not run tests and do not interpret any
 2. **Delegate implementation to Codex** with a write sandbox, from the repo root:
 
    ```bash
-   codex exec -s workspace-write -m gpt-5.6-sol -c model_reasoning_effort=medium "<ticket spec + plan's change list + declared file-scope + acceptance criteria + the loaded file contents>"
+   codex exec -s workspace-write -m gpt-5.6-sol -c model_reasoning_effort=medium \
+     -c sandbox_workspace_write.exclude_tmpdir_env_var=true \
+     -c sandbox_workspace_write.exclude_slash_tmp=true \
+     "<ticket spec + plan's change list + declared file-scope + acceptance criteria + the loaded file contents>"
    ```
+
+   **Both `-c sandbox_workspace_write.exclude_*` flags are mandatory on every `codex exec` you run.** *Reason:* by default `workspace-write` declares two writable roots (workspace + `%TEMP%`), and the unelevated restricted-token Windows sandbox on this machine cannot enforce a split root set, so it refuses to run. Codex then falls back to piping patch text through PowerShell, which rewrites line endings and makes `apply_patch` reject the patch — each rejection re-sends full context. Dropping `%TEMP%` collapses the root set to one, the sandbox enforces it, and Codex's native patch binding takes the patch as a string that never touches a shell. Measured on the same workload: 4–10 `apply_patch` failures and ~0.5–1.0M input tokens without the flags, 0 failures and ~150K with them. Keep these as per-invocation `-c` flags — never write them into `~/.codex/config.toml`, which is the human's interactive Codex.
+
+   Two consequences of the narrowed sandbox:
+
+   - **Codex has no `%TEMP%` scratch space.** The workspace stays writable; a step that writes to `%TEMP%` or `/tmp` is now blocked. If something genuinely needs a temp directory, point it at a path inside the workspace.
+   - **`node --test` cannot spawn its per-file child processes in the sandbox** (`spawn EPERM`). When Codex runs `node --test` itself, it must pass `--test-isolation=none`. This applies only inside the Codex sandbox — your own test runs (step 4) are unsandboxed and keep the pinned-PATH commands above unchanged.
 
    `codex` is at `C:\Users\HoraceHou\AppData\Local\Programs\OpenAI\Codex\bin\codex`. Use `-C <dir>` if you must run from elsewhere. The prompt must state the file-scope as a hard boundary Codex may not leave.
 3. **Verify the diff scope** (see hard constraint 2) before you run anything.
-4. **Run the tests yourself** after Codex returns — unit and integration always, E2E where the ticket's acceptance requires it — and iterate until green. Codex may be re-invoked with the failing output as context. Testing is your job, not the human's, and not Codex's self-report.
+4. **Run the tests yourself** after Codex returns — unit and integration always, E2E where the ticket's acceptance requires it — and iterate until green. Codex may be re-invoked with the failing output as context — with the same full flag set as step 2. Testing is your job, not the human's, and not Codex's self-report.
 5. Where reality forces a departure from the plan, depart — and record it in a **Deviations** note (what changed, why).
 6. Finish with: a diff summary, the **actual** test output (never "should pass"), the Deviations note, and the Codex invocations you made.
 
