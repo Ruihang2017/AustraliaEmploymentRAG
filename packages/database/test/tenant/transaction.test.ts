@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { crossTenantElevatedContext, systemContext } from '../../src/tenant/context.js';
 import { TenantAccessError } from '../../src/tenant/errors.js';
 import { defineTenantRepository } from '../../src/tenant/repository.js';
-import { withTenantTransaction } from '../../src/tenant/transaction.js';
+import { withSystemTransaction, withTenantTransaction } from '../../src/tenant/transaction.js';
 import {
   CHILD_SPEC,
   ORG_A,
@@ -150,10 +150,10 @@ describe('withTenantTransaction — one organisation per transaction (PRD §21.2
     });
   });
 
-  it('refuses a systemContext outright', async () => {
+  it('refuses a systemContext outright, and says where GLOBAL writes go', async () => {
     await withTenantDatabase(({ db }) => {
       expect(() => withTenantTransaction(db, systemContext('GLOBAL', 'req-1'), () => 1)).toThrow(
-        /cannot open a tenant transaction/,
+        /cannot open a tenant transaction.*withSystemTransaction/,
       );
     });
   });
@@ -215,6 +215,78 @@ describe('withTenantTransaction — nesting uses savepoints', () => {
         }),
       ).toThrow(/outer failed/);
       expect(countRows(db, 't_parent')).toBe(0);
+    });
+  });
+});
+
+describe('withSystemTransaction — the GLOBAL half (PRD §35.6)', () => {
+  it('refuses a tenant context and points at the tenant entry point', async () => {
+    await withTenantDatabase(({ db }) => {
+      expect(() => withSystemTransaction(db, contextFor(ORG_A), () => 1)).toThrow(
+        /takes a systemContext/,
+      );
+      try {
+        withSystemTransaction(db, contextFor(ORG_A), () => 1);
+      } catch (error) {
+        expect((error as TenantAccessError).code).toBe('SCOPE_MISMATCH');
+      }
+    });
+  });
+
+  it('refuses a forged context and a missing callback like its tenant twin', async () => {
+    await withTenantDatabase(({ db }) => {
+      const forged = { ...systemContext('GLOBAL', 'req-1') };
+      expect(() => withSystemTransaction(db, forged, () => 1)).toThrow(TenantAccessError);
+      const run = withSystemTransaction as unknown as (a: unknown, b: unknown, c: unknown) => unknown;
+      expect(() => run(db, systemContext('GLOBAL', 'req-1'), undefined)).toThrow(
+        /withSystemTransaction\(\) needs a callback/,
+      );
+    });
+  });
+
+  it('nests system transactions on savepoints', async () => {
+    await withTenantDatabase(({ db }) => {
+      const ctx = systemContext('GLOBAL', 'req-1');
+      const result = withSystemTransaction(db, ctx, () =>
+        withSystemTransaction(db, ctx, () => 'inner'),
+      );
+      expect(result).toBe('inner');
+    });
+  });
+
+  it('never nests across the scope boundary, in either direction', async () => {
+    await withTenantDatabase(({ db }) => {
+      const system = systemContext('GLOBAL', 'req-1');
+      expect(() =>
+        withTenantTransaction(db, contextFor(ORG_A), () =>
+          withSystemTransaction(db, system, () => 'inner'),
+        ),
+      ).toThrow(/cannot nest/);
+      expect(() =>
+        withSystemTransaction(db, system, () =>
+          withTenantTransaction(db, contextFor(ORG_A), () => 'inner'),
+        ),
+      ).toThrow(/cannot nest/);
+    });
+  });
+
+  it('does not let an elevation bridge the scope boundary', async () => {
+    // Elevation is a cross-organisation grant (PRD §21.2). It must not read as permission to mix a
+    // GLOBAL unit of work with a tenant one.
+    await withTenantDatabase(({ db }) => {
+      const elevated = crossTenantElevatedContext({
+        organizationId: ORG_B,
+        actorId: 'support-1',
+        reason: 'incident triage',
+        incidentId: 'INC-42',
+        recentAuthAt: Date.now(),
+        requestId: 'req-1',
+      });
+      expect(() =>
+        withSystemTransaction(db, systemContext('GLOBAL', 'req-1'), () =>
+          withTenantTransaction(db, elevated, () => 'inner'),
+        ),
+      ).toThrow(/cannot nest/);
     });
   });
 });

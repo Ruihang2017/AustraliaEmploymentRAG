@@ -50,7 +50,7 @@ export { assertTenantScoped } from './scoped-sql.js';
 export { tenantForeignKey, tenantUnique } from './keys.js';
 export type { TenantForeignKey, TenantForeignKeySpec } from './keys.js';
 
-export { withTenantTransaction } from './transaction.js';
+export { withSystemTransaction, withTenantTransaction } from './transaction.js';
 export type { Tx } from './tx-internal.js';
 
 export {

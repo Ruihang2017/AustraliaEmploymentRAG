@@ -61,6 +61,21 @@ void immutable.delete;
 // Inserting into an append-only table is the whole point of append-only, so it stays.
 void appendOnly.insert;
 
+// A GLOBAL table (PRD §35.6 `detected_change`) is append-only and system-scoped, and it is
+// *writable*: `insert` is on the type, and `withSystemTransaction` is what makes it reachable at
+// runtime — see `transaction.ts` and `test/tenant/repository.test.ts`.
+const GLOBAL_SPEC = {
+  name: 't_global',
+  scope: 'GLOBAL',
+  mutability: 'APPEND_ONLY',
+  requiredColumns: ['id'],
+} satisfies TableSpec;
+const global = defineTenantRepository({ table: 't_global', spec: GLOBAL_SPEC }).for(db, ctx);
+void global.insert;
+void global.get;
+// @ts-expect-error a GLOBAL append-only table exposes no `update` either.
+void global.update;
+
 // A definition carries no query surface at all: the only way to a callable is `.for(db, ctx)`.
 const definition = defineTenantRepository({ table: 't_parent', spec: MUTABLE_SPEC });
 // @ts-expect-error a definition has no `get`; there is no context to scope it to yet.

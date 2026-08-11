@@ -13,13 +13,26 @@
  * transaction. `fn` therefore returns `T`, not `Promise<T>`, and a thenable return value is rejected
  * explicitly rather than silently producing that race.
  *
- * # Signature note (deviation, disclosed)
+ * # Why the connection is an argument
  *
- * The ticket writes this as `withTenantTransaction(ctx, fn)`. It takes the `AppDatabaseHandle` as a
- * first argument instead. There is no ambient connection to find one from — deliberately, per
- * deliverable 1, which makes the connection package-private and *not* a module-level singleton — so a
- * two-argument form would have to reintroduce exactly the global handle the ticket exists to abolish.
- * The handle is unreachable outside this package, so this adds no surface.
+ * `withTenantTransaction(db, ctx, fn)`, not `(ctx, fn)`: there is no ambient connection to find one
+ * from — deliberately, per deliverable 1, which makes the connection package-private and *not* a
+ * module-level singleton — so a two-argument form would have to reintroduce exactly the global handle
+ * the ticket exists to abolish. The handle is unreachable outside this package, so this adds no
+ * surface. Ticket deliverable 6 and sub-PRD **D12** carry the decision (ticket amendment 2026-08-11).
+ *
+ * # Two entry points, because there are two scopes
+ *
+ * A `TENANT` table is written through {@link withTenantTransaction} and a `GLOBAL` one (PRD §35.6
+ * `detected_change`) through {@link withSystemTransaction}. They share all their machinery and differ
+ * only in which context they accept — but both must exist, because a `systemContext` cannot be
+ * admitted to a tenant transaction (it has no organisation, so "one organisation per transaction" is
+ * unenforceable for it) and a `GLOBAL` repository's `insert` requires *some* transaction. Without the
+ * second entry point that `insert` is a member that exists on the type and at runtime and can never
+ * succeed, which is what review round 1 found.
+ *
+ * The two never nest inside one another, and an elevation does not bridge them: elevation is a
+ * cross-*organisation* grant (PRD §21.2), not a cross-*scope* one.
  */
 import { APP_SQLITE_BUSY_TIMEOUT_MS } from '../migrate/pragmas.js';
 import type { AppDatabaseHandle } from './connection.js';
@@ -105,14 +118,51 @@ export function withTenantTransaction<T>(
   assertTenantContext(ctx);
   if (isSystemContext(ctx)) {
     // A system context has no organisation, so "one organisation per transaction" is unenforceable
-    // for it and every write inside would be unscoped. GLOBAL tables are written outside this helper.
+    // for it and every tenant write inside would be unscoped. GLOBAL tables have their own entry
+    // point (`withSystemTransaction`) rather than a relaxation of this one.
     throw new TenantAccessError(
       'SCOPE_MISMATCH',
-      'systemContext() cannot open a tenant transaction; GLOBAL tables are not tenant-scoped',
+      'systemContext() cannot open a tenant transaction; GLOBAL tables use withSystemTransaction()',
     );
   }
+  return enterTransaction(db, ctx, fn, 'withTenantTransaction');
+}
+
+/**
+ * Runs `fn` inside one transaction held by a {@link systemContext}, for `GLOBAL`-scoped tables.
+ *
+ * PRD §35.6 calls `detected_change` "a global public-source event, not tenant content": it has no
+ * `organization_id` to scope to, so the tenant entry point cannot accept it and a `GLOBAL`
+ * repository's `insert` would otherwise have no reachable transaction. Everything else — savepoint
+ * nesting, pre-commit invariants, `SQLITE_BUSY` handling, the opaque handle — is identical.
+ *
+ * A tenant context is refused here for the mirror-image reason it is refused by the repository
+ * factory: a transaction whose scope disagrees with its writes is exactly the confusion this layer
+ * exists to make impossible.
+ */
+export function withSystemTransaction<T>(
+  db: AppDatabaseHandle,
+  ctx: TenantContext,
+  fn: (tx: Tx) => T,
+): T {
+  assertTenantContext(ctx);
+  if (!isSystemContext(ctx)) {
+    throw new TenantAccessError(
+      'SCOPE_MISMATCH',
+      'withSystemTransaction() takes a systemContext(); a tenant context uses withTenantTransaction()',
+    );
+  }
+  return enterTransaction(db, ctx, fn, 'withSystemTransaction');
+}
+
+function enterTransaction<T>(
+  db: AppDatabaseHandle,
+  ctx: TenantContext,
+  fn: (tx: Tx) => T,
+  entryPoint: string,
+): T {
   if (typeof fn !== 'function') {
-    throw new TenantAccessError('INVALID_SPEC', 'withTenantTransaction() needs a callback');
+    throw new TenantAccessError('INVALID_SPEC', `${entryPoint}() needs a callback`);
   }
 
   const outer = openTransactions.get(db);
@@ -198,6 +248,15 @@ function runNested<T>(outer: InternalTx, ctx: TenantContext, fn: (tx: Tx) => T):
  * exception the PRD names.
  */
 function assertSameOrganization(outer: InternalTx, ctx: TenantContext): void {
+  if (isSystemContext(outer.ctx) !== isSystemContext(ctx)) {
+    // Checked before the elevation escape below: an elevation is a cross-*organisation* grant, and
+    // must never be readable as permission to mix a GLOBAL scope with a tenant one.
+    throw new TenantAccessError(
+      'SCOPE_MISMATCH',
+      'a system transaction and a tenant transaction cannot nest; GLOBAL and TENANT writes are ' +
+        'separate units of work',
+    );
+  }
   if (outer.ctx.organizationId === ctx.organizationId) return;
   if (ctx.elevation !== undefined || outer.ctx.elevation !== undefined) return;
   throw new TenantAccessError(

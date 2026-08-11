@@ -208,6 +208,17 @@ function run(
 
 function requireWriteTx(binding: Binding, tx: Tx, operation: string): void {
   const internal = requireOpenTx(tx, binding.db);
+  if (isSystemContext(internal.ctx) !== isSystemContext(binding.ctx)) {
+    // Scope before organisation: comparing a real org id against the system sentinel would report
+    // "elevation required", which is wrong and, worse, suggests an elevation would fix it. Nothing
+    // bridges the two scopes — a GLOBAL table is written inside withSystemTransaction() and a TENANT
+    // table inside withTenantTransaction().
+    throw new TenantAccessError(
+      'SCOPE_MISMATCH',
+      `${binding.table}: a ${binding.scoped ? 'TENANT' : 'GLOBAL'}-scoped ${operation} needs ` +
+        `${binding.scoped ? 'withTenantTransaction()' : 'withSystemTransaction()'}`,
+    );
+  }
   if (internal.ctx.organizationId === binding.ctx.organizationId) return;
   if (binding.ctx.elevation !== undefined || internal.ctx.elevation !== undefined) return;
   emitTenantAudit({

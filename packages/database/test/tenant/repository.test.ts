@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { defineTenantRepository } from '../../src/tenant/repository.js';
 import { systemContext } from '../../src/tenant/context.js';
 import { TenantAccessError } from '../../src/tenant/errors.js';
-import { withTenantTransaction } from '../../src/tenant/transaction.js';
+import { withSystemTransaction, withTenantTransaction } from '../../src/tenant/transaction.js';
 import {
   CHILD_SPEC,
   GLOBAL_SPEC,
@@ -187,6 +187,77 @@ describe('repository reads and writes', () => {
       const repo = global.for(db, ctx);
       db.sqlite.prepare('INSERT INTO t_global (id, source) VALUES (?, ?)').run('g1', 'gazette');
       expect(repo.get('g1')).toMatchObject({ id: 'g1', source: 'gazette' });
+    });
+  });
+});
+
+/**
+ * Review round 1 found the GLOBAL write path unreachable: every insert requires a `Tx`, and the only
+ * transaction entry point refused a `systemContext` outright — so `insert` existed on the type and at
+ * runtime and could never succeed. `withSystemTransaction` is the fix; these are its regression tests.
+ * `DATA-06` writes `detected_change` (PRD §35.6) through exactly this path.
+ */
+describe('GLOBAL repositories are writable (PRD §35.6, ticket amendment 2026-08-11)', () => {
+  it('inserts through withSystemTransaction and reads the row back', async () => {
+    await withTenantDatabase(({ db }) => {
+      const ctx = systemContext('GLOBAL', 'req-1');
+      const repo = global.for(db, ctx);
+
+      const inserted = withSystemTransaction(db, ctx, (tx) =>
+        repo.insert(tx, { id: 'g1', source: 'gazette' }),
+      );
+
+      expect(inserted).toMatchObject({ id: 'g1', source: 'gazette' });
+      expect(repo.get('g1')).toMatchObject({ id: 'g1', source: 'gazette' });
+      expect(repo.list()).toHaveLength(1);
+    });
+  });
+
+  it('rolls a GLOBAL write back when the callback throws', async () => {
+    await withTenantDatabase(({ db }) => {
+      const ctx = systemContext('GLOBAL', 'req-1');
+      const repo = global.for(db, ctx);
+      expect(() =>
+        withSystemTransaction(db, ctx, (tx) => {
+          repo.insert(tx, { id: 'g1', source: 'gazette' });
+          throw new Error('detection aborted');
+        }),
+      ).toThrow(/detection aborted/);
+      expect(repo.find('g1')).toBeUndefined();
+    });
+  });
+
+  it('refuses a GLOBAL write inside a tenant transaction', async () => {
+    await withTenantDatabase(({ db }) => {
+      const repo = global.for(db, systemContext('GLOBAL', 'req-1'));
+      const tenant = contextFor(ORG_A);
+      withTenantTransaction(db, tenant, (tx) => {
+        try {
+          repo.insert(tx, { id: 'g1', source: 'gazette' });
+          expect.unreachable('a GLOBAL insert must not run inside a tenant transaction');
+        } catch (error) {
+          // Not ELEVATION_REQUIRED: an elevation is a cross-organisation grant and would not — must
+          // not — make this succeed.
+          expect((error as TenantAccessError).code).toBe('SCOPE_MISMATCH');
+          expect((error as Error).message).toMatch(/withSystemTransaction/);
+        }
+      });
+    });
+  });
+
+  it('refuses a TENANT write inside a system transaction', async () => {
+    await withTenantDatabase(({ db }) => {
+      const tenant = contextFor(ORG_A);
+      const repo = parent.for(db, tenant);
+      withSystemTransaction(db, systemContext('GLOBAL', 'req-1'), (tx) => {
+        try {
+          repo.insert(tx, { id: 'p1', label: 'first' });
+          expect.unreachable('a TENANT insert must not run inside a system transaction');
+        } catch (error) {
+          expect((error as TenantAccessError).code).toBe('SCOPE_MISMATCH');
+          expect((error as Error).message).toMatch(/withTenantTransaction/);
+        }
+      });
     });
   });
 });
