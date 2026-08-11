@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./migrate": "./src/migrate/index.ts",
+    "./crypto": "./src/crypto/index.ts",
+    "./tenant": "./src/tenant/index.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -13,7 +19,8 @@
     "db:new": "node src/migrate/cli.mjs new"
   },
   "dependencies": {
-    "better-sqlite3": "13.0.3"
+    "better-sqlite3": "13.0.3",
+    "kysely": "0.29.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "9.6.0"
