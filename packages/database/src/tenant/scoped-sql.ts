@@ -20,51 +20,78 @@
  * written to be hard to fool rather than to be a SQL semantic analyser.
  *
  * Three concrete bypasses it is written against, each with a test:
- *   (a) the predicate appears only inside a string literal or a `--` comment;
+ *   (a) the predicate appears only inside a string literal, a quoted identifier, or a `--` comment;
  *   (b) the bound value is positionally wrong but coincidentally equal to some other bound value;
  *   (c) a multi-statement string where only the first statement is scoped.
+ *
+ * Bypass (a) covers double quotes, backticks and brackets as well as single quotes (review round 2).
+ * In SQLite a double-quoted token that resolves to no column is *silently* treated as a string
+ * literal, so `WHERE "organization_id = ?" IS NOT NULL` is the same class of input as the single-quoted
+ * form — and a `?` inside such a token is part of the token, not a bind parameter, so counting it
+ * would misalign the placeholder arithmetic the whole check rests on.
  */
 import { emitTenantAudit } from './audit.js';
 import type { TenantContext } from './context.js';
 import { TenantAccessError } from './errors.js';
 
+/** The closing delimiter for each opening one SQLite accepts around a token. */
+const QUOTE_CLOSE: Readonly<Record<string, string>> = { "'": "'", '"': '"', '`': '`', '[': ']' };
+
 /**
- * Blanks comments and string-literal *contents* while preserving every source offset.
+ * Blanks comments and quoted-token *contents* while preserving every source offset.
  *
  * Offsets must survive because the placeholder index is derived by counting `?` up to the
  * predicate's position — bypass (b). Blanking rather than deleting keeps that arithmetic honest.
+ *
+ * Every quoting form is blanked, not only `'…'`: SQLite silently degrades a double-quoted token that
+ * matches no column into a string literal, so `"organization_id = ?"` is a literal wearing a
+ * predicate's clothes. The single exception is a token whose content is *exactly* `organization_id`
+ * — the legitimate quoted spelling of the column, and the one Kysely emits — which is passed through
+ * verbatim so the predicate regex can still see it. Anything else inside the quotes, `?` included,
+ * becomes blanks; a `?` inside a quoted token is part of the token and never a bind parameter, so
+ * blanking it is also what keeps the placeholder count equal to the driver's.
+ *
+ * An unterminated quote is blanked to the end of the string: a statement that cannot be tokenised is
+ * not a statement this layer will vouch for, and failing closed here means the predicate disappears.
  */
 function blankLiteralsAndComments(sql: string): string {
   let out = '';
   let i = 0;
   const blank = (ch: string): string => (ch === '\n' || ch === '\r' ? ch : ' ');
+  const blankAll = (text: string): string => [...text].map(blank).join('');
 
   while (i < sql.length) {
     const ch = sql[i] as string;
 
-    if (ch === "'" || ch === '"' || ch === '`') {
-      // Single quotes are literals; double quotes and backticks are quoted identifiers in SQLite,
-      // but blanking their contents is still right here: an identifier literally named
-      // `organization_id` in quotes is handled by the predicate regex, which accepts the quotes.
-      const quote = ch;
-      out += quote === "'" ? ' ' : quote;
-      i += 1;
-      while (i < sql.length) {
-        if (sql[i] !== quote) {
-          out += quote === "'" ? blank(sql[i] as string) : (sql[i] as string);
-          i += 1;
+    const closer = QUOTE_CLOSE[ch];
+    if (closer !== undefined) {
+      const open = ch;
+      // Locate the end of the token, honouring the doubled-delimiter escape (`''`, `""`, ` `` `).
+      let j = i + 1;
+      let end: number | undefined;
+      while (j < sql.length) {
+        if (sql[j] !== closer) {
+          j += 1;
           continue;
         }
-        out += quote === "'" ? ' ' : quote;
-        i += 1;
-        if (sql[i] === quote) {
-          // Doubled quote — an escaped quote inside the literal, not its end.
-          out += quote === "'" ? ' ' : quote;
-          i += 1;
+        if (open !== '[' && sql[j + 1] === closer) {
+          j += 2;
           continue;
         }
+        end = j;
         break;
       }
+      const stop = end ?? sql.length;
+      const content = sql.slice(i + 1, stop);
+      const keepDelimiters = open !== "'";
+      if (keepDelimiters && end !== undefined && content.toLowerCase() === 'organization_id') {
+        out += open + content + closer;
+      } else {
+        out += keepDelimiters && end !== undefined ? open : ' ';
+        out += blankAll(content);
+        if (end !== undefined) out += keepDelimiters ? closer : ' ';
+      }
+      i = end === undefined ? sql.length : end + 1;
       continue;
     }
 
@@ -97,12 +124,26 @@ function blankLiteralsAndComments(sql: string): string {
   return out;
 }
 
+/**
+ * The column, bare or quoted — and the quotes must *bracket* it, not merely neighbour it.
+ *
+ * The earlier `["`[]?organization_id["`\]]?` accepted a half-quoted spelling, which after blanking is
+ * the tail of some other token rather than a column reference. Requiring balanced delimiters means the
+ * only things that match are the four real spellings.
+ */
+const ORG_COLUMN = '(?:"organization_id"|`organization_id`|\\[organization_id\\]|organization_id)';
+/** An optional `table.` qualifier, itself bare or quoted (its content is blanked by then). */
+const QUALIFIER = '(?:(?:"[^"]*"|`[^`]*`|\\[[^\\]]*\\]|\\w+)\\s*\\.\\s*)?';
+/** Nothing may run into the column name from the left: `my_organization_id` is a different column. */
+const LEFT_EDGE = '(?<![A-Za-z0-9_])';
+
 /** `organization_id = ?`, allowing a quoted identifier and an optional table qualifier. */
-const SCOPE_PREDICATE =
-  /(?:[\w"`[\]]+\s*\.\s*)?["`[]?organization_id["`\]]?\s*=\s*\?/i;
+const SCOPE_PREDICATE = new RegExp(`${LEFT_EDGE}${QUALIFIER}${ORG_COLUMN}\\s*=\\s*\\?`, 'i');
 /** The reversed spelling, `? = organization_id`, which is equally valid SQL. */
-const SCOPE_PREDICATE_REVERSED =
-  /\?\s*=\s*(?:[\w"`[\]]+\s*\.\s*)?["`[]?organization_id["`\]]?/i;
+const SCOPE_PREDICATE_REVERSED = new RegExp(
+  `\\?\\s*=\\s*${LEFT_EDGE}${QUALIFIER}${ORG_COLUMN}`,
+  'i',
+);
 
 /** Which `?` (0-based) sits at `position` in the blanked SQL. */
 function placeholderIndexAt(code: string, position: number): number {

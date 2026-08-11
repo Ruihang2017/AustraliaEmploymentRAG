@@ -44,6 +44,15 @@ describe('assertTenantScoped — accepts a correctly scoped statement', () => {
     expect(() =>
       assertTenantScoped('select * from t where ? = organization_id', [ORG_A], ctx),
     ).not.toThrow();
+    expect(() =>
+      assertTenantScoped('select * from t where `organization_id` = ?', [ORG_A], ctx),
+    ).not.toThrow();
+    expect(() =>
+      assertTenantScoped('select * from t where [organization_id] = ?', [ORG_A], ctx),
+    ).not.toThrow();
+    expect(() =>
+      assertTenantScoped('select * from t where "t"."organization_id" = ?', [ORG_A], ctx),
+    ).not.toThrow();
   });
 
   it('accepts an INSERT that binds organization_id', () => {
@@ -85,6 +94,70 @@ describe('assertTenantScoped — rejections', () => {
     expect(
       codeOf(() =>
         assertTenantScoped("select * from t where label = 'organization_id = ?'", [ORG_A], ctx),
+      ),
+    ).toBe('UNSCOPED_STATEMENT');
+  });
+
+  it('rejects a predicate that exists only inside a quoted identifier (bypass a, review round 2)', () => {
+    // SQLite silently treats a double-quoted token that resolves to no column as a string literal, so
+    // this statement carries no tenant predicate at all — and the `?` inside the token is part of the
+    // token, not a bind parameter, so accepting it would also have validated the wrong bind.
+    expect(
+      codeOf(() =>
+        assertTenantScoped(
+          'select * from t where "organization_id = ?" is not null and label = ?',
+          [ORG_A],
+          ctx,
+        ),
+      ),
+    ).toBe('UNSCOPED_STATEMENT');
+    expect(
+      codeOf(() =>
+        assertTenantScoped('select * from t where `organization_id = ?` is not null', [ORG_A], ctx),
+      ),
+    ).toBe('UNSCOPED_STATEMENT');
+    expect(
+      codeOf(() =>
+        assertTenantScoped('select * from t where [organization_id = ?] is not null', [ORG_A], ctx),
+      ),
+    ).toBe('UNSCOPED_STATEMENT');
+    // The same shape as an INSERT column name.
+    expect(
+      codeOf(() =>
+        assertTenantScoped('insert into t ("id", "organization_id, x") values (?, ?)', ['p1', ORG_A], ctx),
+      ),
+    ).toBe('UNSCOPED_STATEMENT');
+  });
+
+  it('counts a ? inside a quoted token as part of the token, not as a placeholder', () => {
+    // The real predicate binds parameter index 1. If the `?` inside the quoted identifier were
+    // counted, the check would look at index 2 (out of range) or at `'p1'` and reject a legitimate
+    // statement — the arithmetic blanking exists to protect.
+    expect(() =>
+      assertTenantScoped(
+        'select * from t where "an odd ? column" = ? and "organization_id" = ?',
+        ['p1', ORG_A],
+        ctx,
+      ),
+    ).not.toThrow();
+    expect(
+      codeOf(() =>
+        assertTenantScoped(
+          'select * from t where "an odd ? column" = ? and "organization_id" = ?',
+          [ORG_A, 'p1'],
+          ctx,
+        ),
+      ),
+    ).toBe('ORGANIZATION_MISMATCH');
+  });
+
+  it('rejects a half-quoted or run-together spelling of the column', () => {
+    expect(
+      codeOf(() => assertTenantScoped('select * from t where my_organization_id = ?', [ORG_A], ctx)),
+    ).toBe('UNSCOPED_STATEMENT');
+    expect(
+      codeOf(() =>
+        assertTenantScoped('select * from t where id = ? and "unterminated', ['p1'], ctx),
       ),
     ).toBe('UNSCOPED_STATEMENT');
   });
