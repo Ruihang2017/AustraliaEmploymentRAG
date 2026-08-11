@@ -159,7 +159,15 @@ export function loadKeyRegistry(config: unknown): KeyRegistry {
   return registry;
 }
 
-/** Package-private: used by the cipher and deliberately omitted from the public barrel. */
+/**
+ * Package-private: used by the cipher and deliberately omitted from the public barrel
+ * (`src/crypto/index.ts`), which is asserted by `envelope.test.ts`. Because `@taxrag/database`
+ * publishes no `exports` map yet, a workspace consumer could still deep-import this file directly
+ * (`.../src/crypto/keys.js`) and reach the live derived key `Buffer`. That is a conscious residual
+ * gap, not an oversight: closing it means adding a package `exports` map for the whole package,
+ * which is outside this ticket's file-scope. Tracked as a follow-up for the package-exports
+ * boundary; do not "fix" it here by re-exporting or hiding this function differently.
+ */
 export function internalKeyBytes(registry: KeyRegistry, keyId: string): Buffer {
   registry.keyById(keyId);
   const access = INTERNAL_KEYS.get(registry);
