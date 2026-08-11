@@ -283,27 +283,21 @@ function assertInsertStatement(
 /**
  * Throws unless `sql` is tenant-scoped to `ctx`.
  *
- * @param scopeIndex when the caller *built* the predicate it can say which parameter it bound;
- * the check then proves the predicate exists and that this exact binding matches, instead of
- * re-deriving the binding by counting placeholders. The repository always passes it; a hand-written
- * statement usually cannot, and takes the counting path.
+ * There used to be a `scopeIndex` fast path: a caller that built the predicate itself could name which
+ * parameter it bound, skipping the derivation below. It was removed (review round 2, finding 1) because
+ * it never tied the *index it was given* to the predicate this function actually found — it proved a
+ * scope predicate exists somewhere, and separately that some unrelated parameter equals the context's
+ * organisation id, which a statement like
+ * `select * from t where label = ? and organization_id = ?` with `scopeIndex: 0` could satisfy by
+ * accident (`label` merely happening to hold the org id) without the predicate at index 0 being scoped
+ * at all. Nothing in this package ever called the four-argument form — `repository.ts`'s single call
+ * site always took the counting path below — so the fix is deletion, not a repair: the derivation here
+ * already computes the placeholder index *from the predicate it matched*, which is the property the
+ * removed fast path claimed to have without actually enforcing it.
  */
-export function assertTenantScoped(
-  sql: string,
-  parameters: readonly unknown[],
-  ctx: TenantContext,
-  scopeIndex?: number,
-): void {
+export function assertTenantScoped(sql: string, parameters: readonly unknown[], ctx: TenantContext): void {
   const code = blankLiteralsAndComments(sql);
   assertSingleStatement(code, ctx);
-
-  if (scopeIndex !== undefined) {
-    if (scopePlaceholderPosition(code, 0) === undefined) {
-      reject('UNSCOPED_STATEMENT', 'the statement has no bound organization_id predicate', ctx);
-    }
-    assertBoundOrganization(parameters, scopeIndex, ctx);
-    return;
-  }
 
   if (/^\s*(?:select|update|delete)\b/i.test(code)) {
     assertPredicateStatement(code, parameters, ctx);

@@ -242,19 +242,18 @@ describe('assertTenantScoped — rejections', () => {
     );
   });
 
-  it('honours an explicit scopeIndex without trusting it blindly', () => {
-    // The predicate must still exist; naming an index does not excuse an unscoped statement.
-    expect(codeOf(() => assertTenantScoped('select * from t where id = ?', [ORG_A], ctx, 0))).toBe(
-      'UNSCOPED_STATEMENT',
-    );
+  it('review round 2, finding 1: an unrelated parameter coincidentally equal to the org id no longer passes', () => {
+    // Regression for the removed `scopeIndex` fast path. It used to prove *a* scope predicate exists
+    // anywhere in the statement and, independently, that *some* named parameter equals the context's
+    // organisation id — so `label = ? and organization_id = ?` with `label` bound to org A's own id
+    // was ACCEPTED for a query actually reading org B's row, because parameter 0 (label) happened to
+    // equal the context organisation. The counting path ties the placeholder index to the predicate it
+    // actually matched, so this must now be refused as a mismatch, not silently accepted.
     expect(
       codeOf(() =>
-        assertTenantScoped('select * from t where organization_id = ? and id = ?', [ORG_B, 'p'], ctx, 0),
+        assertTenantScoped('select * from t where label = ? and organization_id = ?', [ORG_A, ORG_B], ctx),
       ),
     ).toBe('ORGANIZATION_MISMATCH');
-    expect(() =>
-      assertTenantScoped('select * from t where organization_id = ? and id = ?', [ORG_A, 'p'], ctx, 0),
-    ).not.toThrow();
   });
 
   it('emits an audit event on every rejection', () => {
