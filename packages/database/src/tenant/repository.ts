@@ -220,7 +220,11 @@ function requireWriteTx(binding: Binding, tx: Tx, operation: string): void {
     );
   }
   if (internal.ctx.organizationId === binding.ctx.organizationId) return;
-  if (binding.ctx.elevation !== undefined || internal.ctx.elevation !== undefined) return;
+  // The elevation must be *this* repository's context's own — the party joining someone else's
+  // transaction. The transaction owner's grant was audited for the owner and their organisation, and
+  // must not read as permission for unaudited work from another organisation to ride along inside it
+  // (review round 2, finding 3; same rule as `assertSameOrganization`).
+  if (binding.ctx.elevation !== undefined) return;
   emitTenantAudit({
     event: 'CROSS_TENANT_ACCESS_REFUSED',
     actorId: binding.ctx.actorId,

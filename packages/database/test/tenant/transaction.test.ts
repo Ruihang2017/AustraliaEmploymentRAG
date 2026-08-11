@@ -150,6 +150,70 @@ describe('withTenantTransaction — one organisation per transaction (PRD §21.2
     });
   });
 
+  it('refuses an unelevated context joining an elevated transaction', async () => {
+    // Review round 2, finding 3. The grant was audited for one operator against one organisation. If
+    // *either* side's elevation sufficed, ordinary unaudited org-A work could be composed into a
+    // break-glass org-B transaction and committed atomically with it, under someone else's grant.
+    await withTenantDatabase(({ db }) => {
+      const elevated = crossTenantElevatedContext({
+        organizationId: ORG_B,
+        actorId: 'support-1',
+        reason: 'incident triage',
+        incidentId: 'INC-42',
+        recentAuthAt: Date.now(),
+        requestId: 'req-1',
+      });
+      expect(() =>
+        withTenantTransaction(db, elevated, () =>
+          withTenantTransaction(db, contextFor(ORG_A), () => 'inner'),
+        ),
+      ).toThrow(/elevation of its own/);
+      try {
+        withTenantTransaction(db, elevated, () =>
+          withTenantTransaction(db, contextFor(ORG_A), () => 'inner'),
+        );
+      } catch (error) {
+        expect((error as TenantAccessError).code).toBe('ELEVATION_REQUIRED');
+      }
+    });
+  });
+
+  it('refuses an unelevated repository writing inside an elevated transaction', async () => {
+    await withTenantDatabase(({ db }) => {
+      const elevated = crossTenantElevatedContext({
+        organizationId: ORG_B,
+        actorId: 'support-1',
+        reason: 'incident triage',
+        incidentId: 'INC-42',
+        recentAuthAt: Date.now(),
+        requestId: 'req-1',
+      });
+      const parentsA = parent.for(db, contextFor(ORG_A));
+      expect(() =>
+        withTenantTransaction(db, elevated, (tx) => parentsA.insert(tx, { id: 'p1', label: 'x' })),
+      ).toThrow(/not the transaction's organisation/);
+      expect(countRows(db, 't_parent')).toBe(0);
+    });
+  });
+
+  it('lets an elevated repository write inside another organisation transaction', async () => {
+    await withTenantDatabase(({ db }) => {
+      const elevated = crossTenantElevatedContext({
+        organizationId: ORG_B,
+        actorId: 'support-1',
+        reason: 'incident triage',
+        incidentId: 'INC-42',
+        recentAuthAt: Date.now(),
+        requestId: 'req-1',
+      });
+      const parentsB = parent.for(db, elevated);
+      withTenantTransaction(db, contextFor(ORG_A), (tx) => {
+        parentsB.insert(tx, { id: 'p1', label: 'break-glass' });
+      });
+      expect(countRows(db, 't_parent')).toBe(1);
+    });
+  });
+
   it('refuses a systemContext outright, and says where GLOBAL writes go', async () => {
     await withTenantDatabase(({ db }) => {
       expect(() => withTenantTransaction(db, systemContext('GLOBAL', 'req-1'), () => 1)).toThrow(

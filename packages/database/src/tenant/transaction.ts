@@ -246,6 +246,12 @@ function runNested<T>(outer: InternalTx, ctx: TenantContext, fn: (tx: Tx) => T):
  * with a legitimate one, so it is refused rather than audited-and-allowed. The break-glass path
  * (which is already reason-required, recent-MFA and audited at context construction) is the
  * exception the PRD names.
+ *
+ * The elevation must be the **joining** context's own (review round 2, finding 3). An earlier reading
+ * accepted the mix whenever *either* side was elevated, which let an ordinary, unelevated org-B
+ * context be composed into an org-A break-glass transaction and committed atomically with it — with
+ * only the other operator's elevation to show for it in the audit trail. A grant is issued to one
+ * operator for one organisation; it is not ambient permission for whatever nests inside it.
  */
 function assertSameOrganization(outer: InternalTx, ctx: TenantContext): void {
   if (isSystemContext(outer.ctx) !== isSystemContext(ctx)) {
@@ -258,10 +264,11 @@ function assertSameOrganization(outer: InternalTx, ctx: TenantContext): void {
     );
   }
   if (outer.ctx.organizationId === ctx.organizationId) return;
-  if (ctx.elevation !== undefined || outer.ctx.elevation !== undefined) return;
+  if (ctx.elevation !== undefined) return;
   throw new TenantAccessError(
     'ELEVATION_REQUIRED',
-    'a transaction cannot span two organisations without a cross-tenant elevation (PRD §21.2)',
+    'a transaction cannot span two organisations without a cross-tenant elevation of its own ' +
+      "(PRD §21.2); another context's elevation does not carry over",
   );
 }
 
