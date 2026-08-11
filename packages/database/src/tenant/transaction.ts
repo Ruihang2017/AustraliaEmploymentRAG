@@ -41,7 +41,7 @@ import type { TenantContext } from './context.js';
 import { TenantAccessError } from './errors.js';
 import { listPreCommitInvariants } from './invariants.js';
 import { createTx, resolveTx } from './tx-internal.js';
-import type { InternalTx, Tx } from './tx-internal.js';
+import type { ChangeSetEntry, InternalTx, Tx } from './tx-internal.js';
 
 /** The transaction currently open on a given connection, if any. */
 const openTransactions = new WeakMap<AppDatabaseHandle, InternalTx>();
@@ -263,6 +263,25 @@ function assertSameOrganization(outer: InternalTx, ctx: TenantContext): void {
     'ELEVATION_REQUIRED',
     'a transaction cannot span two organisations without a cross-tenant elevation (PRD §21.2)',
   );
+}
+
+/**
+ * Records one row-level change against the transaction level that will actually keep it.
+ *
+ * Not against the handle the caller passed: a write issued through the *outer* handle while a
+ * savepoint is open still executes inside that savepoint — there is one connection — so `ROLLBACK TO`
+ * discards it at the database level. Appending it to the outer change set would leave the pre-commit
+ * invariants (deliverable 7, the D5 seam `DATA-09` consumes) judging a row that no longer exists:
+ * either aborting a legitimate transaction, or recording an invariant as satisfied over rolled-back
+ * work. Both silently. So the entry goes to the innermost open level for this connection, which
+ * `runNested` merges upward on `RELEASE` and drops on `ROLLBACK TO`.
+ *
+ * The caller's handle is still validated first — it must be a genuine, open, same-connection `Tx`.
+ */
+export function recordTxChange(db: AppDatabaseHandle, tx: unknown, entry: ChangeSetEntry): void {
+  const passed = requireOpenTx(tx, db);
+  const innermost = openTransactions.get(db) ?? passed;
+  innermost.changeSet.push(entry);
 }
 
 /**

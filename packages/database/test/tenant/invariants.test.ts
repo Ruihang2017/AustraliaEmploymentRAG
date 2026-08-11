@@ -129,4 +129,54 @@ describe('invariants run inside the transaction, before COMMIT', () => {
       expect(changes).toBe(2);
     });
   });
+
+  it('drops the changes a rolled-back savepoint discarded, whichever handle wrote them', async () => {
+    // Review round 2, finding 2. A write issued through the OUTER handle while a savepoint is open
+    // still runs inside that savepoint — one connection — so `ROLLBACK TO` discards it at the
+    // database level. The change set must agree, or `DATA-09`'s hooks judge rows that do not exist.
+    await withTenantDatabase(({ db }) => {
+      const ctx = contextFor(ORG_A);
+      const parents = parent.for(db, ctx);
+      let seen: string[] = [];
+      registerPreCommitInvariant('observe', (_tx, _ctx, changeSet) => {
+        seen = changeSet.map((entry) => entry.id as string);
+      });
+
+      withTenantTransaction(db, ctx, (tx) => {
+        expect(() =>
+          withTenantTransaction(db, ctx, () => {
+            // Deliberately the outer handle, from inside the nested level.
+            parents.insert(tx, { id: 'discarded', label: 'discarded' });
+            throw new Error('nested failed');
+          }),
+        ).toThrow(/nested failed/);
+        parents.insert(tx, { id: 'keep', label: 'keep' });
+      });
+
+      expect(parents.find('discarded')).toBeUndefined();
+      expect(parents.find('keep')).toBeDefined();
+      expect(seen).toEqual(['keep']);
+    });
+  });
+
+  it('keeps changes written through the outer handle when the savepoint is released', async () => {
+    await withTenantDatabase(({ db }) => {
+      const ctx = contextFor(ORG_A);
+      const parents = parent.for(db, ctx);
+      let seen: string[] = [];
+      registerPreCommitInvariant('observe', (_tx, _ctx, changeSet) => {
+        seen = changeSet.map((entry) => entry.id as string);
+      });
+
+      withTenantTransaction(db, ctx, (tx) => {
+        withTenantTransaction(db, ctx, (inner) => {
+          parents.insert(tx, { id: 'outer-handle', label: 'outer-handle' });
+          parents.insert(inner, { id: 'inner-handle', label: 'inner-handle' });
+        });
+      });
+
+      expect(seen).toEqual(['outer-handle', 'inner-handle']);
+      expect(parents.list()).toHaveLength(2);
+    });
+  });
 });

@@ -36,7 +36,7 @@ import { assertTenantContext, isSystemContext } from './context.js';
 import type { TenantContext } from './context.js';
 import { ResourceNotFound, TenantAccessError } from './errors.js';
 import { assertTenantScoped } from './scoped-sql.js';
-import { requireOpenTx } from './transaction.js';
+import { recordTxChange, requireOpenTx } from './transaction.js';
 import type { Tx } from './tx-internal.js';
 
 /** What a row looks like to this layer. `DATA-04`…`DATA-07` supply the real per-table types. */
@@ -234,14 +234,20 @@ function requireWriteTx(binding: Binding, tx: Tx, operation: string): void {
   );
 }
 
+/**
+ * Appends to the change set the pre-commit invariants will see.
+ *
+ * `recordTxChange` — not `requireOpenTx(...).changeSet.push(...)` — because the level that will keep
+ * the row is the innermost open savepoint, which is not necessarily the handle this call was given.
+ * See the note on `recordTxChange` in `transaction.ts`.
+ */
 function recordChange(
   binding: Binding,
   tx: Tx,
   operation: 'insert' | 'update' | 'delete',
   id: string,
 ): void {
-  const internal = requireOpenTx(tx, binding.db);
-  internal.changeSet.push({
+  recordTxChange(binding.db, tx, {
     table: binding.table,
     operation,
     organizationId: binding.ctx.organizationId,
