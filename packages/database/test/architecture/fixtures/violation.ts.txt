@@ -1,0 +1,21 @@
+// SEC-001 negative fixture. `.ts.txt` so the scanner's own extension filter and eslint ignore it
+// where it sits; the test copies it to a real `.ts` path inside the scanned tree, outside
+// `packages/database`, and asserts the scanner reports it.
+//
+// This is the violation the ticket names first: a feature module reaching past the package's public
+// entry for the private connection module, and helping itself to the raw driver on the way.
+//
+// NOTE: the relative specifiers below are written for the planting location the test uses,
+// `apps/worker/src/` — three levels below the repository root. Move the plant and they must move too;
+// the test asserts the exact tag set, so a wrong depth shows up immediately as a missing tag rather
+// than as a silent pass.
+import Database from 'better-sqlite3';
+
+import { openAppDatabase } from '../../../packages/database/src/tenant/connection.js';
+import { defineTenantRepository } from '../../../packages/database/src/tenant/repository.js';
+import { APP_SQLITE_PRAGMAS } from '@taxrag/database/src/migrate/pragmas.js';
+
+export const handle = openAppDatabase({ databasePath: './app.sqlite' });
+export const raw = new Database('./app.sqlite');
+export const repository = defineTenantRepository;
+export const pragmas = APP_SQLITE_PRAGMAS;

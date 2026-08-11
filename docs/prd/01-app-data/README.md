@@ -82,6 +82,8 @@ In scope — the whole of `packages/database/**` and `packages/jobs/**`:
 | D9 | `packages/database/package.json`, `packages/database/tsconfig.json`, `packages/jobs/package.json` and `packages/jobs/tsconfig.json` are **module-owned, append-only shared**. Adding a declared dependency regenerates the root lockfile as a build artifact; conflicts resolve by re-running pnpm, never by hand-merge. | Plan §1.1 "Package manifests"; PRD §44.3 |
 | D10 | The single-writer discipline SQLite forces is made explicit: WAL, `foreign_keys=ON` and a non-zero `busy_timeout` are defined **once** (`DATA-01`, `src/migrate/pragmas.ts`) and applied by every connection factory in the package. | PRD §23.1 ("`app.sqlite` uses WAL"), §39.1/§39.4 (api, worker and Litestream all touch the same file) |
 | D11 | **The SQLite access layer is settled: Kysely-style repositories and query construction, using Kysely's SQLite dialect over `better-sqlite3`. Drizzle is not used in the application database layer.** Raw `.sql` files checked into git remain the **only** migration authoring format (D2); this module's own forward-only expand/contract runner (`DATA-01`) owns migration ordering, checksums, locking, recovery-point enforcement and the expand/contract policy. Kysely owns typed application queries and repositories only — it neither generates nor owns schema migrations. Constraints, composite tenant foreign keys, triggers, CHECK constraints, temporal rules and indexes stay expressed explicitly in SQL. Application code reaches the database only through `DATA-02`'s tenant-scoped repositories; an unscoped Kysely instance or `better-sqlite3` handle must never be spread into feature modules, which is the same boundary `DATA-02`'s SEC-001 architecture test enforces. | Plan §8 **Q13** — confirmed architecture decision, owner `01-app-data`; PRD §18.2 (which lists both options), §45.5. `DATA-01` carries the ADR decision input for [`docs/adr/0002-sqlite-access-layer.md`](../../adr/0002-sqlite-access-layer.md), authored by the `DATA-01` Builder at implementation time. An implementing agent must not re-open this choice — a Builder that believes it is falsified uses the ticket's feedback obligation and writes back to plan §8 Q13 and this file first (plan §8 standing note) |
+| D12 | **The tenant layer's connection is passed, never ambient, and `GLOBAL` tables are written through their own transaction entry point.** `DATA-02` ships `withTenantTransaction(db, ctx, fn)`, `withSystemTransaction(db, systemCtx, fn)` and `definition.for(db, ctx)`: the `AppDatabaseHandle` is a first argument because D11 forbids a module-level handle, and it is absent from the `./tenant` public surface, so no consumer outside `packages/database` can supply one. The consumer shape is therefore that `DATA-04`…`DATA-07` export concrete, **pre-bound** repositories and transaction entry points; `RUNT-02` and every product module consume those, never the factory. | `DATA-02` deliverables 1, 3 and 6 (ticket amendment 2026-08-11); PRD §16.5, §35.6; plan §8 Q13's last clause — a two-argument `withTenantTransaction(ctx, fn)` could only find its connection in a module-level singleton, which is the exact thing SEC-001 exists to make unreachable |
+| D13 | **Audit-sink failures are asymmetric: refusals are contained, grants fail closed.** A sink that throws while recording a refusal (`*_REFUSED`) is warned and swallowed, so an audit outage cannot convert a refusal into a different failure or unwind before the caller's own throw. A sink that throws while recording a `*_GRANTED` event propagates, so `crossTenantElevatedContext` grants nothing. `DATA-07` inherits this contract when it wires the real `audit_event` writer, and must not "improve" it into a best-effort write — an unrecorded break-glass elevation is the failure PRD §21.2's audited path exists to prevent. Ordering dependency recorded here per `DATA-02`'s Feedback obligation: the seam ships before the table. | PRD §21.2; `DATA-02` deliverable 8 (ticket amendment 2026-08-11); `DATA-07` owns `audit_event` |
 
 ## Rejected alternatives
 
@@ -210,6 +212,20 @@ Every item is machine-checkable unless tagged otherwise.
 
 ## Changelog
 
+- **v0.4 — 2026-08-11** — `DATA-02` implementation + review round 1, under the ticket's Feedback
+  obligation. Adds decisions **D12** (the tenant layer's connection is passed, never ambient:
+  `withTenantTransaction(db, ctx, fn)` and `definition.for(db, ctx)` — the ticket previously wrote
+  `withTenantTransaction(ctx, fn)`, which is only implementable via the module-level handle D11 and
+  SEC-001 forbid; the intended consumer shape is `DATA-04`…`DATA-07` exporting pre-bound
+  repositories, which is what `RUNT-02` consumes) and **D13** (audit-sink failures are asymmetric:
+  refusals contained, `*_GRANTED` fails closed — the ordering dependency `DATA-07` inherits when it
+  wires `audit_event`). `DATA-02`'s ticket carries the matching amendment: deliverable 6 gains
+  `withSystemTransaction` so a `GLOBAL` repository's `insert` is reachable at all (`DATA-06` needs it
+  for `detected_change`, PRD §35.6), deliverable 8 states the asymmetry, and the File-scope names the
+  two consequential paths the authorised `kysely` declaration forces — `pnpm-lock.yaml` and a
+  one-line expected-dependency-set update in `DATA-01`'s `q13-conformance.test.ts` (whose own comment
+  anticipates this ticket). No change to module scope, ticket set, dependency edges, PRD
+  traceability, the §35.8 invariants or D1–D11.
 - **v0.3 — 2026-08-08** — `DATA-01` delivered the access-layer ADR; **D11** and acceptance item 8
   now name the assigned path `docs/adr/0002-sqlite-access-layer.md` (`0001` was taken by
   `EVID-02`'s `0001-local-pii-entity-runtime.md` before this ticket ran). Path assignment only — no

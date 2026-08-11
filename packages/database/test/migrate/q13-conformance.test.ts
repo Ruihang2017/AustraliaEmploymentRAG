@@ -73,7 +73,16 @@ describe('breakdown plan §8 Q13 conformance (sub-PRD D11)', () => {
       devDependencies?: Record<string, string>;
     };
     const declared = { ...manifest.dependencies, ...manifest.devDependencies };
-    expect(Object.keys(declared).sort()).toEqual(['@types/better-sqlite3', 'better-sqlite3']);
+    // `kysely` was added by DATA-02, exactly as the paragraph above anticipated ("DATA-02, not
+    // DATA-01, introduces it"). ADR 0002 / breakdown plan §8 Q13 make it the app access layer, and
+    // DATA-02's File-scope authorises "any dependency, including `kysely`" in this package's
+    // manifest. The assertion stays an exact-set check — nothing beyond these three is declared, and
+    // in particular no query builder generates or owns a migration (`src/migrate/**` is unchanged).
+    expect(Object.keys(declared).sort()).toEqual([
+      '@types/better-sqlite3',
+      'better-sqlite3',
+      'kysely',
+    ]);
   });
 
   it('reaches packages/contracts through exactly one import boundary file', () => {
