@@ -13,6 +13,7 @@ import {
   tenantContextFromJobLease,
   tenantContextFromSession,
 } from '../../src/tenant/context.js';
+import type { TenantAccessError } from '../../src/tenant/errors.js';
 import { ORG_A, ORG_B, principal } from './helpers.js';
 
 afterEach(() => {
@@ -215,6 +216,34 @@ describe('crossTenantElevatedContext (PRD §21.2 break-glass)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {
       expect(() => crossTenantElevatedContext({ ...base, reason: '' })).toThrow(/non-empty reason/);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  /**
+   * Review round 1: the refusal path above is right to contain a sink failure, but the *grant* path
+   * must not — an elevation granted while its audit record is silently lost is the outcome PRD §21.2's
+   * audited path exists to prevent. Sub-PRD D13 hands the contract to `DATA-07`.
+   */
+  it('grants nothing when the sink fails to record the grant', () => {
+    setTenantAuditSink((event) => {
+      if (event.event === 'CROSS_TENANT_ELEVATION_GRANTED') throw new Error('audit store is down');
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      let granted: unknown = 'not-thrown';
+      expect(() => {
+        granted = crossTenantElevatedContext(base);
+      }).toThrow(/audited path/);
+      expect(granted).toBe('not-thrown');
+      try {
+        crossTenantElevatedContext(base);
+      } catch (error) {
+        expect((error as TenantAccessError).code).toBe('AUDIT_SINK_FAILED');
+      }
+      // A failure that is loud must not *also* be quietly warned about as if it were contained.
+      expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }

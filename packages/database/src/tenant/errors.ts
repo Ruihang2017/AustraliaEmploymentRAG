@@ -43,7 +43,9 @@ export type TenantAccessErrorCode =
   /** `SQLITE_BUSY` outlasted `APP_SQLITE_BUSY_TIMEOUT_MS`. */
   | 'TX_CONFLICT'
   /** A pre-commit invariant id was registered twice. */
-  | 'DUPLICATE_INVARIANT';
+  | 'DUPLICATE_INVARIANT'
+  /** The audit sink threw while recording a grant, so the grant was not made (PRD §21.2). */
+  | 'AUDIT_SINK_FAILED';
 
 /**
  * A fault in how the tenant layer was *used*. Safe to log in full; never returned to a client.

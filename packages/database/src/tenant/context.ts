@@ -345,6 +345,9 @@ export function crossTenantElevatedContext(request: CrossTenantElevationRequest)
     },
   });
 
+  // Last statement before the return, and deliberately not in a try: `emitTenantAudit` rethrows a
+  // sink failure for a `*_GRANTED` event, so a failed record means no elevation reaches the caller
+  // (audit.ts's header, sub-PRD D13). The context object built above is unreachable in that case.
   emitTenantAudit({
     event: 'CROSS_TENANT_ELEVATION_GRANTED',
     actorId: ctx.actorId,
