@@ -27,6 +27,17 @@ import type { Violation } from './scan.js';
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
 /**
+ * Every test that walks the whole repository gets a generous, explicit budget.
+ *
+ * The walk takes about a second on a warm cache, but `pnpm test` runs eight workspace projects at
+ * once and this is the only test in the workspace that reads every source file in the tree; observed
+ * once at 5020ms against vitest's 5000ms default, i.e. a red suite caused purely by IO contention.
+ * The budget is raised, never the assertion: an actual violation still fails, and a walk that really
+ * took 30s would still fail rather than be quietly tolerated.
+ */
+const SCAN_TIMEOUT_MS = 30_000;
+
+/**
  * Where a negative fixture is planted: a real, scanned directory outside `packages/database`.
  *
  * The name carries `__data02_violation_`, the pid and a UUID. The prefix makes a stray file obviously
@@ -55,7 +66,7 @@ function withFixture(fixture: string, assert: (violations: Violation[], relative
 describe('SEC-001 — no unscoped database access outside packages/database', () => {
   it('reports nothing on the current tree', () => {
     expect(scanForUnscopedAccess()).toEqual([]);
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('actually walked the repository (non-vacuity)', () => {
     const files = walk();
@@ -68,7 +79,7 @@ describe('SEC-001 — no unscoped database access outside packages/database', ()
     expect(asPosix.some((file) => file.includes('/packages/domain/'))).toBe(true);
     // The owning package is skipped by design: it is allowed to import the driver.
     expect(asPosix.some((file) => file.includes('/packages/database/'))).toBe(false);
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('fails on a module that deep-imports the private connection (the SEC-001 case)', () => {
     withFixture('violation.ts.txt', (violations, relative) => {
@@ -83,7 +94,7 @@ describe('SEC-001 — no unscoped database access outside packages/database', ()
         ]),
       );
     });
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('fails on a module that imports kysely or better-sqlite3 directly (plan §8 Q13)', () => {
     withFixture('violation-kysely.ts.txt', (violations, relative) => {
@@ -97,12 +108,12 @@ describe('SEC-001 — no unscoped database access outside packages/database', ()
         'kysely/helpers/sqlite',
       ]);
     });
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('leaves no fixture behind', () => {
     const stray = walk().filter((file) => file.includes('__data02_violation_'));
     expect(stray).toEqual([]);
-  });
+  }, SCAN_TIMEOUT_MS);
 });
 
 describe('the extractor recognises every import form and no string literal', () => {
