@@ -142,6 +142,15 @@ create a record and admit a job in one transaction, PRD §34.3) and `registerPre
 - `packages/database/test/tenant/**` (this ticket's own additional test area, sub-PRD D8)
 - `packages/database/package.json` — append-only (add the `exports` map entries and any dependency,
   including `kysely`; sub-PRD D9, plan §1.1)
+- `pnpm-lock.yaml` — the mechanical artifact of the authorised `kysely` declaration above, regenerated
+  by `pnpm install` and never hand-edited (v0.4)
+- `packages/database/test/migrate/q13-conformance.test.ts` — **one line only** (v0.4): that file
+  (`DATA-01`'s) asserts the package's declared dependency set *exactly*, and its own comment
+  anticipates this ticket — *"Kysely is not a dependency of this package: DATA-02, not DATA-01,
+  introduces it."* Declaring `kysely`, which this ticket is required to do, therefore falsifies that
+  assertion, and `pnpm test` green is an acceptance item here. `DATA-02` adds `'kysely'` to the
+  expected sorted array, keeping it an exact-set check; weakening the assertion, deleting it, or
+  importing `kysely` undeclared are all forbidden. No other line of `test/migrate/**` may be touched.
 
 - Does not touch: `packages/database/src/migrate/**` and `migrations/0001_*` (`DATA-01`) ·
   `src/crypto/**` (`DATA-03`) · `src/schema/*.ts`, `src/repos/**` and every `*_<group>.sql`
@@ -159,6 +168,17 @@ append-only by sub-PRD D9; a conflict there resolves by re-running pnpm, never b
 groups never serialise on this ticket.
 
 ## Deliverables
+
+**Amendment (2026-08-11, `DATA-02` implementation + review round 1; sub-PRD v0.4).** Four corrections,
+each marked *v0.4* where it applies: (a) deliverable 6's signature is `withTenantTransaction(db, ctx,
+fn)`, not `(ctx, fn)` — deliverable 1 forbids the ambient handle a two-argument form would need; (b)
+deliverable 6 also ships `withSystemTransaction`, without which deliverable 3's `GLOBAL` repositories
+have an `insert` that exists on the type and at runtime but can never succeed — a dead path `DATA-06`
+is due to depend on; (c) deliverable 8 states the grant/refusal asymmetry explicitly and makes a
+`*_GRANTED` audit failure fail closed; (d) the File-scope names the two consequential paths outside
+`src/tenant/**` that the authorised `kysely` declaration forces (`pnpm-lock.yaml` and a one-line
+expected-dependency-set update in `DATA-01`'s `q13-conformance.test.ts`) rather than leaving them as
+undeclared out-of-scope edits.
 
 1. **Connection factory (private).** `packages/database/src/tenant/connection.ts` exporting
    `openAppDatabase(options)` for **package-internal use only**: opens `better-sqlite3`, applies
@@ -205,7 +225,10 @@ groups never serialise on this ticket.
    - the factory refuses at construction time to build a repository for a `TENANT`-scoped table
      whose `TableSpec.requiredColumns` lacks `organization_id` (PRD §15.4);
    - a repository for a `GLOBAL`-scoped table requires a `systemContext` and rejects a tenant
-     context (and vice versa);
+     context (and vice versa). A `GLOBAL` repository is **writable**: its `insert` runs inside
+     `withSystemTransaction` (deliverable 6), which is the seam `DATA-06` uses to write
+     `detected_change` (PRD §35.6). A write path that exists on the type but cannot succeed at
+     runtime is not an acceptable shape here;
    - `mutability: 'IMMUTABLE' | 'APPEND_ONLY'` removes `update`/`delete` from the produced type —
      these must be *absent from the API*, not merely throwing (PRD §35.8 invariant 5, REC-001).
 4. **Indistinguishable not-found.** `packages/database/src/tenant/errors.ts` exporting
@@ -221,7 +244,21 @@ groups never serialise on this ticket.
    hand-authored `.sql` migrations — under plan §8 Q13 constraints and composite tenant foreign keys
    stay expressed explicitly in SQL, and nothing here generates a migration. `DATA-04`…`DATA-07` use
    these; PRD §35.8 invariant 4 is then structural, not conventional.
-6. **Transaction helper.** `withTenantTransaction(ctx, fn)`:
+6. **Transaction helper.** `withTenantTransaction(db, ctx, fn)` — the connection handle is the first
+   argument (v0.4 correction; the earlier wording was `withTenantTransaction(ctx, fn)`). Deliverable 1
+   makes the connection package-private and deliberately *not* a module-level singleton, so a
+   two-argument form would have to find an ambient handle — reintroducing exactly the global handle
+   this ticket exists to abolish. The `AppDatabaseHandle` is not on the `./tenant` public surface, so
+   this argument adds no reachable surface outside `packages/database`; the intended consumer shape is
+   that `DATA-04`…`DATA-07` export concrete, pre-bound repositories and transaction entry points, and
+   `RUNT-02` consumes those rather than this factory. Same correction for
+   `TenantRepositoryDefinition.for(db, ctx)`.
+   Alongside it, **`withSystemTransaction(db, systemCtx, fn)`**: the identical machinery for a
+   `systemContext`, so a `GLOBAL`-scoped repository's `insert` is reachable (deliverable 3,
+   `detected_change`, PRD §35.6). `withTenantTransaction` refuses a `systemContext` and
+   `withSystemTransaction` refuses a tenant context; the two never nest inside one another, and
+   elevation does not bridge them (elevation is a cross-*organisation* grant, not a cross-*scope* one).
+   Both:
    - opens `BEGIN IMMEDIATE` on the single writer connection; nested calls use savepoints;
    - passes an opaque `Tx` handle that repositories require for writes, so a caller can compose
      record creation + job admission + outbox in **one** transaction — PRD §34.3: *"Creating a
@@ -238,6 +275,13 @@ groups never serialise on this ticket.
    factory and every rejected cross-tenant access emit
    `{ event, actorId, organizationId, requestId, reason?, incidentId? }`. `DATA-07` wires the real
    `audit_event` writer later; nothing here writes a table.
+   **Asymmetric failure handling, by design (v0.4).** A sink that throws while recording a *refusal*
+   must not convert that refusal into a different failure or unwind before the caller's own throw, so
+   those sink errors are contained and warned. A sink that throws while recording a `*_GRANTED` event
+   fails **closed**: `crossTenantElevatedContext` propagates the failure and grants nothing, because a
+   cross-organisation elevation that is granted while its audit record is silently lost is precisely
+   the outcome PRD §21.2's "audited path" exists to prevent. `DATA-07` owns the durable sink and
+   inherits this contract — see `docs/prd/01-app-data/README.md` D5's neighbouring note.
 9. **SEC-001 architecture test.** `packages/database/test/architecture/no-unscoped-access.test.ts`:
    statically scans the repository's source tree (read-only file walk from the repo root, skipping
    `node_modules`, `dist` and `packages/database/src/**` itself) and fails when any file outside
@@ -273,6 +317,10 @@ groups never serialise on this ticket.
 - [ ] `[machine]` A `GLOBAL`-scoped repository refuses a tenant context and a `TENANT`-scoped
       repository refuses `systemContext` (PRD §35.6 `detected_change` is a global public-source
       event)
+- [ ] `[machine]` A `GLOBAL`-scoped repository can actually **write**: an `insert` inside
+      `withSystemTransaction` commits and is readable, a `GLOBAL` write inside a *tenant* transaction
+      is refused with `SCOPE_MISMATCH`, and a `TENANT` write inside a system transaction likewise —
+      no member of a produced repository is unreachable at runtime (v0.4)
 - [ ] `[machine]` `tenantForeignKey` DDL makes a cross-tenant child insert fail at the database
       level with `foreign_keys = ON` (PRD §35.8 invariant 4, §15.4)
 - [ ] `[machine]` `IMMUTABLE`/`APPEND_ONLY` repositories expose no `update`/`delete` member at all
@@ -287,6 +335,9 @@ groups never serialise on this ticket.
 - [ ] `[machine]` `crossTenantElevatedContext` throws without `reason`, without `incidentId`, or
       with `recentAuthAt` outside the window, and emits exactly one audit callback on success
       (PRD §21.2 "recent-MFA, reason-required, audited path")
+- [ ] `[machine]` A throwing audit sink does not swallow a *refusal*, and **does** fail a grant: a
+      sink that throws on `CROSS_TENANT_ELEVATION_GRANTED` makes `crossTenantElevatedContext` throw
+      and return no context (deliverable 8, PRD §21.2)
 - [ ] `[machine]` Permission evaluation is delegated to `packages/domain` (`FND-06`) — a test
       asserts no role/permission table is re-declared in this package (PRD §45.2)
 - [ ] `[machine]` Concurrency: two `withTenantTransaction` calls writing the same row from two
