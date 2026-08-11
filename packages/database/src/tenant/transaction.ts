@@ -35,6 +35,7 @@
  * cross-*organisation* grant (PRD §21.2), not a cross-*scope* one.
  */
 import { APP_SQLITE_BUSY_TIMEOUT_MS } from '../migrate/pragmas.js';
+import { emitTenantAudit } from './audit.js';
 import type { AppDatabaseHandle } from './connection.js';
 import { assertTenantContext, isSystemContext } from './context.js';
 import type { TenantContext } from './context.js';
@@ -265,6 +266,16 @@ function assertSameOrganization(outer: InternalTx, ctx: TenantContext): void {
   }
   if (outer.ctx.organizationId === ctx.organizationId) return;
   if (ctx.elevation !== undefined) return;
+  // Mirrors requireWriteTx's refusal audit (repository.ts): deliverable 8 requires that "every
+  // rejected cross-tenant access" emits one, and this is the transaction-boundary half of that same
+  // rule — an unelevated context nesting inside another organisation's transaction.
+  emitTenantAudit({
+    event: 'CROSS_TENANT_ACCESS_REFUSED',
+    actorId: ctx.actorId,
+    organizationId: ctx.organizationId,
+    requestId: ctx.requestId,
+    reason: "a transaction cannot span two organisations without a cross-tenant elevation of its own",
+  });
   throw new TenantAccessError(
     'ELEVATION_REQUIRED',
     'a transaction cannot span two organisations without a cross-tenant elevation of its own ' +

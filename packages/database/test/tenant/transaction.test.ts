@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
+import { resetTenantAuditSink, setTenantAuditSink } from '../../src/tenant/audit.js';
+import type { TenantAuditEvent } from '../../src/tenant/audit.js';
 import { crossTenantElevatedContext, systemContext } from '../../src/tenant/context.js';
 import { TenantAccessError } from '../../src/tenant/errors.js';
 import { defineTenantRepository } from '../../src/tenant/repository.js';
@@ -15,6 +17,10 @@ import {
 
 const parent = defineTenantRepository({ table: 't_parent', spec: PARENT_SPEC });
 const child = defineTenantRepository({ table: 't_child', spec: CHILD_SPEC });
+
+afterEach(() => {
+  resetTenantAuditSink();
+});
 
 function countRows(db: { sqlite: { prepare(sql: string): { get(): unknown } } }, table: string): number {
   return (db.sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
@@ -175,6 +181,32 @@ describe('withTenantTransaction — one organisation per transaction (PRD §21.2
       } catch (error) {
         expect((error as TenantAccessError).code).toBe('ELEVATION_REQUIRED');
       }
+    });
+  });
+
+  it('review round 2, finding 4: the transaction-boundary refusal emits CROSS_TENANT_ACCESS_REFUSED', async () => {
+    // Deliverable 8 requires that "every rejected cross-tenant access" emits an audit event.
+    // requireWriteTx (repository.ts) already does; assertSameOrganization (this file) did not, so the
+    // two halves of the same rule disagreed. This is the attempt at the transaction boundary.
+    await withTenantDatabase(({ db }) => {
+      const elevated = crossTenantElevatedContext({
+        organizationId: ORG_B,
+        actorId: 'support-1',
+        reason: 'incident triage',
+        incidentId: 'INC-42',
+        recentAuthAt: Date.now(),
+        requestId: 'req-1',
+      });
+      const events: TenantAuditEvent[] = [];
+      setTenantAuditSink((event) => events.push(event));
+      expect(() =>
+        withTenantTransaction(db, elevated, () =>
+          withTenantTransaction(db, contextFor(ORG_A), () => 'inner'),
+        ),
+      ).toThrow(/elevation of its own/);
+      expect(events).toHaveLength(1);
+      expect(events[0]?.event).toBe('CROSS_TENANT_ACCESS_REFUSED');
+      expect(events[0]?.organizationId).toBe(ORG_A);
     });
   });
 
