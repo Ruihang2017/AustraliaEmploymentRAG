@@ -88,8 +88,26 @@ const PLAN = {
 }
 const BUILD = {
   type: 'object',
-  properties: { branch: { type: 'string' }, testsPassed: { type: 'boolean' }, testOutput: { type: 'string' }, deviations: { type: 'string' } },
-  required: ['branch', 'testsPassed', 'testOutput'],
+  properties: {
+    branch: { type: 'string' },
+    testsPassed: { type: 'boolean' },
+    testOutput: { type: 'string' },
+    deviations: { type: 'string' },
+    // Pipeline-config integrity AFTER the builder put the ticket branch on disk. At
+    // concurrency 1 that checkout happens in the MAIN working tree, so a branch whose base
+    // predates a change to .claude/** silently rolls the pipeline's own agents, scripts and
+    // hooks back (observed 2026-08-11: ticket/DATA-02 reverted the Codex Builder to the
+    // Claude one, and nothing said so). The instruction and the enforcement both live HERE
+    // rather than in an agent file precisely because agent files are what roll back.
+    configIntact: { type: 'boolean' },
+    configDrift: { type: 'string' },
+  },
+  required: ['branch', 'testsPassed', 'testOutput', 'configIntact'],
+}
+const CONFIG = {
+  type: 'object',
+  properties: { ok: { type: 'boolean' }, detail: { type: 'string' } },
+  required: ['ok'],
 }
 const VERDICT = {
   type: 'object',
@@ -123,6 +141,44 @@ const SCAN = {
 }
 
 const normalizePath = function (p) { return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '').trim() }
+
+// ---- pipeline-config integrity -------------------------------------------------------
+// The pipeline is configured by version-controlled files (.claude/agents, .claude/workflows,
+// .claude/scripts, .claude/hooks, .claude/settings.json). At concurrency 1 the Builder's
+// `git checkout ticket/<id>` lands in the MAIN working tree, so a branch whose base predates
+// a change to .claude/** rolls that change back on disk -- silently. Measured on this harness
+// 2026-08-11: agent DEFINITIONS are loaded once per CLI process (a running session keeps the
+// ones it started with), but SCRIPTS and HOOKS are read from disk on every invocation, so
+// those roll back live, mid-run. Either way the run stops being the run that was asked for.
+//
+// The check is deterministic (check-pipeline-config.mjs); only the act of running a command
+// is delegated, because workflow scripts have no shell or filesystem access -- they get
+// `agent`, `log` and `args` and nothing else (see nightly-issues.js: even `Date` is absent).
+// The STOP decision stays here, in code, and this file is read into the session when
+// /start-all is invoked -- before any checkout -- so a rollback cannot delete the guard that
+// is watching for it.
+//
+// It only reports. It never checks out, resets, merges or stashes: merging the default branch
+// into a ticket branch would change the diff the Reviewer judges, and repairing the tree
+// mid-run would swap one silent surprise for another.
+const CONFIG_CHECK_CMD = 'node .claude/scripts/check-pipeline-config.mjs --default-branch ' + cfg.defaultBranch
+
+const configCheckInstruction =
+  'THEN, as your LAST action before returning (after the branch is checked out and the work is committed), ' +
+  'run `' + CONFIG_CHECK_CMD + '` from the repo root and read its final CONFIG-CHECK-JSON line. ' +
+  'It reports whether the pipeline\'s own configuration on disk (.claude/agents, workflows, scripts, hooks, settings.json) ' +
+  'still matches origin/' + cfg.defaultBranch + '. Return configIntact = its `ok` value, and configDrift = its `detail` when ok is false. ' +
+  'If the command cannot run at all -- missing file, module error, non-git -- that is itself a negative answer: return configIntact=false with configDrift = the output tail. ' +
+  'Do NOT try to repair any drift it reports: do not checkout, reset, stash, merge or revert anything to make it pass. Just report it. '
+
+const configDriftResult = function (id, stage, detail) {
+  const d = 'PIPELINE CONFIG DRIFT detected after the ' + stage + ' stage: the .claude/** tree on disk no longer matches origin/' +
+    cfg.defaultBranch + ', so this ticket did not necessarily run the agents, scripts and hooks it was supposed to. ' +
+    'A human must restore the main working tree (git checkout ' + cfg.defaultBranch + ') and RESTART the session -- agent definitions ' +
+    'are loaded once per CLI process, so refreshing the files is not enough. Details: ' + (detail || '(none reported)')
+  log('[' + id + '] ' + d)
+  return { id: id, status: 'failed', stage: 'config-drift', detail: d }
+}
 
 const makeLock = function () {
   let tail = Promise.resolve()
@@ -169,9 +225,11 @@ async function runTicket(t, opts) {
     'testOutput = "STOP: origin/' + branch + ' already exists and is unmerged (sha <short-sha>) — a previous run built this ticket; a human must decide before it is rebuilt." ' +
     'Otherwise create branch ' + branch +
     ' from ' + cfg.defaultBranch + ', implement it there, commit, run the tests. Do NOT merge and do NOT touch the tracker. ' +
-    'Return branch (must be ' + branch + '), testsPassed, testOutput (paste real output), deviations.',
+    configCheckInstruction +
+    'Return branch (must be ' + branch + '), testsPassed, testOutput (paste real output), deviations, configIntact and configDrift.',
     Object.assign({ agentType: 'builder', label: 'build:' + t.id, phase: P, schema: BUILD }, buildIsolation)
   )
+  if (build && build.configIntact === false) return configDriftResult(t.id, 'builder', build.configDrift)
   if (buildBad(build)) {
     return { id: t.id, status: 'failed', stage: 'builder', detail: !build ? 'builder agent returned nothing' : (String(build.branch).trim() !== branch ? 'worked on wrong branch: ' + build.branch : build.testOutput) }
   }
@@ -214,9 +272,13 @@ async function runTicket(t, opts) {
     build = await agent(
       'Builder stage, bounce fix. Ticket: ' + t.path + '. ' + planForBuilder + 'Stay on branch ' + branch +
       ' -- do NOT merge and do NOT touch the tracker. Reviewer findings -- address ALL of them and add regression tests: ' +
-      JSON.stringify(verdict.findings) + '. Run the tests. Return branch (must be ' + branch + '), testsPassed, testOutput, deviations.',
+      JSON.stringify(verdict.findings) + '. Run the tests. ' + configCheckInstruction +
+      'Return branch (must be ' + branch + '), testsPassed, testOutput, deviations, configIntact and configDrift.',
       Object.assign({ agentType: 'builder', label: 'fix:' + t.id + '#' + bounces, phase: P, schema: BUILD }, buildIsolation)
     )
+    // A bounce fix is exactly where the observed failure happened -- a later round on a branch
+    // whose base predated the current .claude/** -- so it is checked on every round, not once.
+    if (build && build.configIntact === false) return configDriftResult(t.id, 'bounce fix #' + bounces, build.configDrift)
     if (buildBad(build)) { fixBroken = true; break }
     verdict = await reviewOnce(String(bounces))
     if (!reviewValid(verdict)) { log('[' + t.id + '] reviewer returned no usable verdict -- retrying once'); verdict = await reviewOnce(bounces + '-retry') }
@@ -452,6 +514,45 @@ const settle = function (id, r) {
   state.set(id, r.status === 'delivered' ? 'done' : 'failed')
   if (cfg.mode === 'supervised' && r.status !== 'delivered') stopRun = true
 }
+
+// ---- preflight: are we the pipeline we think we are? ---------------------------------
+// This one matters most for the AGENT DEFINITIONS, which are loaded once per CLI process:
+// if this session was started over a working tree left sitting on a stale ticket branch,
+// every stage of this entire run is already the wrong agent, and no later check can undo it.
+// So it runs before a single ticket is dispatched, and a mismatch stops the run outright
+// rather than producing 20 delivered tickets built by agents nobody chose.
+const preflight = await agent(
+  'Preflight integrity check for a /start-all run. You are NOT implementing anything and you must change NOTHING. ' +
+  'Run exactly this from the repo root: `' + CONFIG_CHECK_CMD + '` and read its final CONFIG-CHECK-JSON line. ' +
+  'Return ok = its `ok` value and detail = its `detail` text verbatim. ' +
+  'If the command cannot run at all (missing file, module error, not a git repo), return ok=false with the output tail as detail. ' +
+  'Do not check out, reset, stash, merge or revert anything to make it pass, and do not edit any file.',
+  { label: 'preflight:config', phase: 'Schedule', effort: 'low', schema: CONFIG }
+)
+if (!preflight || preflight.ok !== true) {
+  const why = preflight && preflight.detail ? preflight.detail : 'preflight agent returned no usable answer'
+  log('start-all: STOPPED before scheduling -- pipeline config integrity check failed.')
+  log(why)
+  return {
+    scheduler: 'global-dag',
+    mode: cfg.mode,
+    concurrency: concurrency,
+    rescans: 0,
+    ticketCount: tickets.size,
+    delivered: 0,
+    escalations: [
+      'PREFLIGHT STOP: the pipeline configuration on disk does not match origin/' + cfg.defaultBranch + ', ' +
+      'so this session is not running the agents/scripts/hooks that were chosen. Nothing was dispatched. ' +
+      'A human must restore the main working tree (typically `git checkout ' + cfg.defaultBranch + '`, then decide what to do ' +
+      'with any deliberate local change) and RESTART the session -- agent definitions are loaded once per CLI process, ' +
+      'so refreshing the files without restarting leaves the stale agents in place. Details: ' + why,
+    ],
+    results: Array.from(tickets.values()).map(function (t) {
+      return { id: t.id, status: 'not-started', detail: 'run stopped by the preflight pipeline-config integrity check' }
+    }),
+  }
+}
+log('start-all: preflight ok -- ' + (preflight.detail || 'pipeline config matches origin/' + cfg.defaultBranch))
 
 log('start-all: scheduling ' + tickets.size + ' ticket(s) from the flat DAG (concurrency=' + concurrency +
   ', rescanEvery=' + (cfg.rescanEvery || 'off') + ')')
