@@ -248,4 +248,44 @@ describe('crossTenantElevatedContext (PRD §21.2 break-glass)', () => {
       warn.mockRestore();
     }
   });
+
+  /**
+   * Review round 2, finding 2. `TenantAuditSink` is `(event) => void`, and TypeScript's bivariant
+   * checking of that shape accepts an `async` sink with no warning: it returns `Promise<void>`, which
+   * is assignable to `void`. Before the fix, `sink(event)` returned immediately, `emitTenantAudit`'s
+   * `try/catch` had already exited, and `crossTenantElevatedContext` returned a live cross-organisation
+   * context to its caller before the async sink's later rejection was even observable — the rejection
+   * then surfaced afterwards as a process-killing unhandled rejection, not as a caught error. This
+   * reproduces that exploit and asserts the grant is now refused synchronously instead.
+   */
+  it('does not grant when the sink is async and its returned promise later rejects', () => {
+    const unhandled: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandledRejection);
+    // eslint-disable-next-line @typescript-eslint/require-await -- reproducing an async sink deliberately
+    setTenantAuditSink(async (event) => {
+      if (event.event === 'CROSS_TENANT_ELEVATION_GRANTED') {
+        throw new Error('audit store down');
+      }
+    });
+    try {
+      let granted: unknown = 'not-thrown';
+      expect(() => {
+        granted = crossTenantElevatedContext(base);
+      }).toThrow(/synchronous sink/);
+      expect(granted).toBe('not-thrown');
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+    // Give the sink's own rejected promise a turn of the microtask queue; emitTenantAudit must have
+    // already observed and discarded it so it cannot also surface as an unhandled rejection.
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(unhandled).toHaveLength(0);
+        resolve();
+      }, 0);
+    });
+  });
 });
