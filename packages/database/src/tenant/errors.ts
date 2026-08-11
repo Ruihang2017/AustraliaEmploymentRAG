@@ -14,6 +14,12 @@
  * `TenantAccessError` is the other half: a programming or authorisation fault rather than a lookup
  * miss. It never crosses the HTTP boundary, so it is allowed to be informative — a developer holding
  * an unscoped statement needs to be told which rule they broke.
+ *
+ * Neither class uses a TypeScript **parameter property** (`constructor(readonly code: X)`). Node runs
+ * `.ts` in strip-only mode, which rejects that syntax outright, and `test/tenant/tx-worker.mjs` loads
+ * these modules in a plain Node process — the same constraint DATA-01's `src/migrate/cli.mjs` lives
+ * under. Assign in the body instead; `test/tenant/purity.test.ts` asserts nothing under
+ * `src/tenant/**` reintroduces one.
  */
 
 /** Codes for {@link TenantAccessError}. Closed union: a new failure mode gets a name here. */
@@ -44,12 +50,11 @@ export type TenantAccessErrorCode =
  */
 export class TenantAccessError extends Error {
   override readonly name = 'TenantAccessError';
+  readonly code: TenantAccessErrorCode;
 
-  constructor(
-    readonly code: TenantAccessErrorCode,
-    message: string,
-  ) {
+  constructor(code: TenantAccessErrorCode, message: string) {
     super(message);
+    this.code = code;
   }
 }
 
@@ -65,11 +70,13 @@ export class TenantAccessError extends Error {
 export class ResourceNotFound extends Error {
   override readonly name = 'ResourceNotFound';
   readonly code = 'RESOURCE_NOT_FOUND';
+  readonly kind: string;
 
-  constructor(readonly kind: string) {
+  constructor(kind: string) {
     // The message repeats the kind and nothing else. A kind is a table/resource name, which is
     // already public API surface; an id or an organisation is not.
     super(`${kind} not found`);
+    this.kind = kind;
   }
 
   /**
