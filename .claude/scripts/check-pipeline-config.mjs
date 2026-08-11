@@ -10,10 +10,11 @@
 // `start-all.js`/`run-milestone.js` set `isolate = concurrency > 1` — it does that in
 // the MAIN working tree. So checking out a ticket branch whose base predates a change
 // to `.claude/**` rolls that change back on disk, silently. Observed 2026-08-11: a fix
-// round on `ticket/DATA-02` (base older than the commit that made the Builder delegate
-// to Codex) reverted `.claude/agents/builder.md` to the Claude implementer, and the run
-// answered a different question than the one asked. The older the branch's base, the
-// further the live configuration rolls back, and nothing reported it.
+// round on `ticket/DATA-02`, whose base predated the last change to `.claude/agents/**`,
+// reverted `.claude/agents/builder.md` to the previously archived variant — so the run
+// used a different Builder definition than the one it was supposed to, and answered a
+// different question than the one asked. The older the branch's base, the further the
+// live configuration rolls back, and nothing reported it.
 //
 // Two different exposures, measured on this harness 2026-08-11:
 //   - agent definitions are read ONCE per CLI process. Two spawns 2.5 minutes apart in a

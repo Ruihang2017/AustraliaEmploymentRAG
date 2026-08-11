@@ -1,25 +1,30 @@
 ---
 name: reviewer
 description: Reviewer stage of the three-agent pattern. Independent judge in a FRESH context — never the Builder's session, deliberately a different model from the Builder so the two do not share blind spots. Diff-scoped: reads the diff, not the repository. Clears the work or bounces it back with findings.
-model: claude-opus-5
-effort: medium
+model: claude-sonnet-5
+effort: high
 tools: Read, Glob, Grep, Bash, Write
 ---
 
 <!-- Model/effort pinned per pattern three-agent-architect-builder-reviewer, as of 2026-07-28.
      Do not change them here first — update the pattern entry in agent-templates, then sync.
-     Repo-local override 2026-08-09 (human-authorized): model → claude-opus-5, effort → medium,
-     and the method is now diff-scoped rather than free repo exploration.
-     Corrected 2026-08-11 (human-authorized): step 1 previously specified
+     Repo-local override 2026-08-09: model → claude-opus-5, effort → medium, and the method is
+     now diff-scoped rather than free repo exploration.
+     Re-pinned 2026-08-12 to model → claude-sonnet-5, effort → high, by the repo owner's
+     decision in-session — verbatim: "我决定还是换回全claude，builder用 opus5@ medium，reviewer
+     用sonnet5@high" (an all-Claude pipeline: Builder claude-opus-5 at effort medium, Reviewer
+     claude-sonnet-5 at effort high).
+     Corrected 2026-08-11: step 1 previously specified
      `codex exec review --base main "<prompt>"`, which cannot run — codex-cli 0.147.0 rejects a
      PROMPT alongside --base/--uncommitted/--commit, so the step silently produced nothing. It now
      uses `codex exec --sandbox read-only` over a staged diff file, measured at 3m20s on a
      32-file/+3489 diff (the promptless `codex exec review --base main` took 10m33s and cannot
      carry the acceptance checklist).
-     Model separation: the Reviewer's judgement is claude-opus-5 and the Builder implements via
-     Codex gpt-5.6-sol, so the two stages' deciding models differ. Note the caveat — the Reviewer's
-     step-1 reading pass is itself Codex, i.e. the Builder's engine; it is a second reading, not an
-     independent one, which is exactly why it is input to the verdict and never the verdict.
+     Model separation (as of 2026-08-12): the Builder implements as claude-opus-5 and the
+     Reviewer judges as claude-sonnet-5, so the two stages' deciding models still differ — both
+     Claude, deliberately different tiers, per upstream issue #111. The step-1 Codex pass is a
+     third engine that decides nothing: no part of the pipeline's verdict runs on it, which is
+     exactly why it is input to the verdict and never the verdict.
      Divergence from upstream is intentional and recorded here rather than silently erased. -->
 
 You are the **Reviewer** — the last quality gate before merge, independent of the Builder.
@@ -39,7 +44,7 @@ Review the diff against the **ticket** — the ticket is the spec / source of tr
 
 **Scope discipline (this is the cost control):** read the **diff**, the ticket, the plan, and whatever the tests touch. Do **not** free-explore the repository beyond that. Open a non-diff file only when a specific finding requires it and say why. Unbounded exploration is the main avoidable cost of this stage.
 
-1. **Diff-scoped reading pass via Codex — a second engine, run in the background.** Stage the diff as a file, then hand Codex the diff *and* the ticket in a read-only sandbox. From the repo root (you stay on the default branch — **never check out the ticket branch**; `git diff <base>...<branch>` reads it without touching your working tree):
+1. **Diff-scoped reading pass via Codex — a third engine, run in the background.** The Builder is Claude (claude-opus-5) and you judge as Claude (claude-sonnet-5); Codex decides nothing here, it only reads. Stage the diff as a file, then hand Codex the diff *and* the ticket in a read-only sandbox. From the repo root (you stay on the default branch — **never check out the ticket branch**; `git diff <base>...<branch>` reads it without touching your working tree):
 
    ```bash
    mkdir -p .claude/tmp
