@@ -43,7 +43,8 @@
       "Bash(glab issue note:*)",
       "Bash(glab issue update:*)",
       "Bash(glab issue close:*)",
-      "Bash(glab issue create:*)"
+      "Bash(glab issue create:*)",
+      "Bash(node .claude/scripts/asana-sync.mjs:*)"
     ]
   },
   "hooks": {

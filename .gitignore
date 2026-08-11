@@ -10,3 +10,18 @@ target/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# agent-templates: harness worktrees (concurrency > 1) — never commit, never scan
+.claude/worktrees/
+
+# agent-templates: never commit tokens (ASANA_TOKEN etc.)
+.env
+.env.local
+
+# agent-templates: ephemeral Codex pipeline scratch
+.codex/tmp/
+.codex/allow-main-writes
+docs/plans/*.md
+
+# agent-templates: Codex worktrees — never commit, never scan
+.codex/worktrees/
