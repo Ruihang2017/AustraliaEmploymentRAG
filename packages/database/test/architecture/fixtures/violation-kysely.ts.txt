@@ -1,0 +1,15 @@
+// SEC-001 negative fixture, variant 2: breakdown plan §8 Q13's last clause — "an unscoped Kysely or
+// database handle must never be spread into feature modules".
+//
+// Nothing here touches `packages/database` at all. A module that builds its own Kysely instance over
+// its own `better-sqlite3` handle has bypassed the tenant layer completely, and does so without a
+// single import that names the database package — which is exactly why forbidding the *libraries*
+// outside the owning package is a separate rule from forbidding the deep paths.
+import BetterSqlite3 from 'better-sqlite3';
+import { Kysely, SqliteDialect } from 'kysely';
+import { sql } from 'kysely/helpers/sqlite';
+
+const database = new BetterSqlite3('./app.sqlite');
+
+export const unscoped = new Kysely({ dialect: new SqliteDialect({ database }) });
+export const everything = sql;
