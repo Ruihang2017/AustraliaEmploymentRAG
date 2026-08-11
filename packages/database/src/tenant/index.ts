@@ -53,11 +53,13 @@ export type { TenantForeignKey, TenantForeignKeySpec } from './keys.js';
 export { withSystemTransaction, withTenantTransaction } from './transaction.js';
 export type { Tx } from './tx-internal.js';
 
-export {
-  clearPreCommitInvariants,
-  listPreCommitInvariants,
-  registerPreCommitInvariant,
-} from './invariants.js';
+// clearPreCommitInvariants is deliberately NOT exported here (review round 2, finding 3): the
+// registry's own doc (invariants.ts) states there is "no way for a caller to opt out" of a
+// registered PRD §35.8 pre-commit invariant, and re-exporting the test-only reset seam on this
+// public surface would let any consumer erase every invariant for the rest of the process. Its one
+// legitimate caller, test/tenant/invariants.test.ts, imports it directly from ../../src/tenant/
+// invariants.js instead.
+export { listPreCommitInvariants, registerPreCommitInvariant } from './invariants.js';
 export type { ChangeSetEntry, PreCommitInvariant, RegisteredInvariant } from './invariants.js';
 
 export { resetTenantAuditSink, setTenantAuditSink } from './audit.js';
