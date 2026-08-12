@@ -35,6 +35,18 @@ describe('PRD 20.1 layout', () => {
     expect(fixture.directories).toHaveLength(47);
   });
 
+  it('allows only the explicit pre-existing top-level directories', () => {
+    const fixture = loadFixture('prd-20-1-layout.json');
+    expect(fixture.topLevelPreexistingAllowed.entries).toEqual([
+      '.claude',
+      '.github',
+      'templates',
+      'tools',
+      '.agents',
+      '.codex',
+    ]);
+  });
+
   it('fails, naming the directory, when a PRD 20.1 directory is renamed', () => {
     const root = scratchRoot();
     try {

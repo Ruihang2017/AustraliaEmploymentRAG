@@ -176,7 +176,9 @@ if (OPEN_INTEGRATION_MR) {
       const m = cli(['mr', 'list', '--source-branch', INTEGRATION_BRANCH]).match(/!(\d+)/)
       existing = m ? `!${m[1]}` : null
     }
-  } catch {}
+  } catch {
+    // A failed reuse lookup falls through to the create path, whose CLI handling is authoritative.
+  }
   if (existing) {
     console.log(`= handoff MR already open: ${existing} (${ahead} commit(s) ahead)`)
     console.log('INTEGRATION-MR-JSON: ' + JSON.stringify({ integrationBranch: INTEGRATION_BRANCH, defaultBranch: DEFAULT_BRANCH, ahead, opened: false, url: existing, alreadyOpen: true }))
@@ -449,7 +451,9 @@ const findMrTemplate = () => {
       const dir = '.gitlab/merge_request_templates'
       const f = readdirSync(dir).find((n) => n.toLowerCase().endsWith('.md'))
       if (f) return { path: `${dir}/${f}`, text: readFileSync(`${dir}/${f}`, 'utf8') }
-    } catch {}
+    } catch {
+      // An unreadable optional template directory falls back to the built-in body.
+    }
   }
   return null
 }
@@ -559,13 +563,12 @@ const REFUSE_STATUS = new Set([
  */
 const waitForMergeable = (iid) => {
   const started = Date.now()
-  let last = ''
   for (;;) {
     const mr = glabMr(iid)
     // No readable status is not "mergeable" — proceed and let the merge itself decide,
     // rather than blocking forever on a field this GitLab version may not expose.
     if (!mr) return { ok: true, status: 'unknown', waitedMs: Date.now() - started }
-    last = String(mr.detailed_merge_status || mr.merge_status || '')
+    const last = String(mr.detailed_merge_status || mr.merge_status || '')
     if (mr.state === 'merged') return { ok: true, status: 'merged', waitedMs: Date.now() - started }
     if (REFUSE_STATUS.has(last)) return { ok: false, status: last, waitedMs: Date.now() - started }
     if (!WAIT_STATUS.has(last)) return { ok: true, status: last || 'unknown', waitedMs: Date.now() - started }

@@ -75,7 +75,9 @@ if (!moduleDir) {
 }
 const ticketsDir = join(moduleDir, 'tickets')
 let ticketsDirOk = false
-try { ticketsDirOk = statSync(ticketsDir).isDirectory() } catch {}
+try { ticketsDirOk = statSync(ticketsDir).isDirectory() } catch {
+  // The false branch below reports the missing directory and exits 1.
+}
 if (!ticketsDirOk) {
   console.error(`no tickets directory: ${ticketsDir}`)
   process.exit(1)
@@ -117,7 +119,9 @@ let cliOk = false
 try {
   cli(PLATFORM, ['auth', 'status'], { stdio: ['ignore', 'ignore', 'ignore'] })
   cliOk = true
-} catch {}
+} catch {
+  // Authentication failure leaves cliOk false: create fails, while dry-run preview stays available.
+}
 if (CREATE && !cliOk) {
   console.error(`x ${PLATFORM} not found or not authenticated — install it and run \`${PLATFORM} auth login\`.`)
   process.exit(1)
@@ -343,7 +347,11 @@ const renderDeps = (blockedBy, blocks) => {
 const withBodyFile = (body, fn) => {
   const path = join(tmpdir(), `pt-body-${process.pid}-${bodySeq++}.md`)
   writeFileSync(path, body)
-  try { return fn(path) } finally { try { unlinkSync(path) } catch {} }
+  try { return fn(path) } finally {
+    try { unlinkSync(path) } catch {
+      // Cleanup failure must not replace the forge callback's result or error.
+    }
+  }
 }
 let bodySeq = 0
 
@@ -414,7 +422,7 @@ let driftedClosed = 0
 
 for (const f of readdirSync(ticketsDir).filter((n) => n.endsWith('.md')).sort()) {
   const path = join(ticketsDir, f).replaceAll('\\', '/')
-  const text = readFileSync(path, 'utf8').replace(/^﻿/, '') // strip BOM (PowerShell 5.1 utf8 writes one)
+  const text = readFileSync(path, 'utf8').replace(/^\uFEFF/, '') // strip BOM (PowerShell 5.1 utf8 writes one)
   const fmMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
   if (!fmMatch) {
     console.log(`  skip (no frontmatter): ${path}`)
