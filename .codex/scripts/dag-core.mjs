@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const fmOf = (text) => (text.replace(/^﻿/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || ''
+const fmOf = (text) => (text.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || ''
 const field = (fm, name) => ((fm.match(new RegExp(`^${name}\\s*:\\s*(.+)$`, 'm')) || [])[1] || '').trim()
 const listField = (fm, name) =>
   field(fm, name)
@@ -38,7 +38,9 @@ export function buildGraph(root) {
   for (const d of dirs) {
     const tdir = join(root, d, 'tickets')
     let ok = false
-    try { ok = statSync(tdir).isDirectory() } catch {}
+    try { ok = statSync(tdir).isDirectory() } catch {
+      // An absent or unreadable tickets directory is a non-module; ok remains false.
+    }
     if (!ok) continue
     const tickets = []
     for (const f of readdirSync(tdir).filter((n) => n.endsWith('.md')).sort()) {

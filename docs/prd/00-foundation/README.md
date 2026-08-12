@@ -11,10 +11,10 @@
 | Module | `00-foundation` |
 | Lane | `00-foundation` |
 | Ticket prefix | `FND` |
-| Tickets | 12 (`FND-01` … `FND-12`) |
+| Tickets | 13 (`FND-01` through `FND-12`, plus `FND-16`) |
 | Epics | `E01-REPO`, `E02-CONTRACTS`, `E03-DOMAIN` (PRD §44.2) |
 | Depends on | nothing — this is the root module of the whole PRD DAG |
-| Version | v1.2 |
+| Version | v1.4 |
 
 ## Problem
 
@@ -25,8 +25,9 @@ migration sequence, corpus manifest schema and production deployment files"*. PR
 list and adds the reason: those artifacts sit on the critical path
 (`contracts/domain → app + corpus schemas → …`) and every other module reads them.
 
-Until they exist, **nothing else in the 238-ticket plan can start**: 24 of the 25 modules are
-transitively blocked on this one. Concretely, four things are missing and have exactly one safe owner:
+Until they exist, **237 of the other 238 tickets in the 239-ticket plan cannot start**: 24 of the 25
+modules are transitively blocked on this one. Concretely, four things are missing and have exactly one
+safe owner:
 
 1. **Toolchain pins and a runnable workspace.** PRD §45.3 lists fourteen entry commands and states
    *"Exact Node/pnpm/Python/Rust versions belong in committed tool-version files and lockfiles selected
@@ -195,7 +196,7 @@ respectively — and neither blocks any `FND-*` ticket.
 
 ## Work breakdown
 
-`lane` = `00-foundation` and `agent` = `builder` for all twelve tickets (breakdown plan §1.1). File-scopes
+`lane` = `00-foundation` and `agent` = `builder` for all thirteen tickets (breakdown plan §1.1). File-scopes
 below are write-owns and are disjoint between every pair of tickets that can run concurrently.
 
 | Ticket | Title | Size | Lane | File-scope (write-owns) | Depends on (`blocked_by`) |
@@ -212,14 +213,15 @@ below are write-owns and are disjoint between every pair of tickets that can run
 | [`FND-10`](tickets/FND-10-domain-temporal-applicability-and-authority-hierarchy.md) | Domain: temporal applicability and authority hierarchy | M | `00-foundation` | `packages/domain/src/legal/**`, `packages/domain/test/legal/**` | `FND-03` |
 | [`FND-11`](tickets/FND-11-repair-repo-wide-frozen-path-guard.md) | Repair the repo-wide frozen-path guard | S | `00-foundation` | `tools/tests/frozen-paths.test.mjs` | `FND-01` |
 | [`FND-12`](tickets/FND-12-repair-package-purity-import-scanner.md) | Repair the package-purity import scanner | S | `00-foundation` | `packages/contracts/test/enums/package-purity.test.ts` | `FND-04` |
+| [`FND-16`](tickets/FND-16-repair-adopted-agent-pipeline-gate-baseline.md) | Repair adopted agent-pipeline gate baseline | S | `00-foundation` | layout fixture/test plus four adopted Codex scripts | — (`FND-01` already delivered) |
 
 ### Lane shape
 
-Breakdown plan §7: 12 tickets · min waves **4** · max useful lanes **4** · peak lanes **4** · **not
+Breakdown plan §7: 13 tickets · min waves **4** · max useful lanes **4** · peak lanes **4** · **not
 fully serial**.
 
 ```text
-wave 1   FND-01
+wave 1   FND-01 │ FND-16
 wave 2   FND-02 │ FND-03 │ FND-11
 wave 3   FND-04 │ FND-05 │ FND-06 │ FND-07 │ FND-08 │ FND-09 │ FND-10
 wave 4   FND-12
@@ -233,6 +235,8 @@ change, not a decomposition defect:** no ticket lost a lane and no write-set bec
 whose input is `FND-04`'s merged file cannot start before `FND-04`, and re-widening the module would
 mean either re-basing `FND-12` on `FND-03` (false — the file it repairs is `FND-04`'s) or splitting a
 wave-3 ticket; nothing here justifies either.
+`FND-16` is an independent root node whose disjoint pipeline-baseline repair fits in wave 1 without
+changing the measured four-wave/four-lane profile.
 
 The serialisation that does exist is intrinsic: nothing can be typechecked before the toolchain is
 pinned (`FND-01`), and no controlled value can be referenced before it is declared once (`FND-03`,
@@ -257,10 +261,11 @@ dependents:
 | `FND-10` | `EVID-05` |
 | `FND-11` | — |
 | `FND-12` | — |
+| `FND-16` | — |
 
 ## Acceptance — what makes this module done
 
-The module is done when all twelve tickets are delivered and the following hold. Every item names the PRD
+The module is done when all thirteen tickets are delivered and the following hold. Every item names the PRD
 requirement ID or epic exit evidence it discharges.
 
 1. **`E01-REPO` exit evidence — "Clean bootstrap/build/test" (PRD §44.2).** All fourteen PRD §45.3 entry
@@ -304,6 +309,7 @@ requirement ID or epic exit evidence it discharges.
 
 | Version | Date | Change |
 |---|---|---|
+| v1.4 | 2026-08-12 | Added root `FND-16` to atomically repair the adopted `.agents/`/`.codex/` layout and lint baseline. The layout fixture/test and four Codex scripts are normally disjoint, but cannot be delivered separately because each would keep the other's mandatory full-suite gate red. The authoritative ticket names the three literal U+FEFF sites and requires the behavior-preserving ASCII `\uFEFF` regex escape. This direct-`main` registration changes no other ticket's roadmap metadata and reconciles the documented module and whole-plan counts to 13 and 239 respectively. |
 | v0.1 | 2026-08-03 | Initial decomposition of `00-foundation` from `docs/prd/breakdown-plan.md` §5.1 — 10 tickets, `FND-01` … `FND-10`. |
 | v0.2 | 2026-08-03 | Aligned with the breakdown plan §8 decision register. **Q12 CONFIRMED** and transcribed as decision **D17** (Node.js `24.18.0`, pnpm `11.4.0`, Rust `1.97.1`, Python `3.14.6`, the pin-file set and the no-silent-upgrade rules); Q12 removed from Open questions; `FND-01` now commits the pins instead of choosing them and `FND-02` resolves the same versions from those files. Inherited §8 references updated: **Q13 CONFIRMED** (Kysely-style repositories over `better-sqlite3`, Drizzle not used, raw `.sql` migrations — `DATA-01`) in Non-goals and `FND-01`; **Q14 CONFIRMED** (Resend, free transactional tier — `WTCH-04`/`WTCH-09`) in Non-goals and `FND-05`; **Q1** and **Q4** relabelled **benchmark-selected** with their resolving tickets (`GOLD-15`, `RETR-10`) in `FND-09` and `FND-10`. `Q-F1`…`Q-F7` unchanged and still open — `Q-F6` (unallocated `.github/PULL_REQUEST_TEMPLATE.md` / `ISSUE_TEMPLATE/**`) is **not** settled by the register. Plan-size figures refreshed after the same round added `WTCH-09` to `16-monitor-alerts` (the plan is now **236** tickets and module 16 has **9**): the Problem section now reads 236-ticket plan, and the *Fold CI into `FND-01`* rejected-alternative row now reads 235 tickets, matching the 235 transitive dependents of `FND-01` in the ticket DAG. The 24-of-25-modules figure is unchanged — `16-monitor-alerts` was already transitively blocked on `FND-01`. |
 | v0.3 | 2026-08-07 | `FND-01` implementation writeback (ticket Feedback obligation 2). **Q-F7 answered:** exactly one root file outside breakdown plan §4's enumerated list was needed — `.gitignore` (the first bootstrap creates `node_modules/`, `target/`, `.venv/`, `.pytest_cache/`, `__pycache__/`) — added to the Scope list above and to breakdown plan §4 (plan v0.3) in the same PR. A root `conftest.py` was **not** needed: `uv run pytest` exits 0 on the empty tree via `tools/pytest_exit_zero_when_empty.py`, inside the already-owned `tools/**`. **Q-F1 needed no widening** — every PRD §20.1 member is satisfied by D2's bounded set (manifest + `tsconfig.json` where applicable + one empty entry file). **D17 pins verified installable and clean-bootstrapped as written** (Node.js `24.18.0`, pnpm `11.4.0`, Rust `1.97.1`, Python `3.14.6`); no evidence arose to trigger `FND-01`'s Feedback obligation 3, and no pin was changed. |

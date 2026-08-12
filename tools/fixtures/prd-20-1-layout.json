@@ -79,7 +79,7 @@
   ],
   "topLevelPreexistingAllowed": {
     "$comment": "Tracked top-level directories that predate FND-01 and are outside PRD section 20.1.",
-    "entries": [".claude", ".github", "templates", "tools"]
+    "entries": [".claude", ".github", "templates", "tools", ".agents", ".codex"]
   },
   "topLevelIgnored": {
     "$comment": "Untracked build/tooling artifacts; all are git-ignored, none may be committed.",
