@@ -15,7 +15,9 @@ export type EphemeralErrorCode =
   /** Empty `jobId`/`organizationRef`, non-string payload, unknown kind, invalid clock argument. */
   | 'EPHEMERAL_INPUT_INVALID'
   /** Use after `close()`. */
-  | 'EPHEMERAL_STORE_CLOSED';
+  | 'EPHEMERAL_STORE_CLOSED'
+  /** A candidate backup glob would include an ephemeral file (PRD §39.3). */
+  | 'EPHEMERAL_BACKUP_GLOB_CONFLICT';
 
 export interface EphemeralErrorDetails {
   table?: string | undefined;
