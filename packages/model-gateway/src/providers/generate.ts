@@ -145,8 +145,12 @@ async function attempt(
   const startedAt = deps.clock.now();
   let settled = false;
 
-  const transportRace: Promise<RaceOutcome> = adapter
-    .generate(profile, request, held, deps.transport)
+  // `Promise.resolve().then(...)` rather than calling the adapter directly: an injected transport that
+  // throws SYNCHRONOUSLY would otherwise escape before `.catch` is attached and propagate out of the
+  // gateway as an untyped exception, bypassing the matrix entirely. The host supplies the transport,
+  // so this package cannot assume it is well behaved.
+  const transportRace: Promise<RaceOutcome> = Promise.resolve()
+    .then(() => adapter.generate(profile, request, held, deps.transport))
     .then((response): RaceOutcome => ({ kind: 'RESPONSE', response }))
     .catch((): RaceOutcome => ({ kind: 'THREW' }));
   const deadline: Promise<RaceOutcome> = deps.timer(profile.maxElapsedMs).then(

@@ -10,7 +10,7 @@
  * `'https:'` inside an origin check, and to name `RETR-07` in a refusal message, without those looking
  * like a web capability to a naive grep.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 export function sourceFiles(dir: string, found: string[] = []): string[] {
