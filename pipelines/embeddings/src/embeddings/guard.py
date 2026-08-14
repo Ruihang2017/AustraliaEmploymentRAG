@@ -35,7 +35,27 @@ from .errors import (
 from .persist import profiles_present
 from .profile import EmbeddingProfile, fingerprint_of_manifest, profile_fingerprint
 
-__all__ = ["assert_profile_compatible"]
+__all__ = ["assert_no_foreign_profiles", "assert_profile_compatible"]
+
+
+def assert_no_foreign_profiles(connection: sqlite3.Connection, profile_id: str) -> None:
+    """Refuse a `chunk_embedding` table that already holds rows for a DIFFERENT `profile_id`.
+
+    Split out of `assert_profile_compatible` because `build.py` runs it TWICE: once up front, and
+    once more inside the `BEGIN IMMEDIATE` transaction it holds across publication. The up-front
+    call alone is a check-then-act: another build could commit its own profile's rows in the
+    interval and both would publish, producing exactly the mixed index PRD §14.4 forbids. The second
+    call happens under SQLite's RESERVED lock, so the two builds are serialised and the loser fails
+    before it can publish rather than after.
+    """
+    present = profiles_present(connection)
+    foreign = sorted(present - {profile_id})
+    if foreign:
+        raise ProfileMismatch(
+            f"chunk_embedding already holds rows for profile_id(s) {foreign}, and this build "
+            f"writes profile_id={profile_id!r}. PRD §14.4: an embedding change requires a "
+            "dual index with pointer rollback, not a mixed one."
+        )
 
 
 def assert_profile_compatible(
@@ -93,12 +113,6 @@ def assert_profile_compatible(
                 "(deliverable 6); RETR-07 verifies the recorded runtime before first use."
             )
 
-    # (b) Rows for another profile already in this corpus database.
-    present = profiles_present(connection)
-    foreign = sorted(present - {profile.profile_id})
-    if foreign:
-        raise ProfileMismatch(
-            f"chunk_embedding already holds rows for profile_id(s) {foreign}, and this build "
-            f"writes profile_id={profile.profile_id!r}. PRD §14.4: an embedding change requires a "
-            "dual index with pointer rollback, not a mixed one."
-        )
+    # (b) Rows for another profile already in this corpus database. Re-checked under the
+    # publication lock by `build.py`; see `assert_no_foreign_profiles`.
+    assert_no_foreign_profiles(connection, profile.profile_id)

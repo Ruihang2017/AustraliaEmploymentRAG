@@ -51,6 +51,41 @@ TRANSACTIONS. The corpus connection is autocommit (`isolation_level=None`), so e
 `chunk_embedding` inserts are wrapped in an explicit `BEGIN`/`COMMIT` — see `persist.py`. Per-row
 autocommit plus a crash would leave rows a later resume treats as completed work.
 
+PUBLICATION IS ONE GROUP, NOT THREE REPLACES
+--------------------------------------------
+`os.replace` is atomic for ONE file; three of them in a row are not atomic as a SET. A failure
+between the first and the second (a full disk, a permission error, an anti-virus lock) would leave a
+new `vectors.usearch` published beside a stale or absent `embedding-manifest.json` — an index whose
+manifest describes a different row set, which is the one state PRD §18.4's bundle must never be in.
+So `_Publication` records every replace it performs, preserving any file it displaced, and undoes
+the whole group if a later member fails: a file that had a predecessor gets it back, a file that had
+none is removed. The three published names therefore move together or not at all.
+
+The same group is published INSIDE a `BEGIN IMMEDIATE` transaction on the corpus connection
+(`persist.immediate_transaction`), which re-runs `assert_no_foreign_profiles` under SQLite's
+RESERVED lock. The up-front `assert_profile_compatible` is a check-then-act on its own: two builds
+could both pass it and both publish, producing exactly the mixed index PRD §14.4 forbids. Under the
+lock the second build blocks and then fails, before it can publish.
+
+A REBUILD MAY NOT DESTROY THE PREVIOUS INDEX BEFORE IT HAS REPLACED IT
+----------------------------------------------------------------------
+A non-resume run over a profile that has already been published used to COMMIT a `DELETE` of every
+existing `chunk_embedding` row for it before embedding anything. If the rebuild then failed — a
+provider error, a bad artefact pin, a disk error — the delete stayed committed while the previously
+published `embedding-manifest.json` and `vectors.usearch` remained in place, now describing a row
+set that no longer existed. The operator's response to a failed rebuild is to fix and retry, and in
+the meantime the released bundle was silently inconsistent with the database it ships beside
+(acceptance item 6's count invariant, and steps 4-6's all-or-nothing, both broken for the rebuild
+case).
+
+`_RebuildJournal` closes that: before the delete it streams the previous rows to disk and moves the
+previous work directory aside, and on ANY later failure it puts both back. Combined with
+`_Publication`'s rollback, a failed rebuild leaves the previous index — rows, vectors, manifest,
+report and resume state — exactly as it found it. The journal is armed ONLY when there is something
+to lose (a non-resume run with existing rows for this profile); a FIRST build must keep its
+partially committed rows, because those rows plus the resume state are precisely what makes
+`resume=True` able to finish it.
+
 RESUME. `resume=True` skips a chunk when a `chunk_embedding` row exists for the same `profile_id`
 AND the resume state records the same `search_chunk.text_hash`. A changed `text_hash` DELETES the
 stale row and re-embeds exactly that chunk. A row with NO state entry also re-embeds: that is the
@@ -79,14 +114,16 @@ from .emit import (
     stub_marked_runtime,
     write_embedding_manifest,
 )
-from .guard import assert_profile_compatible
+from .guard import assert_no_foreign_profiles, assert_profile_compatible
 from .memory import peak_rss
 from .persist import (
     batch_transaction,
     count_rows_for_profile,
     delete_rows_for_profile,
     existing_chunk_ids,
+    immediate_transaction,
     insert_embedding_rows,
+    iter_rows_for_profile,
 )
 from .profile import PinnedProfile, profile_fingerprint, resolve_effective_profile
 from .provider import EmbeddingProvider
@@ -94,17 +131,40 @@ from .report import REPORT_FILENAME, EmbeddingBuildResult, write_build_report
 from .selection import iter_chunk_texts, resolve_requested_tiers, select_chunks
 from .vectors import UsearchIndexWriter, VectorIndexWriter
 
-__all__ = ["WORK_DIRNAME_SUFFIX", "build_embeddings", "vector_key_for", "work_directory_for"]
+__all__ = [
+    "JOURNAL_DIRNAME_SUFFIX",
+    "WORK_DIRNAME_SUFFIX",
+    "build_embeddings",
+    "journal_directory_for",
+    "vector_key_for",
+    "work_directory_for",
+]
 
 #: Private to a build, and a SIBLING of the output directory — see the module docstring.
 WORK_DIRNAME_SUFFIX = ".embedding-work"
+#: Also a sibling, and for the same PRD §18.4 reason: it must not be inside the bundle root.
+JOURNAL_DIRNAME_SUFFIX = ".embedding-rollback"
 _RESUME_STATE = "resume-state.json"
 _SIDECAR = "vectors.partial.bin"
+_JOURNAL_ROWS = "previous-chunk-embedding-rows.jsonl"
+_JOURNAL_WORK = "previous-work"
+_PUBLICATION_BACKUP = "publication-backup"
 
 
 def work_directory_for(out_dir: Path) -> Path:
     """The private work/resume directory beside *out_dir*, never inside it."""
     return out_dir.parent / f".{out_dir.name}{WORK_DIRNAME_SUFFIX}"
+
+
+def journal_directory_for(out_dir: Path) -> Path:
+    """The rebuild rollback journal beside *out_dir*, never inside it.
+
+    A leftover journal directory means a rebuild died so hard it could not run its own rollback
+    (the process was killed rather than the build failing). It holds the previous
+    `chunk_embedding` rows and the previous resume state, so the previous index is recoverable by
+    hand; the next non-resume rebuild starts a fresh journal and discards it.
+    """
+    return out_dir.parent / f".{out_dir.name}{JOURNAL_DIRNAME_SUFFIX}"
 
 
 def vector_key_for(search_chunk_id: str) -> str:
@@ -189,6 +249,151 @@ class _Sidecar:
         return values
 
 
+def _preserve(source: Path, destination: Path) -> None:
+    """Keep a copy of *source* at *destination* cheaply: a hard link where the filesystem allows it.
+
+    The journal and the publication backup are both siblings of the output directory, so they are on
+    the same filesystem and a link costs nothing regardless of how large `vectors.usearch` is. The
+    link survives `os.replace` over the original path — that unlinks a directory entry, not the
+    inode — which is exactly what makes the restore possible. `shutil.copy2` is the fallback for a
+    filesystem that refuses links.
+    """
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(source, destination)
+    except (OSError, NotImplementedError, AttributeError):
+        shutil.copy2(source, destination)
+
+
+class _Publication:
+    """Publish several staged files as ONE all-or-nothing group. See the module docstring.
+
+    `publish()` preserves whatever it displaces and remembers it; `roll_back()` undoes every replace
+    performed so far, in reverse order — restoring a predecessor where there was one and removing
+    the published file where there was not.
+    """
+
+    def __init__(self, backup_dir: Path) -> None:
+        self._backup_dir = backup_dir
+        #: (final path, backup path or None if nothing was displaced), in publication order.
+        self._done: list[tuple[Path, Path | None]] = []
+
+    def publish(self, staged: Path, final: Path) -> None:
+        backup: Path | None = None
+        if final.exists():
+            backup = self._backup_dir / final.name
+            if backup.exists():
+                backup.unlink()
+            _preserve(final, backup)
+        os.replace(staged, final)
+        self._done.append((final, backup))
+
+    def roll_back(self) -> None:
+        """Undo the group. Never raises: it runs while another exception is already propagating."""
+        while self._done:
+            final, backup = self._done.pop()
+            try:
+                if backup is not None:
+                    os.replace(backup, final)
+                elif final.exists():
+                    final.unlink()
+            except OSError:  # pragma: no cover - a filesystem that cannot undo its own replace
+                continue
+
+
+class _RebuildJournal:
+    """Everything a non-resume rebuild is about to destroy, so a failed rebuild can put it back.
+
+    ARMED ONLY WHEN THERE IS SOMETHING TO LOSE — a non-resume run that finds existing
+    `chunk_embedding` rows for this profile. A first build must keep its partially committed rows:
+    those rows plus the resume state are what `resume=True` finishes from, and restoring an empty
+    snapshot over them would turn an interruption into lost work. See the module docstring.
+    """
+
+    def __init__(self, connection: sqlite3.Connection, profile_id: str, out_dir: Path) -> None:
+        self._connection = connection
+        self._profile_id = profile_id
+        self._work_dir = work_directory_for(out_dir)
+        self._directory = journal_directory_for(out_dir)
+        self._rows_path = self._directory / _JOURNAL_ROWS
+        self._work_backup = self._directory / _JOURNAL_WORK
+        self.armed = False
+        #: Set when the rollback itself fails — reported as a note on the original exception rather
+        #: than raised, because losing the original failure would hide why the rebuild stopped.
+        self.restore_failed: Exception | None = None
+
+    @property
+    def directory(self) -> Path:
+        return self._directory
+
+    def arm(self) -> bool:
+        """Snapshot the previous rows and move the previous work directory aside.
+
+        Returns whether anything was captured. Called BEFORE the delete, so a failure inside `arm`
+        itself leaves the previous index untouched.
+        """
+        if count_rows_for_profile(self._connection, self._profile_id) == 0:
+            return False
+
+        if self._directory.exists():
+            # A leftover journal is from a killed process; the run that is starting now supersedes
+            # it, and keeping two generations would make "which one is the previous index?"
+            # ambiguous at exactly the moment it matters.
+            shutil.rmtree(self._directory)
+        self._directory.mkdir(parents=True, exist_ok=True)
+
+        with self._rows_path.open("w", encoding="utf-8", newline="\n") as handle:
+            for row in iter_rows_for_profile(self._connection, self._profile_id):
+                handle.write(json.dumps(list(row), ensure_ascii=False) + "\n")
+
+        if self._work_dir.exists():
+            os.replace(self._work_dir, self._work_backup)
+
+        self.armed = True
+        return True
+
+    def roll_back(self) -> None:
+        """Put the previous rows and the previous resume state back. Never raises."""
+        if not self.armed:
+            return
+        try:
+            with immediate_transaction(self._connection):
+                delete_rows_for_profile(self._connection, self._profile_id)
+                with self._rows_path.open("r", encoding="utf-8") as handle:
+                    batch: list[tuple[str, str, str, int, str]] = []
+                    for line in handle:
+                        if not line.strip():
+                            continue
+                        values = json.loads(line)
+                        batch.append(
+                            (
+                                str(values[0]),
+                                str(values[1]),
+                                str(values[2]),
+                                int(values[3]),
+                                str(values[4]),
+                            )
+                        )
+                        if len(batch) >= 500:
+                            insert_embedding_rows(self._connection, batch)
+                            batch = []
+                    if batch:
+                        insert_embedding_rows(self._connection, batch)
+            if self._work_backup.exists():
+                if self._work_dir.exists():
+                    shutil.rmtree(self._work_dir)
+                os.replace(self._work_backup, self._work_dir)
+            self.discard()
+            self.armed = False
+        except Exception as exc:  # pragma: no cover - the rollback of a rollback
+            self.restore_failed = exc
+
+    def discard(self) -> None:
+        """Drop the journal: the rebuild succeeded, or its rollback has completed."""
+        if self._directory.exists():
+            shutil.rmtree(self._directory, ignore_errors=True)
+
+
 def build_embeddings(
     corpus_path: Path,
     pinned: PinnedProfile,
@@ -220,6 +425,8 @@ def build_embeddings(
 
     work_dir = work_directory_for(out_dir)
     resume_state_path = work_dir / _RESUME_STATE
+    journal: _RebuildJournal | None = None
+    publication = _Publication(work_dir / _PUBLICATION_BACKUP)
 
     try:
         provider_info = provider.describe()
@@ -247,10 +454,17 @@ def build_embeddings(
 
         if not resume:
             # A rebuild that is not a resume starts from a clean slate for this profile, rather
-            # than colliding on the primary key half-way through.
+            # than colliding on the primary key half-way through. When that slate had something on
+            # it, the journal captures it FIRST: a rebuild that fails after this delete must leave
+            # the previously published index exactly as it found it, not an empty table beside a
+            # manifest that still describes the rows it used to hold.
+            journal = _RebuildJournal(connection, effective_profile.profile_id, out_dir)
+            captured = journal.arm()
             with batch_transaction(connection):
                 delete_rows_for_profile(connection, effective_profile.profile_id)
-            if work_dir.exists():
+            if not captured and work_dir.exists():
+                # Nothing to lose in the database, so the previous scratch space is simply stale.
+                # (When the journal armed, it has already moved that directory aside.)
                 shutil.rmtree(work_dir)
 
         state = _ResumeState.load(resume_state_path, effective_profile.dimensions)
@@ -329,14 +543,7 @@ def build_embeddings(
         stat = index_writer.finalise(staged_vector)
 
         rows_for_profile = count_rows_for_profile(connection, effective_profile.profile_id)
-        if stat.count != rows_for_profile:
-            # Acceptance item 6, asserted in code and not only in a test: the manifest's vector
-            # count, the file on disk and the `chunk_embedding` row count are one number, or the
-            # build fails rather than describing an artifact that does not exist.
-            raise ValueError(
-                f"the vector file holds {stat.count} vectors but chunk_embedding holds "
-                f"{rows_for_profile} rows for profile_id={effective_profile.profile_id!r}"
-            )
+        _assert_counts_agree(stat.count, rows_for_profile, effective_profile.profile_id)
 
         # Step 6 — the manifest, staged and then published.
         document = build_embedding_manifest(
@@ -377,15 +584,57 @@ def build_embeddings(
         staged_report = work_dir / REPORT_FILENAME
         write_build_report(result, staged_report)
 
-        # Publication. Three `os.replace` calls, only after every failure mode above has passed.
+        # Publication — ONE group, under the publication lock. See the module docstring: the three
+        # names move together or not at all, and the dual-index guard is re-run here because the
+        # up-front check was a check-then-act.
         out_dir.mkdir(parents=True, exist_ok=True)
-        os.replace(staged_vector, vector_path)
-        os.replace(staged_manifest, manifest_path)
-        os.replace(staged_report, out_dir / REPORT_FILENAME)
+        with immediate_transaction(connection):
+            assert_no_foreign_profiles(connection, effective_profile.profile_id)
+            _assert_counts_agree(
+                stat.count,
+                count_rows_for_profile(connection, effective_profile.profile_id),
+                effective_profile.profile_id,
+            )
+            publication.publish(staged_vector, vector_path)
+            publication.publish(staged_manifest, manifest_path)
+            publication.publish(staged_report, out_dir / REPORT_FILENAME)
+
+        if journal is not None:
+            journal.discard()
         # The work directory is KEPT, deliberately: it is what makes the PRD §12.1 incremental
         # re-embed possible (see the module docstring). It sits beside the bundle, not inside it,
         # so it adds no path to PRD §18.4's layout.
+        shutil.rmtree(work_dir / _PUBLICATION_BACKUP, ignore_errors=True)
         return result
+    except BaseException as exc:
+        # Undo, in reverse order of destruction: the published group first, then the rows and the
+        # resume state the rebuild displaced. A failed run leaves the previous index untouched.
+        publication.roll_back()
+        if journal is not None:
+            journal.roll_back()
+            if journal.restore_failed is not None:
+                exc.add_note(
+                    "the rebuild rollback ALSO failed, so chunk_embedding may still be missing the "
+                    f"previous profile's rows; they are in {journal.directory / _JOURNAL_ROWS} "
+                    f"(rollback error: {journal.restore_failed!r})"
+                )
+        raise
     finally:
         if owns_connection:
             connection.close()
+
+
+def _assert_counts_agree(vector_count: int, row_count: int, profile_id: str) -> None:
+    """Acceptance item 6, asserted in code and not only in a test.
+
+    The manifest's vector count, the file on disk and the `chunk_embedding` row count are one
+    number, or the build fails rather than publishing an artifact that describes a row set the
+    database does not hold. Checked twice: once when the manifest's numbers are computed, and again
+    under the publication lock, because between those two points another writer could have changed
+    the table.
+    """
+    if vector_count != row_count:
+        raise ValueError(
+            f"the vector file holds {vector_count} vectors but chunk_embedding holds "
+            f"{row_count} rows for profile_id={profile_id!r}"
+        )

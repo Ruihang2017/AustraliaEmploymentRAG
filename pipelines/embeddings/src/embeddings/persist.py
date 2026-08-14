@@ -34,7 +34,9 @@ __all__ = [
     "count_rows_for_profile",
     "delete_rows_for_profile",
     "existing_chunk_ids",
+    "immediate_transaction",
     "insert_embedding_rows",
+    "iter_rows_for_profile",
     "profiles_present",
 ]
 
@@ -66,6 +68,26 @@ def batch_transaction(connection: sqlite3.Connection) -> Iterator[None]:
     connection.execute("COMMIT")
 
 
+@contextmanager
+def immediate_transaction(connection: sqlite3.Connection) -> Iterator[None]:
+    """`BEGIN IMMEDIATE`/`COMMIT`, with `ROLLBACK` on any exception.
+
+    IMMEDIATE, not deferred, because this is the transaction `build.py` holds across publication.
+    A deferred `BEGIN` takes no lock until its first write, so two builds could both pass the
+    profile-compatibility re-check and then both publish; `BEGIN IMMEDIATE` takes SQLite's RESERVED
+    lock at once, so the second build blocks (and ultimately fails on `database is locked`) instead
+    of interleaving. That is what closes the check-then-act window on the PRD §14.4 dual-index
+    guard — see `build.py`'s "PUBLICATION" section.
+    """
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        yield
+    except BaseException:
+        connection.execute("ROLLBACK")
+        raise
+    connection.execute("COMMIT")
+
+
 def insert_embedding_rows(
     connection: sqlite3.Connection,
     rows: Sequence[tuple[str, str, str, int, str]],
@@ -82,6 +104,25 @@ def existing_chunk_ids(connection: sqlite3.Connection, profile_id: str) -> set[s
             "SELECT search_chunk_id FROM chunk_embedding WHERE profile_id = ?", (profile_id,)
         )
     }
+
+
+def iter_rows_for_profile(
+    connection: sqlite3.Connection, profile_id: str
+) -> Iterator[tuple[str, str, str, int, str]]:
+    """Stream every `chunk_embedding` row for *profile_id*, in `CHUNK_EMBEDDING_COLUMNS` order.
+
+    Streamed rather than fetched into a list because its one caller is the rebuild rollback journal
+    in `build.py`, which writes the snapshot straight to disk: a rebuild of a 300 000-chunk corpus
+    (PRD §17.2's planning figure) must not have to hold the previous row set in memory to be able to
+    put it back.
+    """
+    cursor = connection.execute(
+        "SELECT search_chunk_id, profile_id, vector_key, dimensions, quantisation"
+        " FROM chunk_embedding WHERE profile_id = ?",
+        (profile_id,),
+    )
+    for row in cursor:
+        yield (str(row[0]), str(row[1]), str(row[2]), int(row[3]), str(row[4]))
 
 
 def count_rows_for_profile(connection: sqlite3.Connection, profile_id: str) -> int:
