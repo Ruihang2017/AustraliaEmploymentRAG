@@ -1,0 +1,4 @@
+# CRPS-05, mirroring the CRPS-01 / CRPS-03 / CRPS-04 precedent. Keep LF in the working tree (git
+# core.autocrlf=true would otherwise rewrite these on a Windows checkout). The repository-root
+# .gitattributes is unallocated by breakdown plan §4 and is not touched.
+* text eol=lf

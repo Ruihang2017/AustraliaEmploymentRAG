@@ -3,7 +3,19 @@ name = "taxrag-pipeline-embeddings"
 version = "0.0.0"
 # Breakdown plan section 8 Q12 (CONFIRMED): exact pin, identical in every manifest.
 requires-python = "==3.14.6"
-dependencies = []
+# CRPS-05. Exact `==` pins, matching the `jsonschema==4.26.0` precedent in
+# pipelines/corpus-builder. These are the vector-index backend only: `src/embeddings/vectors.py`
+# is the sole module allowed to import either, behind the `VectorIndexWriter` port, and every
+# other module in this package is stdlib-only (asserted by tests/test_embed_source_scan.py).
+#
+# KNOWN GAP, owned by FND-01/FND-02, NOT by this ticket: the root pyproject.toml is a virtual
+# project (`[tool.uv] package = false`) whose `dependencies` are empty, and a virtual workspace
+# member's dependencies are installed by `uv sync` only if something depends on the member.
+# Nothing does, so these land in the root uv.lock and are NOT installed. The byte-level vector
+# tests therefore skip with a message naming FND-01; every unit of logic is covered dependency-
+# free through the RecordingWriter fake. Declaring them here is what makes the pipeline work the
+# moment FND-01 wires member installation, and what makes the intent reviewable.
+dependencies = ["usearch==2.26.0", "numpy==2.5.2"]
 
 [tool.uv]
 package = false
