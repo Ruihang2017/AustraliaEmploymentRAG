@@ -135,6 +135,27 @@ only one available: `chunk_embedding` carries the PRD §35.3 five columns and ma
 A resumed run publishes the **same** index an uninterrupted one would: vectors computed before the
 interruption are staged in the work directory and fed to the index in canonical order at the end.
 
+## Rebuilding a profile that is already published
+
+Running **without** `--resume` over a profile that already has `chunk_embedding` rows is a *rebuild*,
+and it either replaces the published index completely or leaves it exactly as it was. Before it
+deletes anything it writes a rollback journal beside the output directory
+(`.<out>.embedding-rollback/`) holding the previous rows and the previous resume state; if the
+rebuild then fails for any reason — provider error, artefact-pin mismatch, disk error — both are put
+back and the journal is discarded. The three published files are replaced as **one group**: a
+failure part-way through restores whatever it displaced, so `vectors.usearch` is never published
+beside a manifest that describes a different row set.
+
+A journal directory that is still there after a run means the process was killed rather than the
+build failing (the rollback never got to run). The previous rows are in
+`previous-chunk-embedding-rows.jsonl` and the previous resume state in `previous-work/`; the next
+rebuild starts a fresh journal and discards it, so copy it aside first if you need it.
+
+Publication holds a `BEGIN IMMEDIATE` transaction on `corpus.sqlite` and re-checks the PRD §14.4
+dual-index guard under that lock, so two builds run against one corpus cannot both publish and end
+up sharing an index. This pipeline is still meant to be run by **one operator at a time**, offline
+(PRD §19.3): the lock makes a collision fail loudly, it is not a work-sharing mechanism.
+
 ## What ends up where
 
 | Fact | Where it lives | Why |

@@ -28,6 +28,15 @@ pass if two collide and one is skipped. The id -> position mapping is persisted 
 `chunk_embedding.vector_key`, exactly as the ticket specifies (`vector_key = f"{search_chunk_id}"`),
 with ordinal recovery via the same deterministic ordering.
 
+So the USearch key and `vector_key` are NOT the same value, and the read side cannot look one up as
+the other. What it does instead — join `chunk_embedding` to `search_chunk`, order by
+`(node_version_id, chunk_ordinal)`, and the row's index is the key — is pinned by
+`tests/test_embed_vector_key.py`, which is the contract `RETR-05` should be checked against before
+it starts. Recording the mapping in the manifest instead would mean a new member in
+`embedding-manifest.schema.json`, which is `CRPS-02`'s file-scope: if `RETR-05`'s read side proves
+the positional recovery insufficient, that is a ticket change against `CRPS-02`/`RETR-05`, never a
+local widening from here.
+
 AVAILABILITY
 ------------
 Module import is dependency-free on purpose: `usearch` and `numpy` are imported inside
