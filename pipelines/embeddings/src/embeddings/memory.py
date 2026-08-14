@@ -62,9 +62,18 @@ def _windows_peak() -> PeakMemory | None:
 
     try:
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        # Without this the handle is truncated to a C int and the call silently reports 0.
+        # Without this the handle is truncated to a C int, and the pseudo-handle GetCurrentProcess
+        # returns (-1 as a pointer) then fails to convert at the call site.
         kernel32.GetCurrentProcess.restype = wintypes.HANDLE
         # K32GetProcessMemoryInfo lives in kernel32; the psapi.dll spelling is not always present.
+        # argtypes must be declared for the same reason: ctypes otherwise marshals the HANDLE as a
+        # C int and raises `OverflowError: int too long to convert`.
+        kernel32.K32GetProcessMemoryInfo.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(_ProcessMemoryCounters),
+            wintypes.DWORD,
+        ]
+        kernel32.K32GetProcessMemoryInfo.restype = wintypes.BOOL
         counters = _ProcessMemoryCounters()
         counters.cb = ctypes.sizeof(_ProcessMemoryCounters)
         ok = kernel32.K32GetProcessMemoryInfo(
