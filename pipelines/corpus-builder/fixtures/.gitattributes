@@ -1,0 +1,14 @@
+# CRPS-08. Two rules, and the second one is not cosmetic.
+#
+# `* text eol=lf` mirrors the CRPS-01/CRPS-03 precedent: git core.autocrlf=true on this machine
+# would otherwise rewrite checked-out text files, and the generator's output is compared
+# byte-for-byte.
+#
+# The committed bundle under releases/** has BINARY members whose bytes are hashed inside a SIGNED
+# manifest. Without the explicit `binary` marks below, a clean Windows clone would receive a
+# line-ending-rewritten corpus.sqlite and every hash in release-manifest.json would stop matching —
+# a FILE_HASH_MISMATCH that does not reproduce on the machine that built the bundle. The last
+# matching rule wins, so these must come after the `text` rule above.
+* text eol=lf
+releases/**/corpus.sqlite binary
+releases/**/vectors.usearch binary
