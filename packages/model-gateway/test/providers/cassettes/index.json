@@ -1,0 +1,160 @@
+{
+  "$comment": [
+    "EVID-07 deliverable 14 — the recorded-response corpus. Synthetic (sub-PRD D22).",
+    "`bodyFixture` names a file in test/schema/fixtures whose JSON is serialised as the body, so the",
+    "valid cassettes and the schema suite cannot drift apart. `body` is a literal string body.",
+    "`costMicroAud` is a decimal string or null: JSON has no bigint and PRD §34.1 forbids float money.",
+    "packId/packHash match the synthetic pack in test/providers/support/doubles.ts."
+  ],
+  "packId": "pk_0000000000000001",
+  "packHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "instructionTemplateVersion": "instruction-template-v1",
+  "providerId": "STUB_DETERMINISTIC",
+  "cassettes": [
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "VALID",
+      "bodyFixture": "valid-response.json",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 1200,
+      "outputTokens": 300,
+      "costMicroAud": "1500"
+    },
+    {
+      "profileId": "DEEP_SYNTHESIS",
+      "scenarioKey": "VALID",
+      "bodyFixture": "valid-response.json",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 4800,
+      "outputTokens": 900,
+      "costMicroAud": "7200"
+    },
+    {
+      "profileId": "STRUCTURED_REPAIR",
+      "scenarioKey": "VALID",
+      "bodyFixture": "valid-response.json",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 1600,
+      "outputTokens": 200,
+      "costMicroAud": "900"
+    },
+    {
+      "profileId": "EVALUATION_JUDGE",
+      "scenarioKey": "VALID",
+      "bodyFixture": "valid-response.json",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 5200,
+      "outputTokens": 400,
+      "costMicroAud": "6000"
+    },
+
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "SERVER_ERROR_500",
+      "body": "",
+      "status": 500,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "$comment": "The approved-fallback profile failing too — proves no THIRD attempt is made.",
+      "profileId": "DEEP_SYNTHESIS",
+      "scenarioKey": "SERVER_ERROR_500",
+      "body": "",
+      "status": 500,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "CLIENT_ERROR_400",
+      "body": "",
+      "status": 400,
+      "headersSubset": {},
+      "modelVersion": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "RATE_LIMITED_429",
+      "body": "",
+      "status": 429,
+      "headersSubset": { "retry-after": "42" },
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "RATE_LIMITED_429_NO_HEADER",
+      "body": "",
+      "status": 429,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "RATE_LIMITED_429_HTTP_DATE",
+      "body": "",
+      "status": 429,
+      "headersSubset": { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" },
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "SCHEMA_INVALID_REASONING",
+      "body": "{\"proposed_status\":\"SUPPORTED\",\"short_answer\":\"x\",\"claims\":[],\"assumptions\":[],\"missing_facts\":[],\"next_checks\":[],\"limitations\":[],\"reasoning\":\"a hidden trace\"}",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 1200,
+      "outputTokens": 40,
+      "costMicroAud": "300"
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "TRUNCATED_JSON",
+      "body": "{\"proposed_status\":\"SUPPORTED\",\"short_answer\":\"tru",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 1200,
+      "outputTokens": 12,
+      "costMicroAud": "200"
+    },
+    {
+      "profileId": "QUICK_SYNTHESIS",
+      "scenarioKey": "EMPTY_BODY",
+      "body": "",
+      "status": 200,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": 1200,
+      "outputTokens": 0,
+      "costMicroAud": "100"
+    }
+  ]
+}

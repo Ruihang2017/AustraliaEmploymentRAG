@@ -1,0 +1,30 @@
+{
+  "proposed_status": "CONDITIONAL",
+  "short_answer": "A synthetic short answer used only by this package's tests.",
+  "claims": [
+    {
+      "kind": "SHORT_ANSWER",
+      "text": "A synthetic short-answer claim.",
+      "support": "CONDITIONAL",
+      "evidence": [{ "evidence_id": "ev_01", "role": "SUPPORTS", "quote_start": 2, "quote_end": 20 }],
+      "assumption_refs": [0]
+    },
+    {
+      "kind": "RULE",
+      "text": "A synthetic rule claim.",
+      "support": "DIRECTLY_SUPPORTED",
+      "evidence": [{ "evidence_id": "ev_01", "role": "DEFINES", "quote_start": 0, "quote_end": 10 }],
+      "assumption_refs": []
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "A synthetic assumption.",
+      "source": "USER_NOT_CONFIRMED",
+      "impact_if_false": "The conditional branch would not apply."
+    }
+  ],
+  "missing_facts": ["A synthetic missing fact."],
+  "next_checks": ["A synthetic next check."],
+  "limitations": ["A synthetic limitation."]
+}

@@ -16,7 +16,7 @@
 | Modules that depend on this one | `15-answer-product`, `19-exports`, `21-evaluation-600`, `22-internal-admin`, `23-assurance` |
 | Languages | TypeScript only (`packages/pii`, `packages/citations`, `packages/model-gateway`) |
 | Master spec | [`docs/PRD.md`](../../PRD.md) |
-| Version | v0.4 (2026-08-08) |
+| Version | v0.5 (2026-08-15) |
 
 ## Problem
 
@@ -310,6 +310,54 @@ delivery run with the runtime off: RSS **62.5 MiB** for the test process, **7.9 
 across 20 maximum-size admissions, p95 admission latency **2.7 ms** for 16 × 8,000 characters —
 against the PRD §39.2 `app` limit of **320 MiB**.
 
+### Open-question status — writeback from `EVID-07` (2026-08-15)
+
+`EVID-07`'s acceptance checklist requires the benchmark-selected **Q1** row and the open **Q-EVID-4**
+row to be updated with *the profile abstraction as built* and *the retention precondition as
+encoded*. **No question is closed here and no decision is made.** Both remain exactly as open as they
+were; what follows is what the shipped code now does about them, so `GOLD-15` and the Founder are
+writing back into something concrete rather than a description.
+
+**Q1 — the profile abstraction as built.** `packages/model-gateway/src/profiles/registry.ts` ships
+`MODEL_PROFILE_REGISTRY_V1`, deep-frozen versioned data carrying all six PRD §14.4 profiles.
+`QUERY_EMBEDDING` and `LOCAL_RERANK` are `LOCAL_IN_SEARCH_BOUNDARY` and invoking either through the
+gateway is a typed error naming `RETR-07`. **Every hosted profile ships `promotionState: 'CANDIDATE'`
+and no profile carries `approvedFallbackProfileId`** — an absent field is the encoding of "no
+independent approval has been given" (PRD §14.4). No entry names a vendor or a model: the only
+provider id in the registry is the deterministic in-process stub `STUB_DETERMINISTIC`.
+
+The consequence is deliberate and worth stating plainly, because it will look like a fault the first
+time somebody runs the product: **in `PRODUCTION` every hosted profile currently resolves to
+`PROFILE_NOT_APPROVED` → `GENERATION_UNAVAILABLE` (503), while Search stays available** (PRD §8.2,
+§34.9; `UAT-ANS-08`). Tests and the evaluation harness resolve in the `EVALUATION` environment, which
+is what "candidate" means. Promotion is a data change to that one file, made **after** `GOLD-15`'s
+promotion report and the Founder's approval — not before, and not by an implementing agent's
+preference.
+
+Per-profile token ceilings ship conservative and are marked `// GOLD-15 writeback` in the registry;
+elapsed ceilings are **not** configuration and come straight from PRD §36.7 (Quick 60 000 ms, Deep
+180 000 ms, `STRUCTURED_REPAIR` bounded by the Quick ceiling because the repair sits inside its
+parent's budget). `REGISTRY_CEILINGS` rejects an over-configured profile **at load**, never clamping
+at call time. `PROFILE_CALL_CEILINGS` publishes PRD §36.7's own cell text verbatim (*"1 + optional
+repair"*, *"Up to 3 total + optional repair"*) so `ASK-02`/`ASK-10` and the gateway cannot disagree
+about what the PRD says.
+
+**Q-EVID-4 — the retention precondition as encoded.** PRD §10.2 is enforced as a **precondition of
+profile resolution**, not as a runtime check somebody could skip: `resolveProfile(id, environment,
+providers)` takes the configured provider descriptors as a **required** parameter with no default,
+and refuses with `ProviderRetentionUnacceptableError` unless every provider the profile allows is
+configured `noTraining: true` with `retention.mode` in `{ ZERO, APPROVED_MINIMAL }`. An unconfigured
+provider fails the same way. Through `generate` that surfaces as
+`Unavailable{ reason: 'PROFILE_NOT_APPROVED', detail: 'PROVIDER_RETENTION_UNACCEPTABLE' }` with
+**zero provider calls**.
+
+`PROVIDER_REGISTRY_V1` names **no vendor and no external origin**: one `IN_PROCESS` entry with an
+empty origin allowlist. The allowlist machinery is real and tested — exact `https:` origin match, no
+prefix/suffix/normalisation match, validated at adapter construction, with no configuration key,
+environment read or parameter anywhere in `src/**` through which an arbitrary base URL could arrive
+(PRD §16.4) — but it is exercised in tests against a synthetic `https://provider.invalid` descriptor
+(RFC 2606). Choosing a vendor stays the Founder's, and this module has not pre-empted it.
+
 ## Work breakdown
 
 Lane is `12-evidence-safety` and agent is `builder` for all ten tickets (breakdown plan §1.1).
@@ -466,3 +514,15 @@ The module is done when all ten tickets are delivered (`/verify-delivery` green 
   narrowing of stage 5 by category, and the measured memory/latency against PRD §39.2. **No decision,
   scope, ticket, `blocked_by`/`blocks` edge, file-scope or acceptance gate changed**; `Q-EVID-2` …
   `Q-EVID-8` all remain open exactly as authored.
+- **v0.5 — 2026-08-15** — `EVID-07` writeback (its acceptance checklist's writeback item). Adds the
+  `EVID-07` section of **Open-question status**: for **Q1**, the profile abstraction as built — all
+  six §14.4 profiles as deep-frozen versioned data, every hosted one `CANDIDATE` with no default
+  fallback, no vendor or model named, ceilings rejected at load rather than clamped, and the stated
+  consequence that `PRODUCTION` currently answers `GENERATION_UNAVAILABLE` (503) while Search stays
+  available (PRD §8.2, §34.9; `UAT-ANS-08`); for **Q-EVID-4**, the retention posture as encoded — a
+  required precondition of `resolveProfile` that an unconfigured or training-permitting provider
+  fails with zero provider calls, and a shipped provider registry declaring no vendor and no external
+  origin. **No question is closed, no decision is made, and no scope, ticket,
+  `blocked_by`/`blocks` edge, file-scope or acceptance gate changed**; `Q-EVID-2` … `Q-EVID-8` all
+  remain open exactly as authored. `GOLD-15` and the Founder still own the model choice and the
+  provider terms respectively.

@@ -1,6 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": [
-    "src"
+    "src",
+    "test/profiles/types.test-d.ts",
+    "test/providers/types.test-d.ts",
+    "test/schema/types.test-d.ts"
   ]
 }
