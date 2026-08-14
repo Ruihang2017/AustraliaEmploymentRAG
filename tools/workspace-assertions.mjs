@@ -183,13 +183,20 @@ export function assertSkeleton(root = REPO_ROOT) {
             'expected tsconfig.base.json',
         );
       }
+      // RUNT-06 (shared with RUNT-05): `compilerOptions` joins the allowed key set. A member MAY
+      // carry a platform fact the shared base cannot express — `packages/ui` and `apps/web` need
+      // `jsx` and the DOM lib, and PRD §18.2 fixes React + Vite — but it still MUST extend the
+      // shared base (asserted above) and MUST NOT add `files`, a second `extends` or anything else.
+      // Without this, no `.tsx` file anywhere in the repository can pass `pnpm typecheck` (TS17004).
+      // See docs/prd/03-app-runtime/README.md §6 QR12; `tools/**` is `00-foundation`'s row, so the
+      // relaxation is escalated on the RUNT-06 PR rather than assumed.
       const extraKeys = Object.keys(tsconfig).filter(
-        (key) => !['extends', 'include', 'references'].includes(key),
+        (key) => !['extends', 'include', 'references', 'compilerOptions'].includes(key),
       );
       if (extraKeys.length > 0) {
         problems.push(
           `pnpm member ${member}: tsconfig.json adds ${extraKeys.join(', ')}; the FND-01 skeleton ` +
-            'allows only extends/include/references',
+            'allows only extends/include/references/compilerOptions',
         );
       }
     }
