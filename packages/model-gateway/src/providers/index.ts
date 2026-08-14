@@ -12,7 +12,12 @@
  * The deterministic stub lives behind the `./testing` subpath (`src/providers/stub/index.ts`) so
  * `EVID-05`, `ASK-02`, `GOLD-15` and `ASSR-04` share one stub instead of forking divergent ones.
  */
-export { createProviderAdapter, PROVIDER_GENERATE_PATH } from './adapter.js';
+export {
+  ForbiddenHeaderError,
+  PROVIDER_GENERATE_PATH,
+  assertCarryableHeaders,
+  createProviderAdapter,
+} from './adapter.js';
 export type { AdapterOptions, ProviderAdapter } from './adapter.js';
 
 export {

@@ -65,6 +65,14 @@ that silently matches nothing is indistinguishable from clean code.
 **Consequence:** this package holds no clock, no timer, no socket and no database handle. All four
 arrive as ports (§5).
 
+**No header carries a secret, and that is checked rather than asserted.** `TransportRequest` has no
+credential member, and `createProviderAdapter`'s `headersSubset` option — the only free-form map on
+the exported surface — is validated at **construction**: an authorization-shaped header *name*
+(`authorization`, `x-api-key`, `cookie`, anything containing `auth`/`key`/`token`/`secret`/`session`/
+`signature`/…) or a value carrying an HTTP auth scheme (`Bearer …`, `Basic …`) throws
+`ForbiddenHeaderError`. The refusal names the header and the provider and never echoes the value.
+`generate` itself supplies no headers at all. Test: `test/providers/headers.test.ts`.
+
 **If a workflow ever needs the gateway to call a tool — refuse.** The ticket's Feedback obligation §3
 applies: stop, do not add the tool, escalate and raise an ADR first. A model-selected source is not a
 system-supplied evidence id, and adding one overturns PRD §37.5, §21.1 and §9.4 simultaneously.

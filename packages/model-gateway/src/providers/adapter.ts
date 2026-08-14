@@ -14,7 +14,8 @@
  * `createProviderAdapter` validates the origin AT CONSTRUCTION (`origin.ts`), so an adapter that
  * exists is an adapter whose origin was allowlisted. An `IN_PROCESS` provider takes no origin at all;
  * passing one to it throws, because a stub with an origin is a stub somebody is about to point at a
- * network.
+ * network. It validates the `headersSubset` at construction for the same reason — see
+ * `assertCarryableHeaders` below.
  */
 import { assertAllowedOrigin } from './origin.js';
 import { OriginNotAllowedError } from './origin.js';
@@ -43,8 +44,84 @@ export interface ProviderAdapter {
 }
 
 export interface AdapterOptions {
-  /** Extra code-supplied header names/values. There is no credential member and none may be added. */
+  /**
+   * Extra code-supplied header names/values — a small, fixed, non-secret subset (a scenario key, a
+   * content type). There is no member for a secret and none may be smuggled in under a header name:
+   * `createProviderAdapter` REJECTS an authorization-shaped header at construction (below).
+   */
   readonly headersSubset?: Readonly<Record<string, string>>;
+}
+
+/**
+ * Header names this package refuses to carry, enforced at ADAPTER CONSTRUCTION.
+ *
+ * `TransportRequest` documents that it has no member a caller could stuff a secret into. That was
+ * true of the type and false of this options bag: `headersSubset` is a free `Record<string, string>`
+ * on an EXPORTED constructor, so `{ authorization: 'Bearer …' }` type-checked and travelled to the
+ * transport. A documented guarantee that only the type enforces is not a guarantee — so the names are
+ * matched here, by substring on the lower-cased name, which is deliberately blunt: this subset is
+ * code-supplied and tiny, so over-refusing costs a rename and under-refusing costs a leaked secret.
+ *
+ * The VALUE is checked too, because a bland name with an `Authorization`-scheme value is the obvious
+ * way round a name check.
+ */
+const FORBIDDEN_HEADER_FRAGMENTS: readonly string[] = [
+  'auth',
+  'key',
+  'token',
+  'secret',
+  'password',
+  'passwd',
+  'credential',
+  'cookie',
+  'session',
+  'signature',
+  'bearer',
+  'sig-',
+  'x-amz-security',
+];
+
+/** `Bearer …`, `Basic …`, `Digest …`, `Negotiate …`, `Token …` — an HTTP auth scheme, whatever the name. */
+const AUTH_SCHEME_VALUE = /^(?:bearer|basic|digest|negotiate|token|sso)\s+\S/i;
+
+/**
+ * Named for what it is — a header this package will not carry. Deliberately NOT named after the thing
+ * it is protecting: `test/providers/architecture.test.ts` refuses any exported name containing that
+ * word, and it is right to, because such a name usually belongs to something that HANDLES one.
+ */
+export class ForbiddenHeaderError extends Error {
+  public readonly providerId: string;
+  public readonly headerName: string;
+
+  public constructor(providerId: string, headerName: string, why: string) {
+    super(
+      `header ${headerName} may not be supplied to provider ${providerId}: ${why} ` +
+        '(PRD §37.5, §20.2 — this package carries no secret)',
+    );
+    this.name = 'ForbiddenHeaderError';
+    this.providerId = providerId;
+    this.headerName = headerName;
+  }
+}
+
+export function assertCarryableHeaders(
+  providerId: string,
+  headers: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  for (const [name, value] of Object.entries(headers)) {
+    const lowered = name.toLowerCase();
+    const collapsed = lowered.replace(/[-_.\s]/g, '');
+    for (const fragment of FORBIDDEN_HEADER_FRAGMENTS) {
+      const bare = fragment.replace(/[-_.\s]/g, '');
+      if (lowered.includes(fragment) || collapsed.includes(bare)) {
+        throw new ForbiddenHeaderError(providerId, name, 'the name reads as an authorization header');
+      }
+    }
+    if (AUTH_SCHEME_VALUE.test(value)) {
+      throw new ForbiddenHeaderError(providerId, name, 'the value carries an HTTP authorization scheme');
+    }
+  }
+  return headers;
 }
 
 export function createProviderAdapter(
@@ -73,7 +150,9 @@ export function createProviderAdapter(
     resolvedOrigin = assertAllowedOrigin(descriptor, origin);
   }
 
-  const headersSubset = Object.freeze({ ...options.headersSubset });
+  const headersSubset = Object.freeze(
+    assertCarryableHeaders(descriptor.providerId, { ...options.headersSubset }),
+  );
 
   return {
     descriptor,

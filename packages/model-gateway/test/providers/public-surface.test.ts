@@ -68,6 +68,7 @@ describe('src/providers/index.ts', () => {
   it('exports exactly this list', () => {
     expect(namesOf(providers)).toEqual([
       'CassetteMissError',
+      'ForbiddenHeaderError',
       'GENERATION_UNAVAILABLE',
       'MODEL_EXECUTION_FIELDS',
       'NO_KILL_SWITCH',
@@ -80,6 +81,7 @@ describe('src/providers/index.ts', () => {
       'UNAVAILABLE_DETAILS',
       'UNAVAILABLE_REASONS',
       'assertAllowedOrigin',
+      'assertCarryableHeaders',
       'assertNever',
       'buildModelExecutionRecord',
       'cassetteKeyOf',
