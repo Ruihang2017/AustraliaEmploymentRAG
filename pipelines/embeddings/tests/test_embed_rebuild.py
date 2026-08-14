@@ -16,6 +16,10 @@ Also covered here, because it is the same publication step:
   new vector file beside a stale or missing manifest (the two artifacts PRD §18.4 ships together);
 * the PRD §14.4 dual-index guard is re-run under the publication lock, so a second profile that
   appears AFTER the up-front check still cannot end up sharing one index.
+* the rollback's OWN failure is retried, rescued and reported — never swallowed. The transient
+  failure the rollback defends against (an anti-virus lock, a full disk) can equally strike the
+  rollback's own `os.replace`, and a rollback that restores two of three files in silence leaves a
+  manifest describing a vector file that is not beside it, with nothing to tell the operator.
 """
 
 from __future__ import annotations
@@ -33,6 +37,7 @@ from embedding_fixtures import CorpusFixture, RecordingWriter
 from embeddings.build import (
     build_embeddings,
     journal_directory_for,
+    recovery_directory_for,
     work_directory_for,
 )
 from embeddings.emit import MANIFEST_FILENAME, VECTOR_FILENAME
@@ -136,6 +141,51 @@ class OneShotReplaceFailure:
         ):
             self.fired = True
             raise OSError(28, "no space left on device (injected)")
+        return self._real(src, dst, **kwargs)
+
+
+class PublishThenRestoreFailure:
+    """Fail one file's PUBLISH once, then fail another file's RESTORE during the rollback.
+
+    The two phases are told apart by the publish failure itself: everything before it is
+    publication, everything after it is the rollback undoing what publication managed. That is what
+    lets one fake displace a file successfully and then refuse to give it back — the exact shape of
+    a transient lock landing on the rollback rather than on the build.
+
+    `restore_failures` bounds how many restore attempts fail: a finite number smaller than the
+    module's retry budget models a TRANSIENT failure the retry absorbs, and a large one models a
+    lock that outlives the build.
+    """
+
+    def __init__(
+        self,
+        out_dir: Path,
+        publish_failure: str,
+        restore_failure: str,
+        *,
+        restore_failures: int = 10_000,
+    ) -> None:
+        self._out_dir = out_dir
+        self._publish_failure = publish_failure
+        self._restore_failure = restore_failure
+        self._restore_budget = restore_failures
+        self._real = os.replace
+        self.fired = False
+        self.restore_attempts = 0
+
+    def __call__(self, src, dst, **kwargs):  # type: ignore[no-untyped-def]
+        destination = Path(dst)
+        if destination.parent == self._out_dir:
+            if not self.fired and destination.name == self._publish_failure:
+                self.fired = True
+                raise OSError(28, "no space left on device (injected, publication)")
+            if (
+                self.fired
+                and destination.name == self._restore_failure
+                and self.restore_attempts < self._restore_budget
+            ):
+                self.restore_attempts += 1
+                raise OSError(13, "permission denied (injected, rollback)")
         return self._real(src, dst, **kwargs)
 
 
@@ -475,3 +525,226 @@ def test_the_publication_transaction_is_immediate(
         connection.close()
 
     assert "BEGIN IMMEDIATE" in statements
+
+
+# --------------------------------------------------------------------------------------------------
+# Finding 5 — a rollback that itself fails is retried, rescued and REPORTED, never swallowed
+# --------------------------------------------------------------------------------------------------
+
+
+def _rebuild_with(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    out: Path,
+    failure: PublishThenRestoreFailure,
+    monkeypatch: pytest.MonkeyPatch,
+) -> OSError:
+    monkeypatch.setattr(os, "replace", failure)
+    with pytest.raises(OSError) as raised:
+        build_embeddings(
+            corpus_fixture.path,
+            pinned_profile,
+            _stub(pinned_profile),
+            runtime_pin_fixture,
+            out,
+            writer=RecordingWriter(),
+        )
+    monkeypatch.undo()
+    assert failure.fired, "the publication failure this case is built on never fired"
+    return raised.value
+
+
+def _notes(error: BaseException) -> str:
+    return "\n".join(getattr(error, "__notes__", []))
+
+
+def test_a_transient_restore_failure_is_retried_rather_than_given_up_on_at_the_first_error(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The failure the rollback defends against is transient, so a single attempt is a coin toss.
+
+    The manifest's restore fails once and then succeeds. With a one-shot rollback the bundle would
+    be left mixed; with the retry the previous group comes back whole and there is nothing to
+    report.
+    """
+    out = tmp_path / "out"
+    rows_before, files_before = _first_build(
+        corpus_fixture, pinned_profile, runtime_pin_fixture, out
+    )
+    _make_the_rebuild_differ(corpus_fixture.path)
+
+    failure = PublishThenRestoreFailure(
+        out,
+        publish_failure=REPORT_FILENAME,
+        restore_failure=MANIFEST_FILENAME,
+        restore_failures=1,
+    )
+    error = _rebuild_with(
+        corpus_fixture, pinned_profile, runtime_pin_fixture, out, failure, monkeypatch
+    )
+
+    assert failure.restore_attempts == 1
+    assert not _notes(error), (
+        "a restore that eventually succeeded must not be reported as an inconsistent bundle"
+    )
+    assert _published_bytes(out) == files_before
+    assert _rows(corpus_fixture.path, pinned_profile.profile.profile_id) == rows_before
+    assert not recovery_directory_for(out).exists(), (
+        "nothing needed rescuing, so no recovery directory should have been created"
+    )
+
+
+def test_a_restore_that_keeps_failing_is_reported_on_the_exception_instead_of_being_swallowed(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The regression this section exists for.
+
+    The report's publication fails, so the rollback has to put the manifest and the vector file
+    back. The manifest's restore then fails for good. The bundle is now MIXED — the published
+    manifest is the failed build's and describes a `vector_file.sha256` that is not the restored
+    `vectors.usearch` beside it — and the operator's only signal is what the build says on the way
+    out. Previously it said nothing at all.
+    """
+    out = tmp_path / "out"
+    _, files_before = _first_build(corpus_fixture, pinned_profile, runtime_pin_fixture, out)
+    _make_the_rebuild_differ(corpus_fixture.path)
+
+    failure = PublishThenRestoreFailure(
+        out, publish_failure=REPORT_FILENAME, restore_failure=MANIFEST_FILENAME
+    )
+    error = _rebuild_with(
+        corpus_fixture, pinned_profile, runtime_pin_fixture, out, failure, monkeypatch
+    )
+
+    # The state the note has to describe: the manifest was NOT restored, the vector file WAS.
+    published = _published_bytes(out)
+    assert published[MANIFEST_FILENAME] != files_before[MANIFEST_FILENAME]
+    assert published[VECTOR_FILENAME] == files_before[VECTOR_FILENAME]
+    on_disk = json.loads((out / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    previous = json.loads(files_before[MANIFEST_FILENAME].decode("utf-8"))
+    assert on_disk["vector_file"]["sha256"] != previous["vector_file"]["sha256"], (
+        "this case is only meaningful while the two manifests disagree about the vector file"
+    )
+
+    notes = _notes(error)
+    assert notes, "a rollback that could not undo the publication reported nothing"
+    assert "INTERNALLY INCONSISTENT" in notes
+    assert MANIFEST_FILENAME in notes
+    assert str(out) in notes
+
+
+def test_the_rescued_previous_content_outlives_the_rebuild_journal_that_would_delete_it(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A recovery path deleted while the operator is reading about it is worse than none.
+
+    The publication backups live in the work directory, and `_RebuildJournal.roll_back` replaces
+    that whole directory with the previous generation immediately afterwards. So an un-restorable
+    backup is moved to a third sibling directory that nothing in this module removes, and the note
+    points there.
+    """
+    out = tmp_path / "out"
+    rows_before, files_before = _first_build(
+        corpus_fixture, pinned_profile, runtime_pin_fixture, out
+    )
+    _make_the_rebuild_differ(corpus_fixture.path)
+
+    failure = PublishThenRestoreFailure(
+        out, publish_failure=REPORT_FILENAME, restore_failure=MANIFEST_FILENAME
+    )
+    error = _rebuild_with(
+        corpus_fixture, pinned_profile, runtime_pin_fixture, out, failure, monkeypatch
+    )
+
+    rescued = recovery_directory_for(out) / MANIFEST_FILENAME
+    assert rescued.exists(), "the previous manifest was not preserved anywhere"
+    assert rescued.read_bytes() == files_before[MANIFEST_FILENAME]
+    assert str(rescued) in _notes(error)
+    # The journal ran after the rescue and cleaned itself up, without taking the rescue with it.
+    assert not journal_directory_for(out).exists()
+    assert rescued.exists()
+    # And the journal's own rollback is unaffected: the rows are still the previous build's.
+    assert _rows(corpus_fixture.path, pinned_profile.profile.profile_id) == rows_before
+
+
+def test_a_restore_failure_is_logged_too_because_a_caller_can_reformat_away_the_note(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    out = tmp_path / "out"
+    _first_build(corpus_fixture, pinned_profile, runtime_pin_fixture, out)
+    _make_the_rebuild_differ(corpus_fixture.path)
+
+    failure = PublishThenRestoreFailure(
+        out, publish_failure=REPORT_FILENAME, restore_failure=MANIFEST_FILENAME
+    )
+    with caplog.at_level("ERROR", logger="embeddings.build"):
+        _rebuild_with(
+            corpus_fixture, pinned_profile, runtime_pin_fixture, out, failure, monkeypatch
+        )
+
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    assert MANIFEST_FILENAME in logged
+    assert "rollback could not RESTORE" in logged
+
+
+def test_a_published_file_with_no_predecessor_that_cannot_be_removed_is_reported_as_a_leftover(
+    corpus_fixture: CorpusFixture,
+    pinned_profile: PinnedProfile,
+    runtime_pin_fixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The rollback's other branch: undoing a FIRST publication is an unlink, not a restore.
+
+    There is no previous content to rescue, so the report has to say something different — the file
+    is a leftover of a failed build rather than a stale one — or an operator would go looking for a
+    recovery copy that cannot exist.
+    """
+    out = tmp_path / "out"
+    vector_path = out / VECTOR_FILENAME
+    real_unlink = os.unlink
+
+    def refuse_to_unlink_the_vector_file(path, **kwargs):  # type: ignore[no-untyped-def]
+        if Path(path) == vector_path:
+            raise OSError(13, "permission denied (injected, rollback unlink)")
+        return real_unlink(path, **kwargs)
+
+    publication_failure = OneShotReplaceFailure(out, MANIFEST_FILENAME)
+    monkeypatch.setattr(os, "replace", publication_failure)
+    monkeypatch.setattr(os, "unlink", refuse_to_unlink_the_vector_file)
+    with pytest.raises(OSError) as raised:
+        build_embeddings(
+            corpus_fixture.path,
+            pinned_profile,
+            _stub(pinned_profile),
+            runtime_pin_fixture,
+            out,
+            writer=RecordingWriter(),
+        )
+    monkeypatch.undo()
+    assert publication_failure.fired
+
+    notes = _notes(raised.value)
+    assert "leftover of a failed build" in notes
+    assert VECTOR_FILENAME in notes
+    assert not (recovery_directory_for(out) / VECTOR_FILENAME).exists(), (
+        "there was no previous content, so nothing may be presented as recoverable"
+    )

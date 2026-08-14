@@ -61,6 +61,22 @@ So `_Publication` records every replace it performs, preserving any file it disp
 the whole group if a later member fails: a file that had a predecessor gets it back, a file that had
 none is removed. The three published names therefore move together or not at all.
 
+A ROLLBACK THAT ITSELF FAILS IS REPORTED, NEVER SWALLOWED
+---------------------------------------------------------
+The rollback runs while another exception is already propagating, so it may not raise — losing the
+original failure would hide why the build stopped. But it may not be SILENT either. The very case
+the rollback exists for (a transient anti-virus lock, a full disk) can strike the rollback's own
+`os.replace`, and a rollback that gets through two of three files and swallows the third leaves the
+bundle in exactly the mixed state this design forbids — an `embedding-manifest.json` whose
+`vector_file.sha256` does not describe the `vectors.usearch` beside it — with nothing to tell the
+operator. So `_Publication.roll_back` (a) retries each restore a bounded number of times, because
+the expected failure is transient by nature; (b) records every restore it could not complete in
+`restore_failures`; (c) RESCUES the surviving backups into a durable recovery directory, since both
+the work directory and the journal directory that otherwise hold them are removed moments later by
+`_RebuildJournal.roll_back`/`discard`; and (d) logs an error and adds a note to the propagating
+exception naming every path left wrong and where its previous content now is. That is the same
+contract `_RebuildJournal.restore_failed` already had, applied to the file group.
+
 The same group is published INSIDE a `BEGIN IMMEDIATE` transaction on the corpus connection
 (`persist.immediate_transaction`), which re-runs `assert_no_foreign_profiles` under SQLite's
 RESERVED lock. The up-front `assert_profile_compatible` is a check-then-act on its own: two builds
@@ -97,6 +113,7 @@ this row is current" has to mean "redo it".
 from __future__ import annotations
 
 import array
+import logging
 import json
 import os
 import shutil
@@ -133,17 +150,29 @@ from .vectors import UsearchIndexWriter, VectorIndexWriter
 
 __all__ = [
     "JOURNAL_DIRNAME_SUFFIX",
+    "RECOVERY_DIRNAME_SUFFIX",
     "WORK_DIRNAME_SUFFIX",
     "build_embeddings",
     "journal_directory_for",
+    "recovery_directory_for",
     "vector_key_for",
     "work_directory_for",
 ]
+
+#: Every message this module emits about a rollback it could not complete goes here as well as onto
+#: the propagating exception: a `__notes__` entry is invisible to an operator whose caller catches
+#: and reformats the exception, and this particular failure must never be quiet.
+_LOG = logging.getLogger(__name__)
 
 #: Private to a build, and a SIBLING of the output directory — see the module docstring.
 WORK_DIRNAME_SUFFIX = ".embedding-work"
 #: Also a sibling, and for the same PRD §18.4 reason: it must not be inside the bundle root.
 JOURNAL_DIRNAME_SUFFIX = ".embedding-rollback"
+#: Where the previous content of a file the rollback could NOT restore is preserved. A third sibling
+#: rather than a corner of the work or journal directory, because both of those are removed by the
+#: rebuild journal's own rollback moments later — a recovery path that gets deleted while the
+#: operator is reading about it is worse than none.
+RECOVERY_DIRNAME_SUFFIX = ".embedding-recovery"
 _RESUME_STATE = "resume-state.json"
 _SIDECAR = "vectors.partial.bin"
 _JOURNAL_ROWS = "previous-chunk-embedding-rows.jsonl"
@@ -165,6 +194,16 @@ def journal_directory_for(out_dir: Path) -> Path:
     hand; the next non-resume rebuild starts a fresh journal and discards it.
     """
     return out_dir.parent / f".{out_dir.name}{JOURNAL_DIRNAME_SUFFIX}"
+
+
+def recovery_directory_for(out_dir: Path) -> Path:
+    """Where a rollback that could not restore a file leaves that file's previous content.
+
+    Beside *out_dir*, never inside it (PRD §18.4), and — unlike the work and journal directories —
+    never removed by this module. Its existence means a human has to reconcile the bundle: the
+    build's exception note says which published names are wrong and which file here replaces each.
+    """
+    return out_dir.parent / f".{out_dir.name}{RECOVERY_DIRNAME_SUFFIX}"
 
 
 def vector_key_for(search_chunk_id: str) -> str:
@@ -265,18 +304,49 @@ def _preserve(source: Path, destination: Path) -> None:
         shutil.copy2(source, destination)
 
 
+#: How many times a single restore is attempted before the rollback gives up on it. The failure the
+#: rollback is defending against — an anti-virus scan or an indexer holding the just-written file
+#: open, a momentarily full disk — is transient by nature, so one attempt is a coin toss.
+_RESTORE_ATTEMPTS = 5
+#: Seconds between those attempts. Short: this runs on the failure path of a build that is already
+#: stopping, and the caller is waiting on an exception, so seconds of delay are not free.
+_RESTORE_RETRY_SECONDS = 0.05
+
+
+@dataclass(frozen=True)
+class _FailedRestore:
+    """One published name the rollback could not put back, and where its previous content is."""
+
+    #: The published path that is now WRONG — it holds this build's file, not the previous one.
+    final: Path
+    #: Where the previous content ended up, or None if it could not be rescued either (in which
+    #: case `backup` names where it was last seen).
+    rescued_to: Path | None
+    #: The backup the rollback was trying to restore, or None when the file had no predecessor and
+    #: the rollback was trying to DELETE it (so the published file is a leftover, not a stale one).
+    backup: Path | None
+    error: BaseException
+
+
 class _Publication:
     """Publish several staged files as ONE all-or-nothing group. See the module docstring.
 
     `publish()` preserves whatever it displaces and remembers it; `roll_back()` undoes every replace
     performed so far, in reverse order — restoring a predecessor where there was one and removing
-    the published file where there was not.
+    the published file where there was not. A restore it cannot complete is retried, then recorded
+    in `restore_failures` and reported by the caller; it is never swallowed.
     """
 
-    def __init__(self, backup_dir: Path) -> None:
+    def __init__(self, backup_dir: Path, recovery_dir: Path) -> None:
         self._backup_dir = backup_dir
+        self._recovery_dir = recovery_dir
         #: (final path, backup path or None if nothing was displaced), in publication order.
         self._done: list[tuple[Path, Path | None]] = []
+        #: Set by `roll_back` for every published name it could not undo. Non-empty means the
+        #: published group is internally inconsistent and a human must reconcile it — reported as a
+        #: note on the original exception rather than raised, exactly as `_RebuildJournal` does,
+        #: because losing the original failure would hide why the build stopped.
+        self.restore_failures: list[_FailedRestore] = []
 
     def publish(self, staged: Path, final: Path) -> None:
         backup: Path | None = None
@@ -292,13 +362,74 @@ class _Publication:
         """Undo the group. Never raises: it runs while another exception is already propagating."""
         while self._done:
             final, backup = self._done.pop()
+            error = self._restore(final, backup)
+            if error is None:
+                continue
+            rescued = self._rescue(final, backup)
+            failure = _FailedRestore(
+                final=final, rescued_to=rescued, backup=backup, error=error
+            )
+            self.restore_failures.append(failure)
+            _LOG.error("%s", _describe_failed_restore(failure))
+
+    def _restore(self, final: Path, backup: Path | None) -> BaseException | None:
+        """Put one file back, retrying a transient failure. Returns the last error, or None."""
+        last: BaseException | None = None
+        for attempt in range(_RESTORE_ATTEMPTS):
             try:
                 if backup is not None:
                     os.replace(backup, final)
                 elif final.exists():
                     final.unlink()
-            except OSError:  # pragma: no cover - a filesystem that cannot undo its own replace
-                continue
+                return None
+            except OSError as exc:
+                last = exc
+                if attempt + 1 < _RESTORE_ATTEMPTS:
+                    time.sleep(_RESTORE_RETRY_SECONDS)
+        return last
+
+    def _rescue(self, final: Path, backup: Path | None) -> Path | None:
+        """Move an un-restorable backup somewhere nothing else will delete it.
+
+        The backup lives in the work directory, which `_RebuildJournal.roll_back` replaces wholesale
+        with the previous generation immediately after this runs. Without this step the exception
+        note would point at a path that no longer exists by the time it is read.
+        """
+        if backup is None or not backup.exists():
+            return None
+        destination = self._recovery_dir / final.name
+        try:
+            self._recovery_dir.mkdir(parents=True, exist_ok=True)
+            if destination.exists():
+                destination.unlink()
+            os.replace(backup, destination)
+        except OSError:
+            try:
+                _preserve(backup, destination)
+            except OSError:  # pragma: no cover - nothing on this filesystem is movable
+                return None
+        return destination
+
+
+def _describe_failed_restore(failure: _FailedRestore) -> str:
+    """One operator-readable line per published name the rollback could not undo."""
+    if failure.backup is None:
+        return (
+            f"rollback could not REMOVE the newly published {failure.final} — it had no previous "
+            f"version, so this file is a leftover of a failed build and must be deleted by hand "
+            f"({failure.error!r})"
+        )
+    if failure.rescued_to is not None:
+        return (
+            f"rollback could not RESTORE {failure.final} — it still holds the FAILED build's "
+            f"content; the previous content is preserved at {failure.rescued_to} and must be moved "
+            f"back by hand ({failure.error!r})"
+        )
+    return (
+        f"rollback could not RESTORE {failure.final} — it still holds the FAILED build's content, "
+        f"and its previous content could not be preserved either; it was last at {failure.backup} "
+        f"({failure.error!r})"
+    )
 
 
 class _RebuildJournal:
@@ -426,7 +557,7 @@ def build_embeddings(
     work_dir = work_directory_for(out_dir)
     resume_state_path = work_dir / _RESUME_STATE
     journal: _RebuildJournal | None = None
-    publication = _Publication(work_dir / _PUBLICATION_BACKUP)
+    publication = _Publication(work_dir / _PUBLICATION_BACKUP, recovery_directory_for(out_dir))
 
     try:
         provider_info = provider.describe()
@@ -610,6 +741,21 @@ def build_embeddings(
         # Undo, in reverse order of destruction: the published group first, then the rows and the
         # resume state the rebuild displaced. A failed run leaves the previous index untouched.
         publication.roll_back()
+        if publication.restore_failures:
+            # The published group is now MIXED: some names hold the failed build's content and some
+            # the previous build's. A manifest can therefore describe a `vector_file.sha256` that is
+            # not the `vectors.usearch` beside it. That must reach the operator, so it goes onto the
+            # exception as a note (and has already been logged), never swallowed.
+            exc.add_note(
+                "the publication rollback ALSO failed, so "
+                f"{out_dir} is INTERNALLY INCONSISTENT — the manifest, the vector file and the "
+                "report are not from the same build and the bundle must not be released until a "
+                "human has reconciled it:\n"
+                + "\n".join(
+                    f"  - {_describe_failed_restore(failure)}"
+                    for failure in publication.restore_failures
+                )
+            )
         if journal is not None:
             journal.roll_back()
             if journal.restore_failed is not None:

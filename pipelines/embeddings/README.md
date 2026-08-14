@@ -146,6 +146,22 @@ back and the journal is discarded. The three published files are replaced as **o
 failure part-way through restores whatever it displaced, so `vectors.usearch` is never published
 beside a manifest that describes a different row set.
 
+### When the rollback itself fails
+
+Restoring the displaced files is `os.replace` too, so the very thing the rollback exists for — an
+anti-virus lock, a full disk — can strike the rollback. Each restore is therefore retried a few
+times, and anything that still will not go back is **reported, never swallowed**: the failure is
+logged at ERROR and attached as a note to the exception the build raises, naming every published
+file that is now wrong. The previous content of those files is moved to a third sibling directory,
+`.<out>.embedding-recovery/`, which this pipeline never deletes — the work and journal directories
+that otherwise hold it are cleaned up moments later.
+
+**A `.<out>.embedding-recovery/` directory means the published bundle is internally inconsistent**
+(for example an `embedding-manifest.json` whose `vector_file.sha256` is not the `vectors.usearch`
+beside it) and must not be released. Reconcile it by hand — move each file back over the published
+name — or rerun the build once the underlying disk or lock problem is fixed, then delete the
+directory.
+
 A journal directory that is still there after a run means the process was killed rather than the
 build failing (the rollback never got to run). The previous rows are in
 `previous-chunk-embedding-rows.jsonl` and the previous resume state in `previous-work/`; the next
