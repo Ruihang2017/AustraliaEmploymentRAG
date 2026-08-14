@@ -10,11 +10,23 @@ THE SEVEN STEPS, IN THIS ORDER (deliverable 3):
     6. emit embedding-manifest.json
     7. return counts, elapsed time, peak RSS, and the output file's sha256/byte size
 
-STEPS 4-6 ARE ALL-OR-NOTHING. Everything is produced under a private work directory
-(`<out>/.embedding-work/`); the three published artifacts appear at their final paths only at the
-very end, each by `os.replace`, and the work directory is removed once they have. On any exception
-nothing partial exists at a final path, while an interrupted run still has its resume state. A
-leftover work directory can never be mistaken for output: its name is none of PRD §18.4's three.
+STEPS 4-6 ARE ALL-OR-NOTHING. Everything is produced under a private work directory, and the three
+published artifacts appear at their final paths only at the very end, each by `os.replace`. On any
+exception nothing partial exists at a final path, while an interrupted run still has its resume
+state.
+
+The work directory is a SIBLING of the output directory (`<out>/../.<out>.embedding-work/`), not a
+child of it, for two reasons that pull in opposite directions and are both hard:
+
+* it must not be inside the bundle root, because PRD §18.4 fixes the release layout and CRPS-02's
+  `verify_bundle` reports every unlisted file as `BUNDLE_FILE_UNLISTED`;
+* it must SURVIVE a completed build, because deliverable 5's resume rule — "a changed `text_hash`
+  forces re-embedding" — is the PRD §12.1 incremental-update path, which by definition starts from
+  a build that finished. `chunk_embedding` has no column to carry a text hash and may not gain one
+  (sub-PRD D14), so the state file is the only place that evidence can live.
+
+A sibling directory also keeps `os.replace` on one filesystem, which is what makes publication
+atomic rather than a copy.
 
 WHY THE INDEX IS BUILT IN A SECOND PASS
 ----------------------------------------
@@ -82,12 +94,17 @@ from .report import REPORT_FILENAME, EmbeddingBuildResult, write_build_report
 from .selection import iter_chunk_texts, resolve_requested_tiers, select_chunks
 from .vectors import UsearchIndexWriter, VectorIndexWriter
 
-__all__ = ["WORK_DIRNAME", "build_embeddings", "vector_key_for"]
+__all__ = ["WORK_DIRNAME_SUFFIX", "build_embeddings", "vector_key_for", "work_directory_for"]
 
-#: Private to a build. Deliberately NOT one of PRD §18.4's three published names.
-WORK_DIRNAME = ".embedding-work"
+#: Private to a build, and a SIBLING of the output directory — see the module docstring.
+WORK_DIRNAME_SUFFIX = ".embedding-work"
 _RESUME_STATE = "resume-state.json"
 _SIDECAR = "vectors.partial.bin"
+
+
+def work_directory_for(out_dir: Path) -> Path:
+    """The private work/resume directory beside *out_dir*, never inside it."""
+    return out_dir.parent / f".{out_dir.name}{WORK_DIRNAME_SUFFIX}"
 
 
 def vector_key_for(search_chunk_id: str) -> str:
@@ -201,7 +218,7 @@ def build_embeddings(
     if connection is None:
         connection = schema.open_corpus_database(corpus_path, read_only=False)
 
-    work_dir = out_dir / WORK_DIRNAME
+    work_dir = work_directory_for(out_dir)
     resume_state_path = work_dir / _RESUME_STATE
 
     try:
@@ -365,9 +382,9 @@ def build_embeddings(
         os.replace(staged_vector, vector_path)
         os.replace(staged_manifest, manifest_path)
         os.replace(staged_report, out_dir / REPORT_FILENAME)
-        # The work directory has served its purpose; leaving it inside the bundle root would add a
-        # path PRD §18.4's layout does not list.
-        shutil.rmtree(work_dir, ignore_errors=True)
+        # The work directory is KEPT, deliberately: it is what makes the PRD §12.1 incremental
+        # re-embed possible (see the module docstring). It sits beside the bundle, not inside it,
+        # so it adds no path to PRD §18.4's layout.
         return result
     finally:
         if owns_connection:
