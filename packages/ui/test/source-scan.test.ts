@@ -121,9 +121,18 @@ describe('customer research content never leaves the page (PRD §41.1)', () => {
 
 describe('the render-time security boundary (PRD §37.5; SEC-003)', () => {
   it('never uses dangerouslySetInnerHTML anywhere under src/', () => {
+    // Over the STRIPPED text: `src/safe/parse.ts`'s header explains at length why this package
+    // never reaches for it, and a scan that a doc comment can trip is a scan nobody keeps.
+    // A real use is a JSX attribute name, which `code()` leaves intact.
     for (const file of FILES) {
-      expect(file.text.includes('dangerouslySetInnerHTML'), `${file.name}`).toBe(false);
+      expect(code(file.text).includes('dangerouslySetInnerHTML'), `${file.name}`).toBe(false);
     }
+  });
+
+  it('is a real check: the stripper leaves a JSX attribute name intact', () => {
+    expect(code('<div dangerouslySetInnerHTML={{ __html: x }} />')).toContain(
+      'dangerouslySetInnerHTML',
+    );
   });
 
   it('never assigns innerHTML or outerHTML, and never calls a DOM parser', () => {
