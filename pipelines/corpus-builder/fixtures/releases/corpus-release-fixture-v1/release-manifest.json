@@ -1,0 +1,189 @@
+{
+  "artifacts": {
+    "corpus_sqlite_sha256": "496bdda16ac2962883a6415fd8bf3ae0732b2715daba4bd311a9a450eb89836e",
+    "embedding_manifest_sha256": "07508c06c7c07b2606f5eb82e27ec97a48be04eb28ac8b7f2619fa3963690f2f",
+    "lexical_index_sha256": "3501dbb5ef22a08601d3c37a7c1439c102db9bd4972cc8278c55bcfa24956a7f",
+    "vector_index_sha256": "7fb18b4ad02e9c04c94476d270b30557a5984f687edf21ffb743cba7524e7c8b"
+  },
+  "build_finished_at": "2026-08-14T14:23:18Z",
+  "build_started_at": "2026-08-14T14:23:18Z",
+  "compatibility": {
+    "app": {
+      "max": null,
+      "min": "0.1.0"
+    },
+    "corpus_schema": "1.0.0",
+    "search": {
+      "max": null,
+      "min": "0.1.0"
+    }
+  },
+  "counts": {
+    "chunks": 36,
+    "document_versions": 9,
+    "documents": 5,
+    "embeddings": 0,
+    "events": 3,
+    "node_versions": 18,
+    "nodes": 8,
+    "relations": 3,
+    "sources": 4
+  },
+  "coverage": [
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 3,
+      "earliest_effective_from": "2019-07-01",
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-08-03T00:00:00Z",
+      "latest_effective_from": "2027-01-01",
+      "source_group_id": "syn-cth-primary"
+    },
+    {
+      "coverage_status": "FRESHNESS_LIMITED",
+      "document_count": 2,
+      "earliest_effective_from": "2026-01-01",
+      "freshness_status": "STALE_KNOWN",
+      "last_ingestion_at": "2026-08-03T00:00:00Z",
+      "latest_effective_from": "2026-05-12",
+      "source_group_id": "syn-nsw-primary"
+    }
+  ],
+  "created_at": "2026-08-14T14:23:18Z",
+  "embedding_profile": {
+    "dimensions": 8,
+    "model_id": "stub:synthetic-fixture",
+    "profile_id": "fixture-stub-profile",
+    "quantisation": "NONE"
+  },
+  "evaluation": {
+    "gates": [],
+    "metrics": {},
+    "ran_at": null,
+    "report_id": null,
+    "status": "NOT_RUN"
+  },
+  "files": [
+    {
+      "byte_size": 286720,
+      "path": "corpus.sqlite",
+      "sha256": "496bdda16ac2962883a6415fd8bf3ae0732b2715daba4bd311a9a450eb89836e"
+    },
+    {
+      "byte_size": 1752,
+      "path": "embedding-manifest.json",
+      "sha256": "07508c06c7c07b2606f5eb82e27ec97a48be04eb28ac8b7f2619fa3963690f2f"
+    },
+    {
+      "byte_size": 109,
+      "path": "tantivy/INDEX_STATE.json",
+      "sha256": "0172c0aed3d54ca939d3266f7102fd3d681024dce9d338ba91aa2de754072c48"
+    },
+    {
+      "byte_size": 135,
+      "path": "vectors.usearch",
+      "sha256": "7fb18b4ad02e9c04c94476d270b30557a5984f687edf21ffb743cba7524e7c8b"
+    }
+  ],
+  "local_models": [
+    {
+      "bundle_path": null,
+      "dimensions": 8,
+      "licence": {
+        "attribution_required": false,
+        "identifier": "NOT-APPLICABLE-SYNTHETIC-FIXTURE",
+        "notes": "No model artefact exists; this fixture embeds nothing.",
+        "redistribution_permitted": false,
+        "url": null
+      },
+      "max_tokens": 512,
+      "model_artifact": {
+        "byte_size": 0,
+        "format": "none",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "model_id": "stub:synthetic-fixture",
+      "model_revision": "stub:no-revision",
+      "normalisation": "NONE",
+      "role": "DOCUMENT_EMBEDDING",
+      "tokenizer": {
+        "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "id": "stub:no-tokenizer",
+        "max_tokens": 512,
+        "truncation": "RIGHT"
+      },
+      "truncation": "RIGHT"
+    },
+    {
+      "bundle_path": null,
+      "dimensions": 8,
+      "licence": {
+        "attribution_required": false,
+        "identifier": "NOT-APPLICABLE-SYNTHETIC-FIXTURE",
+        "notes": "No model artefact exists; this fixture embeds nothing.",
+        "redistribution_permitted": false,
+        "url": null
+      },
+      "max_tokens": 512,
+      "model_artifact": {
+        "byte_size": 0,
+        "format": "none",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "model_id": "stub:synthetic-fixture",
+      "model_revision": "stub:no-revision",
+      "normalisation": "NONE",
+      "role": "QUERY_EMBEDDING",
+      "tokenizer": {
+        "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "id": "stub:no-tokenizer",
+        "max_tokens": 512,
+        "truncation": "RIGHT"
+      },
+      "truncation": "RIGHT"
+    }
+  ],
+  "manifest_sha256": "9001f95448901e48ee4d4af518e88001f57a7f60fd725431f44433dd03b107e4",
+  "manifest_version": "1.0.0",
+  "parent_release_id": null,
+  "quarantine": {
+    "by_reason_code": {
+      "STRUCTURE_UNPARSEABLE": 1
+    },
+    "open_count": 1,
+    "resolved_count": 0
+  },
+  "release_id": "rel_synthetic_fixture_v1",
+  "release_kind": "SYNTHETIC_FIXTURE",
+  "runtime": {
+    "execution_providers": [
+      "CPU"
+    ],
+    "family": "stub:runtime",
+    "integration": {
+      "crate": "ort",
+      "version": "0.0.0-synthetic-fixture"
+    },
+    "pinned_by": "SYNTHETIC-FIXTURE-NO-VERIFICATION-RECORD",
+    "tokenizer_library": {
+      "crate": "tokenizers",
+      "version": "0.0.0-synthetic-fixture"
+    },
+    "version": "0.0.0-synthetic-fixture"
+  },
+  "signature": {
+    "algorithm": "ED25519",
+    "key_id": "dev-corpus-signing-001",
+    "signed_at": "2026-08-14T14:23:18Z",
+    "value": "V8di+to8REFpxzMRMdQ2/3dAEB59TgV0X/cYXzhj7qR9XSEJTZA0bLme41q0dCCXnHiyufS/KVpIimXv7W9xCQ=="
+  },
+  "versions": {
+    "builder": "0.0.0",
+    "chunker": "0.0.0-synthetic-fixture",
+    "contract": "1.0.0",
+    "embedding": "0.0.0-synthetic-fixture",
+    "index": "PLACEHOLDER_NO_INDEX",
+    "parser": "0.0.0-synthetic-fixture",
+    "schema": "1.0.0"
+  }
+}

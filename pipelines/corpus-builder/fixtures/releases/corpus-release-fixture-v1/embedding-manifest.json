@@ -1,0 +1,64 @@
+{
+  "builder_version": "0.0.0",
+  "built_at": "2026-08-14T14:23:18Z",
+  "determinism": {
+    "deterministic": true,
+    "seed": 20260803
+  },
+  "dimensions": 8,
+  "distance_metric": "COSINE",
+  "input_contract_version": "1.0.0",
+  "licence": {
+    "attribution_required": false,
+    "identifier": "NOT-APPLICABLE-SYNTHETIC-FIXTURE",
+    "notes": "No model artefact exists; this fixture embeds nothing.",
+    "redistribution_permitted": false,
+    "url": null
+  },
+  "manifest_version": "1.0.0",
+  "model_artifact": {
+    "byte_size": 0,
+    "format": "none",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "model_id": "stub:synthetic-fixture",
+  "model_revision": "stub:no-revision",
+  "normalisation": "NONE",
+  "profile_id": "fixture-stub-profile",
+  "quantisation": "NONE",
+  "runtime": {
+    "execution_providers": [
+      "CPU"
+    ],
+    "family": "stub:runtime",
+    "integration": {
+      "crate": "ort",
+      "version": "0.0.0-synthetic-fixture"
+    },
+    "pinned_by": "SYNTHETIC-FIXTURE-NO-VERIFICATION-RECORD",
+    "tokenizer_library": {
+      "crate": "tokenizers",
+      "version": "0.0.0-synthetic-fixture"
+    },
+    "version": "0.0.0-synthetic-fixture"
+  },
+  "source_release_id": "rel_synthetic_fixture_v1",
+  "tier_selection": {
+    "chunk_count": 36,
+    "embedded_count": 0,
+    "skipped_count": 36,
+    "tiers": []
+  },
+  "tokenizer": {
+    "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "id": "stub:no-tokenizer",
+    "max_tokens": 512,
+    "truncation": "RIGHT"
+  },
+  "vector_file": {
+    "byte_size": 135,
+    "count": 0,
+    "path": "vectors.usearch",
+    "sha256": "7fb18b4ad02e9c04c94476d270b30557a5984f687edf21ffb743cba7524e7c8b"
+  }
+}

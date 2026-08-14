@@ -9,4 +9,8 @@ imported last. A uniquely named helper module cannot collide.
 
 from __future__ import annotations
 
-from fixture_release_helpers import corpus_connection, trusted_keys  # noqa: F401
+from fixture_release_helpers import (  # noqa: F401
+    corpus_connection,
+    regenerated_bundle,
+    trusted_keys,
+)
