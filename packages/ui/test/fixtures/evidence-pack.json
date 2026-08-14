@@ -1,0 +1,49 @@
+{
+  "_note": "PRD §36.4-shaped evidence pack. Synthetic — no customer content, no evaluation gold (PRD §45.1 item 6). Its citation ids are the same ids the answer snapshot fixture uses, so the two can be rendered together.",
+  "evidence_pack_id": "evp_0192f8c1-6a3f-7c21-9c8e-000000000060",
+  "answer_id": "ans_0192f8c1-6a3f-7c21-9c8e-000000000001",
+  "citations": [
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000030",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000040",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000050",
+      "quote": "An employee who has been employed as a casual employee for at least 12 months may notify the employer that they seek to change to full-time or part-time employment.",
+      "pinpoint": "Synthetic Employment Act 2026 (Cth) s 66AAB(1)",
+      "official_url": "https://www.example-legislation.gov.au/C2026A00001/s66aab",
+      "role": "SUPPORTS",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 120,
+      "end_offset": 281
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000032",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000042",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000052",
+      "quote": "The employer may refuse the request only on reasonable grounds, and must give written reasons within 21 days.",
+      "pinpoint": "Synthetic Employment Act 2026 (Cth) s 66AAC(3)",
+      "official_url": "https://www.example-legislation.gov.au/C2026A00001/s66aac",
+      "role": "QUALIFIES",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 40,
+      "end_offset": 148
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000033",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000043",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000053",
+      "quote": "On these facts the tribunal was not satisfied that the pattern of work was regular and systematic.",
+      "pinpoint": "Synthetic Pty Ltd v Example [2025] FSY 44, [61]",
+      "official_url": "https://www.example-courts.gov.au/decisions/2025FSY44",
+      "role": "CONTRADICTS",
+      "legal_status": "SUPERSEDED",
+      "effective_from": "2025-03-14",
+      "effective_to": "2026-01-01",
+      "start_offset": 4102,
+      "end_offset": 4199
+    }
+  ]
+}

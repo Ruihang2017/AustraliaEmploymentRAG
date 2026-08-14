@@ -48,11 +48,24 @@ describe('PRD 20.1 member skeleton', () => {
     expect(assertSkeleton()).toEqual([]);
   });
 
-  it('makes every pnpm member tsconfig extend tsconfig.base.json and add nothing else', () => {
+  // RUNT-06 (shared with RUNT-05, identical hunk). This assertion used to read
+  // `expect(Object.keys(tsconfig).sort()).toEqual(['extends', 'include'])`, forbidding any
+  // `compilerOptions` in a member tsconfig. Combined with `tsconfig.base.json`'s `lib: ["ES2024"]`
+  // and absent `jsx`, that made every `.tsx` file in the repository un-typecheckable (TS17004) and
+  // every DOM type unreachable — while PRD §18.2 fixes React + Vite for web/admin/widget. It is the
+  // same defect class as the dependency assertion above: an FND-01 bootstrap snapshot promoted to a
+  // repository-wide invariant. The pinning/no-drift discipline it durably meant is preserved — a
+  // member still MUST extend the shared base and MUST NOT add `files`, `references` or a second
+  // `extends` — but a member MAY now carry `compilerOptions` for a platform fact the shared base
+  // cannot express. Escalated on the RUNT-06 PR; `tools/**` is `00-foundation`'s allocated row.
+  it('makes every pnpm member tsconfig extend tsconfig.base.json and add nothing beyond compilerOptions', () => {
     for (const member of pnpmMembers()) {
       const tsconfig = JSON.parse(readFileSync(join(REPO_ROOT, member, 'tsconfig.json'), 'utf8'));
       expect(tsconfig.extends).toBe('../../tsconfig.base.json');
-      expect(Object.keys(tsconfig).sort()).toEqual(['extends', 'include']);
+      expect(
+        Object.keys(tsconfig).every((key) => ['extends', 'include', 'compilerOptions'].includes(key)),
+        `${member}/tsconfig.json has keys ${Object.keys(tsconfig).join(', ')}`,
+      ).toBe(true);
     }
   });
 

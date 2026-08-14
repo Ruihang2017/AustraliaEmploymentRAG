@@ -1,0 +1,49 @@
+{
+  "versions": [
+    {
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000043",
+      "label": "As made (2025 compilation)",
+      "effective_from": "2025-03-14",
+      "effective_to": "2026-01-01",
+      "legal_status": "SUPERSEDED"
+    },
+    {
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000040",
+      "label": "Current compilation",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "legal_status": "IN_FORCE"
+    },
+    {
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000044",
+      "label": "Amending Act, not yet commenced",
+      "effective_from": "2027-01-01",
+      "effective_to": null,
+      "legal_status": "ENACTED_NOT_IN_FORCE"
+    }
+  ],
+  "licenceLimitations": [
+    "Reproduced under a synthetic open-access licence; attribution to the publishing authority is required.",
+    "Explanatory material accompanying this source is not covered by the licence and is summarised rather than quoted."
+  ],
+  "related": [
+    {
+      "kind": "AMENDMENT",
+      "id": "doc_0192f8c1-6a3f-7c21-9c8e-000000000070",
+      "title": "Synthetic Employment Amendment Act 2026 (Cth)",
+      "official_url": "https://www.example-legislation.gov.au/C2026A00009"
+    },
+    {
+      "kind": "CASE",
+      "id": "doc_0192f8c1-6a3f-7c21-9c8e-000000000071",
+      "title": "Synthetic Pty Ltd v Example [2025] FSY 44",
+      "official_url": "https://www.example-courts.gov.au/decisions/2025FSY44"
+    },
+    {
+      "kind": "INSTRUMENT",
+      "id": "doc_0192f8c1-6a3f-7c21-9c8e-000000000072",
+      "title": "Synthetic Employment Regulations 2026 (Cth)",
+      "official_url": "https://www.example-legislation.gov.au/F2026L00002"
+    }
+  ]
+}

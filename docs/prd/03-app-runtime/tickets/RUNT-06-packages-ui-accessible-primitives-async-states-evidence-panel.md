@@ -196,9 +196,15 @@ nothing from `apps/web`), so the lanes stay safe.
 9. **`src/actions/DestructiveAction.tsx`** — a confirmation wrapper that requires the caller to supply
    the exact effect and the recovery path as text, and refuses to render without both (PRD §41.1
    "destructive/security-sensitive actions name exact effect and recovery").
-10. **`src/index.ts`** — a single explicit export barrel. Anything not exported here is private; a test
-    asserts the public surface matches a committed list so a downstream module cannot depend on an
-    internal path.
+10. **`src/ui.ts`** — a single explicit export barrel, mapped as this package's `"."` export in
+    `package.json`. Anything not exported here is private; a test asserts the public surface matches a
+    committed list so a downstream module cannot depend on an internal path.
+    *(Corrected from `src/index.ts` by `RUNT-06`: `tools/workspace-assertions.mjs#assertEntryFilesEmpty`,
+    asserted on every branch, requires every member's `src/index.ts` to stay byte-exactly `export {};`.
+    The merged precedent for a package needing a real entry is an `exports` map pointing at a
+    differently-named file — `packages/database` and `packages/sdk-typescript` both do this. No
+    acceptance semantics change: "the public export surface matches a committed list" is asserted
+    exactly as specified, against `src/ui.ts`.)*
 11. **Committed fixtures** — `packages/ui/test/fixtures/`:
     `answer-snapshot.json` (a PRD §34.5-shaped snapshot with claims, citations and all three relation
     values), `evidence-pack.json` (PRD §36.4-shaped), `search-detail.json` (PRD §32.1 panel data) and
@@ -266,7 +272,9 @@ nothing from `apps/web`), so the lanes stay safe.
 Reviewer steps, offline, no network:
 
 1. `corepack pnpm install --frozen-lockfile`; `pnpm typecheck && pnpm lint`.
-2. `pnpm test --filter @aer/ui`. Suites live under `packages/ui/test/`; the component harness is the
+2. `pnpm --filter @taxrag/ui test`. *(Corrected from `@aer/ui` by `RUNT-06`: the workspace member
+   `FND-01` created is named `@taxrag/ui`, and `tsconfig.base.json#paths` maps that name. The package
+   is not renamed.)* Suites live under `packages/ui/test/`; the component harness is the
    runner `FND-01` selected (Vitest + Testing Library or equivalent) with a jsdom/browser-mode
    environment for the accessibility pass.
 3. **`async-state.test.tsx`** — table-driven over a literal array of the ten PRD §31.3 state names
