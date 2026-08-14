@@ -90,7 +90,8 @@ RELEASE_ID = "rel_synthetic_fixture_v1"
 
 #: `versions.index` while `tantivy/` is a placeholder.
 #:
-#: THE TICKET SAYS `null` HERE AND THAT VALUE CANNOT BE WRITTEN. CRPS-02's frozen contract makes
+#: THE TICKET NOW SAYS THIS SENTINEL (deliverable 3, amended 2026-08-15; sub-PRD D16). It originally
+#: said `null`, AND THAT VALUE CANNOT BE WRITTEN. CRPS-02's frozen contract makes
 #: `versions.index` required and typed `{"type": "string", "minLength": 1}`
 #: (`schemas/corpus-manifest/v1/release-manifest.schema.json` -> `pins.schema.json#/$defs/
 #: version_string`), and `verify_bundle()` reports a schema violation at BLOCKING severity — so a
@@ -98,5 +99,6 @@ RELEASE_ID = "rel_synthetic_fixture_v1"
 #: acceptance item. This sentinel satisfies both: it is unmistakably not a version, and the
 #: "declared, not disguised" requirement is carried by three independent declarations
 #: (`tantivy/INDEX_STATE.json`, this value, and `embedding-manifest.json`'s zero vector count and
-#: `stub:` model id). Raised for a ticket amendment — see `fixtures/README.md`.
+#: `stub:` model id). The amendment landed in the ticket before this value shipped — see
+#: `fixtures/README.md` and `docs/prd/04-corpus-contract/README.md` D16.
 INDEX_VERSION_PLACEHOLDER = "PLACEHOLDER_NO_INDEX"

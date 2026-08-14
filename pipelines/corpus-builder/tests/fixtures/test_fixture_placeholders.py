@@ -40,12 +40,14 @@ def test_declaration_one_the_index_state_file() -> None:
 
 
 def test_declaration_two_the_manifest_index_version() -> None:
-    """The ticket asks for `null` here; CRPS-02's frozen schema forbids it — see the DEVIATION note.
+    """The ticket asks for this sentinel (deliverable 3, amended 2026-08-15; sub-PRD D16).
 
-    `versions.index` `$ref`s `pins.schema.json#/$defs/version_string`
-    (`{"type": "string", "minLength": 1}`) and is required, and `verify_bundle()` reports a schema
-    violation at BLOCKING severity — so `null` would make the bundle fail its own verification and
-    contradict the ticket's first acceptance item. The sentinel below is unmistakably not a version.
+    It originally asked for `null`, which CRPS-02's frozen schema forbids: `versions.index` `$ref`s
+    `pins.schema.json#/$defs/version_string` (`{"type": "string", "minLength": 1}`) and is required,
+    and `verify_bundle()` reports a schema violation at BLOCKING severity — so `null` would make the
+    bundle fail its own verification and contradict the ticket's first acceptance item. The ticket
+    was amended before this value shipped; `test_fixture_ticket_alignment.py` is the regression test
+    that keeps the ticket text and this assertion from drifting apart again in either direction.
     """
     assert _release_manifest()["versions"]["index"] == INDEX_VERSION_PLACEHOLDER
 

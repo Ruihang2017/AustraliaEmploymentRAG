@@ -7,6 +7,7 @@ size: M
 agent: builder
 status: draft
 date: 2026-08-03
+amended: 2026-08-15
 blocked_by: [CRPS-02]
 blocks: [RETR-01]
 ---
@@ -164,8 +165,18 @@ in turn is blocked by `CRPS-01`).
      imported without new dependencies) or a zero-vector placeholder file accompanied by
      `embedding-manifest.json` whose `vector_file.count` is `0` and whose `model_id` starts with
      `stub:`;
-   - both are recorded truthfully in the manifest's `files[]`, `artifacts.*` hashes and `versions`
-     (`index: null` when placeholder). A consumer must be able to tell from the manifest alone that
+   - both are recorded truthfully in the manifest's `files[]`, `artifacts.*` hashes and `versions`.
+     `versions.index` carries the **sentinel string `"PLACEHOLDER_NO_INDEX"`** while the index is a
+     placeholder. *(Amended 2026-08-15 — this clause originally read `index: null`. `CRPS-02`'s
+     frozen contract makes `versions.index` **required** and `$ref`s
+     `pins.schema.json#/$defs/version_string` = `{"type": "string", "minLength": 1}`, and
+     `verify_bundle()` records `MANIFEST_SCHEMA_INVALID` at **BLOCKING** severity — so a `null` here
+     would make the bundle fail its own verification and contradict this ticket's first acceptance
+     item. Widening `CRPS-02`'s schema was rejected: it reopens a signed contract owned by another
+     ticket and outside this file-scope. The sentinel is unmistakably not a version, and
+     "declared, not disguised" is carried by three independent declarations regardless — see below.
+     Sub-PRD `README.md` **D16**.)*
+     A consumer must be able to tell from the manifest alone that
      there is no queryable index — `RETR-01` only needs bundle loading, pinning and verification.
 4. **Determinism.** `generate_corpus` and `build_fixture_release` are pure functions of `(seed,
    key)`: fixed ids derived from the seed (no UUID4, no clock), fixed ordering of every insert, fixed
@@ -185,9 +196,20 @@ in turn is blocked by `CRPS-01`).
 7. `fixtures/README.md` — the cold-start page for consumers (`RETR-01`, CI, `23-assurance`): the
    bundle path, how to verify it in three lines, the fixture's content inventory (deliverable 1's
    table), the explicit placeholder statement from deliverable 3, and the regeneration command.
-8. `fixtures/generator/cli.py` — `uv run python -m corpus_builder.fixtures regenerate
-   [--out <dir>] [--seed <n>]`, which rebuilds the committed bundle in place; running it on a clean
-   tree must leave `git status` clean apart from `built_at`.
+8. `fixtures/generator/cli.py` — `uv run python pipelines/corpus-builder/fixtures/generator/cli.py
+   regenerate [--out <dir>] [--seed <n>]`, which rebuilds the committed bundle in place; running it on
+   a clean tree must leave `git status` clean apart from `built_at`. *(Amended 2026-08-15 — this
+   clause originally named `uv run python -m corpus_builder.fixtures regenerate`. No importable
+   `corpus_builder` package exists or may be created: `pipelines/corpus-builder` is a uv member with
+   `package = false` whose one package directory is `taxrag_pipeline_corpus_builder/`, and
+   `tools/workspace-assertions.mjs::assertSkeleton()` asserts each uv member holds **exactly one**
+   immediate child directory containing `__init__.py` — so adding `fixtures/__init__.py` fails
+   `pnpm test` repository-wide, and adding a module under the existing package directory is outside
+   this ticket's file-scope. The script-path form is the precedent this repository already uses for
+   generator scripts, e.g. `pipelines/corpus-builder/tests/manifest/fixtures/golden/regenerate.py`.
+   Sub-PRD `README.md` **D16**.)*
+   `--out` is **guarded**: the CLI rewrites a directory only when it is absent, empty, or a
+   recognisable `SYNTHETIC_FIXTURE` bundle, and it refuses any other target rather than deleting it.
 9. **A consumer smoke helper** — `fixtures/consumer_checks.py::assert_fixture_loadable(bundle_dir)`
    performing exactly what `RETR-01` will do at its boundary: verify the manifest, open
    `corpus.sqlite` read-only, run three canonical queries (exact provision lookup, neutral-citation
@@ -215,7 +237,9 @@ in turn is blocked by `CRPS-01`).
 - [ ] `[machine]` Offsets: every `search_chunk` in the fixture slices its node text exactly and
       reproduces `text_hash`, including for the non-ASCII node. (`SRCH-003`; `CRPS-01` deliverable 12)
 - [ ] `[machine]` Index placeholders are declared: `tantivy/INDEX_STATE.json` states `PLACEHOLDER`,
-      `versions.index` is `null`, and `embedding-manifest.json` reports `vector_file.count == 0` or a
+      `versions.index` is the sentinel `"PLACEHOLDER_NO_INDEX"` (amended 2026-08-15 from `null`, which
+      `CRPS-02`'s frozen schema rejects at BLOCKING severity — deliverable 3), and
+      `embedding-manifest.json` reports `vector_file.count == 0` or a
       `stub:` model — asserted so a placeholder can never be mistaken for a real index.
       (Deliverable 3; sub-PRD Q-CRPS-2)
 - [ ] `[machine]` The committed bundle is ≤ 20 MiB with no single file > 8 MiB. (Deliverable 5)

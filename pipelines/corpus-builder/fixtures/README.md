@@ -84,25 +84,36 @@ This is the carried caveat of sub-PRD open question **Q-CRPS-2**, which `CRPS-06
 converges on **CRPS-06's** form (it is the build-side owner) and CRPS-08 is amended in the same docs
 PR.
 
-### Two ticket amendments this implementation raises
+### Two ticket amendments, raised and landed in the ticket (2026-08-15)
 
-Both are `[machine]`-checkable facts about the merged CRPS-02 contract, not preferences:
+Both are `[machine]`-checkable facts about the merged CRPS-02 contract and this repository's own
+guards, not preferences. **Both were written back into the ticket itself before the code was allowed
+to differ from it** — `docs/prd/04-corpus-contract/tickets/CRPS-08-signed-synthetic-corpus-fixture-release.md`
+(deliverable 3, deliverable 8, and the matching acceptance item, each carrying an
+*Amended 2026-08-15* note) and `docs/prd/04-corpus-contract/README.md` **D16** (module version v0.3).
+This is CRPS-08's Feedback obligation §1 and CLAUDE.md's rule that the ticket, not the code and not
+the plan, is where spec changes: the sentinel below is now what the ticket **says**, not a deviation
+from it. What still remains after this branch merges is the mechanical
+`publish-tickets.mjs --sync` that re-renders the tracker issue from the amended ticket file — a
+tracker write no agent in this pipeline may perform.
 
-1. **`versions.index` cannot be `null`.** The ticket's deliverable 3 and its acceptance item ask for
-   `null`. `schemas/corpus-manifest/v1/release-manifest.schema.json` makes `versions.index`
+1. **`versions.index` cannot be `null`.** The ticket's deliverable 3 and its acceptance item asked
+   for `null` before the amendment. `schemas/corpus-manifest/v1/release-manifest.schema.json` makes `versions.index`
    **required** and `$ref`s `pins.schema.json#/$defs/version_string` =
    `{"type": "string", "minLength": 1}`; `verify_bundle()` records a `MANIFEST_SCHEMA_INVALID`
    finding at **BLOCKING** severity, which makes `report.ok` false. The ticket's first acceptance
    item (`verify_bundle()` returns `ok`) and its `versions.index is null` item cannot both hold. The
-   sentinel `"PLACEHOLDER_NO_INDEX"` is used instead — unmistakably not a version. Amending the
-   ticket is the fix; widening CRPS-02's signed contract would be a much larger, ADR-sized change.
-2. **The deliverable 8 command cannot exist as written.** `uv run python -m
+   sentinel `"PLACEHOLDER_NO_INDEX"` is used instead — unmistakably not a version — and the ticket
+   and sub-PRD **D16** now say so. Widening CRPS-02's signed contract was the rejected alternative:
+   it reopens a PRD §44.3 serial-owned signed schema to accommodate a fixture.
+2. **The deliverable 8 command could not exist as originally written.** `uv run python -m
    corpus_builder.fixtures regenerate` needs an importable `corpus_builder` package. There is none:
    this uv member declares `package = false`, its one package directory is
    `taxrag_pipeline_corpus_builder/`, and `tools/workspace-assertions.mjs::assertSkeleton()` asserts
    each member holds exactly one immediate child directory containing `__init__.py` — so adding
    `fixtures/__init__.py` fails `pnpm test` repository-wide. The script-path form below is used
-   instead, matching the precedent at `tests/manifest/fixtures/golden/regenerate.py`.
+   instead, matching the precedent at `tests/manifest/fixtures/golden/regenerate.py`, and the
+   ticket's deliverable 8 now names that form.
 
 ## Regenerating
 

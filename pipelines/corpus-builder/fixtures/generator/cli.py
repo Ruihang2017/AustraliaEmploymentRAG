@@ -3,8 +3,10 @@
     uv run python pipelines/corpus-builder/fixtures/generator/cli.py regenerate [--out DIR]
                                                                                [--seed N] [--now]
 
-TICKET DEVIATION, RAISED NOT SILENTLY TAKEN. The ticket names
-`uv run python -m corpus_builder.fixtures regenerate`. No importable `corpus_builder` package
+THE TICKET NAMES THIS INVOCATION (deliverable 8, amended 2026-08-15; sub-PRD D16). It originally
+named `uv run python -m corpus_builder.fixtures regenerate`, and the amendment landed in the ticket
+before this file's argument surface was allowed to differ from it.
+No importable `corpus_builder` package
 exists or may be created: `pipelines/corpus-builder` is a uv member with `package = false`, its one
 package directory is `taxrag_pipeline_corpus_builder/`, and `tools/workspace-assertions.mjs::
 assertSkeleton()` asserts each member holds EXACTLY ONE immediate child directory containing
