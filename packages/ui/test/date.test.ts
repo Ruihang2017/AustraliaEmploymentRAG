@@ -36,7 +36,10 @@ describe('formatLegalDate (PRD §41.1)', () => {
 
   it('uses plain ASCII spaces, never a narrow no-break space', () => {
     const formatted = formatLegalDate('2026-08-03');
-    expect(formatted).toBe(formatted.replace(/ | /g, ' '));
+    // U+00A0 no-break space and U+202F narrow no-break space are what `Intl.DateTimeFormat`
+    // emits on some ICU builds. Neither may appear here.
+    expect(/[\u00a0\u202f]/.test(formatted)).toBe(false);
+    expect(formatted.split(String.fromCharCode(0x20)).length).toBe(3);
     expect([...formatted].map((c) => c.codePointAt(0))).toContain(0x20);
   });
 

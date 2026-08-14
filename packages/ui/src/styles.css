@@ -1,0 +1,421 @@
+/*
+ * The single stylesheet of `@taxrag/ui`, imported explicitly by consumers as
+ * `@taxrag/ui/styles.css`.
+ *
+ * It is NEVER imported from a `.ts`/`.tsx` file: that would need an ambient CSS-module declaration
+ * and couple this package to one bundler's loader. `package.json#exports` maps the path.
+ *
+ * Class names are namespaced `tui-*`.
+ *
+ * THE RESPONSIVENESS CONTRACT (PRD §41.1). Responsiveness lives here and only here — no component
+ * reads `matchMedia`, `innerWidth` or `ResizeObserver` to decide WHAT to render, which is what makes
+ * "nothing is hidden at 360 px" checkable. Accordingly, NO media query in this file may apply
+ * `display: none` or `visibility: hidden` to anything in the protected set — legal status,
+ * citations, primary actions, error recovery. Narrow widths reflow, wrap and stack; they never hide.
+ * `test/a11y.test.tsx` scans this file's text for exactly that.
+ */
+
+/* --- Focus. Visible, always, on every focusable thing (PRD §41.1 "visible focus"). ------------- */
+
+.tui-button:focus-visible,
+.tui-link:focus-visible,
+.tui-input:focus-visible,
+.tui-textarea:focus-visible,
+.tui-select:focus-visible,
+.tui-skip-link:focus-visible,
+.tui-chip__remove:focus-visible,
+.tui-tabs__tab:focus-visible,
+.tui-tabs__panel:focus-visible,
+.tui-disclosure__summary:focus-visible,
+.tui-tooltip__trigger:focus-visible,
+.tui-copyable-id__button:focus-visible,
+.tui-claim-text__claim:focus-visible,
+.tui-evidence__citation-button:focus-visible,
+.tui-error-summary:focus-visible {
+  outline: 3px solid #1a4fd6;
+  outline-offset: 2px;
+}
+
+/* The one thing this package refuses to let a consumer do. */
+.tui-button:focus-visible,
+.tui-link:focus-visible {
+  outline-style: solid;
+}
+
+/* --- Screen-reader-only text. Off-screen, never `display: none`. ------------------------------- */
+
+.tui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tui-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+}
+
+.tui-skip-link:focus {
+  left: 0;
+  z-index: 100;
+}
+
+/* --- Buttons, links, chips -------------------------------------------------------------------- */
+
+.tui-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  border: 2px solid #1f2933;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #10161c;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tui-button--primary {
+  background: #10306e;
+  color: #ffffff;
+  border-color: #10306e;
+}
+
+.tui-button--destructive {
+  background: #7a1420;
+  color: #ffffff;
+  border-color: #7a1420;
+}
+
+.tui-button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.tui-link {
+  color: #10306e;
+  text-decoration: underline;
+}
+
+.tui-link--blocked {
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.tui-link__blocked-note {
+  font-style: italic;
+}
+
+.tui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid #4a5561;
+  border-radius: 999px;
+}
+
+/* --- Badges. Text plus shape; the shape is never optional and never hidden. -------------------- */
+
+.tui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: #10161c;
+}
+
+.tui-badge__shape {
+  width: 0.7em;
+  height: 0.7em;
+  fill: currentColor;
+  flex: none;
+}
+
+.tui-badge--positive {
+  color: #124d2a;
+}
+
+.tui-badge--caution {
+  color: #6b4300;
+}
+
+.tui-badge--negative {
+  color: #7a1420;
+}
+
+/* --- Fields --------------------------------------------------------------------------------- */
+
+.tui-field {
+  display: block;
+  margin-block: 0.75rem;
+}
+
+.tui-field__label {
+  display: block;
+  font-weight: 600;
+}
+
+.tui-field__help {
+  margin: 0.125rem 0;
+  color: #3d4752;
+}
+
+.tui-field__error {
+  margin: 0.125rem 0;
+  color: #7a1420;
+  font-weight: 600;
+}
+
+.tui-input,
+.tui-textarea,
+.tui-select {
+  min-height: 44px;
+  width: 100%;
+  max-width: 40rem;
+  padding: 0.5rem;
+  border: 2px solid #4a5561;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.tui-error-summary {
+  border: 3px solid #7a1420;
+  padding: 0.75rem 1rem;
+  margin-block: 1rem;
+}
+
+/* --- Dialog, disclosure, tooltip -------------------------------------------------------------- */
+
+.tui-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(16 22 28 / 55%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.tui-dialog {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 1rem;
+  max-width: 40rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.tui-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tui-disclosure__summary {
+  background: none;
+  border: 0;
+  padding: 0.5rem 0;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tui-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tui-tooltip__text[data-open='false'] {
+  /* Off-screen, NOT `display: none`: the text stays in the accessibility tree because the trigger
+     references it with `aria-describedby`. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.tui-tooltip__text[data-open='true'] {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  min-width: 12rem;
+  background: #10161c;
+  color: #ffffff;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* --- Tabs, table, toolbar --------------------------------------------------------------------- */
+
+.tui-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 2px solid #4a5561;
+}
+
+.tui-tabs__tab {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+}
+
+.tui-tabs__tab[aria-selected='true'] {
+  border-color: #4a5561;
+  border-bottom-color: #ffffff;
+  font-weight: 700;
+}
+
+.tui-table__scroller {
+  overflow-x: auto;
+}
+
+.tui-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tui-table th,
+.tui-table td {
+  border: 1px solid #4a5561;
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tui-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* --- Ids, evidence, job state ----------------------------------------------------------------- */
+
+.tui-copyable-id__value {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.tui-live-region:empty {
+  /* An empty live region still occupies the accessibility tree; it just has nothing to say. */
+  min-height: 0;
+}
+
+.tui-evidence {
+  border: 1px solid #4a5561;
+  padding: 0.75rem;
+}
+
+.tui-evidence__quote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-left: 4px solid #4a5561;
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.tui-claim-text__claim {
+  font: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 2px dotted #4a5561;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tui-claim-text__claim[aria-pressed='true'] {
+  border-bottom-style: solid;
+  background: #fff3c4;
+}
+
+.tui-claim-text__highlight {
+  background: #fff3c4;
+  outline: 1px solid #6b4300;
+}
+
+.tui-job-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+}
+
+.tui-markdown pre {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.tui-markdown code {
+  overflow-wrap: anywhere;
+}
+
+/* --- Layout at the three PRD §41.1 widths -----------------------------------------------------
+ * Reflow only. Not one rule below hides anything: no `display: none`, no `visibility: hidden`.
+ * A narrow viewport stacks the two-column reading layout and lets long quotes and URLs wrap.
+ * ---------------------------------------------------------------------------------------------- */
+
+.tui-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+@media (max-width: 767px) {
+  /* 360 px: one column. Everything that was beside the reading pane now follows it. */
+  .tui-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tui-dialog {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .tui-toolbar,
+  .tui-job-state__actions,
+  .tui-dialog__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  /* 768 px: two columns, narrower detail pane. */
+  .tui-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  /* 1280 px: the reading measure is capped so lines stay legible. */
+  .tui-layout {
+    max-width: 84rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
