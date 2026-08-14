@@ -68,6 +68,18 @@
       "costMicroAud": null
     },
     {
+      "$comment": "The approved-fallback profile failing too — proves no THIRD attempt is made.",
+      "profileId": "DEEP_SYNTHESIS",
+      "scenarioKey": "SERVER_ERROR_500",
+      "body": "",
+      "status": 500,
+      "headersSubset": {},
+      "modelVersion": "stub-deterministic-v1",
+      "inputTokens": null,
+      "outputTokens": null,
+      "costMicroAud": null
+    },
+    {
       "profileId": "QUICK_SYNTHESIS",
       "scenarioKey": "CLIENT_ERROR_400",
       "body": "",

@@ -43,6 +43,17 @@ export const undefinedReservation = generate(call, undefined, deps);
 // The positive direction.
 export const withReservation: Promise<GatewayResult> = generate(call, held, deps);
 
+// The fallback reservation is optional, but it is a RESERVATION — a caller cannot hand the fallback
+// path a plain object either, which is what keeps "no call without a reservation" true of BOTH
+// attempts (Reviewer bounce, high finding).
+export const withFallbackReservation: Promise<GatewayResult> = generate(call, held, deps, held);
+
+// @ts-expect-error a plain object cannot satisfy the branded fallback reservation
+export const forgedFallback = generate(call, held, deps, { reservationId: 'rs_2' });
+
+// @ts-expect-error there is no fifth argument through which anything else could be injected
+export const fifthArgument = generate(call, held, deps, held, deps);
+
 // The adapter's own signature carries the same requirement, positionally.
 const adapter = createProviderAdapter(descriptor);
 // @ts-expect-error the adapter's generate requires the reservation too

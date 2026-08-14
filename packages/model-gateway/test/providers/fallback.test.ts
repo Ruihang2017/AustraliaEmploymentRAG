@@ -68,48 +68,110 @@ describe('a fallback pointing at a CANDIDATE profile is refused', () => {
   });
 });
 
-describe('a fallback pointing at an APPROVED profile is attempted, exactly once', () => {
+/**
+ * REGRESSION (Reviewer bounce, high finding). The fallback path used to be structurally dead: the
+ * primary token was reused for the fallback attempt, and `attempt` refuses a token whose `profileId`
+ * is not the profile being called — so the second attempt could only ever return
+ * `NO_RESERVATION`/`RESERVATION_WRONG_PROFILE` and deliverable 10's positive case was unfulfillable.
+ * The fallback now takes ITS OWN reservation (a 4th, optional argument to `generate`), which is what
+ * `EVID-08` would actually mint. The first test below is the one that was missing: the approved
+ * fallback receives a transport call and the gateway returns OK through it.
+ */
+describe('a fallback pointing at an APPROVED profile', () => {
   const registry = registryWith(
     'DEEP_SYNTHESIS',
     { promotionState: 'APPROVED' },
     registryWith('QUICK_SYNTHESIS', { approvedFallbackProfileId: 'DEEP_SYNTHESIS' }),
   );
 
-  it('calls exactly the approved fallback after a provider failure', async () => {
-    // The fallback's reservation must be its own: a token held for QUICK_SYNTHESIS is not a token for
-    // DEEP_SYNTHESIS, and the second attempt refuses it. That is the correct, conservative behaviour.
-    const spy = spyOnTransport(cassetteTransportFor('SERVER_ERROR_500', cassettes));
-    const { deps } = harness({ transport: spy.transport, profileRegistry: registry });
-    const result = await generate(gatewayCall(), reservation, deps);
-
-    expect(result.outcome).toBe('UNAVAILABLE');
-    if (result.outcome !== 'UNAVAILABLE') throw new Error('unreachable');
-    expect(result.reason).toBe('NO_RESERVATION');
-    expect(result.detail).toBe('RESERVATION_WRONG_PROFILE');
-    expect(spy.calls).toHaveLength(1);
-    expect(profilesCalled(spy.calls)).toEqual(['QUICK_SYNTHESIS']);
-  });
-
-  it('succeeds through the fallback when a reservation covering it is supplied', async () => {
-    const spy = spyOnTransport(async (request) => {
+  /** 500 for the primary profile, the recorded valid response for the fallback profile. */
+  const perProfileTransport = () =>
+    spyOnTransport(async (request) => {
       const profileId = (request.body as { profileId: string }).profileId;
       const scenario = profileId === 'QUICK_SYNTHESIS' ? 'SERVER_ERROR_500' : 'VALID';
       return cassetteTransportFor(scenario, cassettes)(request);
     });
-    // A reservation whose profile matches whichever attempt is running is not something EVID-08 would
-    // mint either; the point of this case is only that the fallback is REACHED and is the approved one.
+
+  const fallbackReservation = forgeReservation({
+    profileId: 'DEEP_SYNTHESIS',
+    reservationId: 'rs_0000000000000002',
+    attempt: 2,
+    expiresAt: 1_000_000,
+  });
+
+  it('is called, and its result is returned, when a reservation for it is supplied', async () => {
+    const spy = perProfileTransport();
     const { deps, port } = harness({ transport: spy.transport, profileRegistry: registry });
-    const result = await generate(
-      gatewayCall(),
-      forgeReservation({ profileId: 'QUICK_SYNTHESIS', expiresAt: 1_000_000 }),
-      deps,
-    );
+    const result = await generate(gatewayCall(), reservation, deps, fallbackReservation);
+
+    expect(result.outcome).toBe('OK');
+    if (result.outcome !== 'OK') throw new Error('unreachable');
+    expect(result.profileId).toBe('DEEP_SYNTHESIS');
+    // Exactly two attempts: the primary, then the approved fallback. Never a third.
+    expect(spy.calls).toHaveLength(2);
+    expect(profilesCalled(spy.calls)).toEqual(['QUICK_SYNTHESIS', 'DEEP_SYNTHESIS']);
+    // One `model_execution` row per attempt, including the failed one (deliverable 12).
+    expect(port.rows).toHaveLength(2);
+    expect(port.rows.map((row) => row.profile)).toEqual(['QUICK_SYNTHESIS', 'DEEP_SYNTHESIS']);
+    expect(port.rows.map((row) => row.schemaStatus)).toEqual(['NOT_EVALUATED', 'VALID']);
+  });
+
+  it('still refuses a second call when no fallback reservation is supplied', async () => {
+    const spy = perProfileTransport();
+    const { deps, port } = harness({ transport: spy.transport, profileRegistry: registry });
+    const result = await generate(gatewayCall(), reservation, deps);
 
     expect(result.outcome).toBe('UNAVAILABLE');
-    // Still refused, for the reservation reason above — and crucially the fallback profile never
-    // received a call it was not independently reserved for.
+    if (result.outcome !== 'UNAVAILABLE') throw new Error('unreachable');
+    // The ORIGINAL failure stands — the missing budget is not reported as the gateway's own reason.
+    expect(result.reason).toBe('PROVIDER_FAILURE');
+    expect(spy.calls).toHaveLength(1);
     expect(profilesCalled(spy.calls)).toEqual(['QUICK_SYNTHESIS']);
     expect(port.rows).toHaveLength(1);
+  });
+
+  it.each([
+    ['a token minted for the primary profile', forgeReservation({ profileId: 'QUICK_SYNTHESIS', expiresAt: 1_000_000 })],
+    ['an expired token', forgeReservation({ profileId: 'DEEP_SYNTHESIS', expiresAt: 1 })],
+  ])('refuses the fallback given %s', async (_label, badToken) => {
+    const spy = perProfileTransport();
+    const { deps, port } = harness({ transport: spy.transport, profileRegistry: registry });
+    const result = await generate(gatewayCall(), reservation, deps, badToken);
+
+    expect(result.outcome).toBe('UNAVAILABLE');
+    if (result.outcome !== 'UNAVAILABLE') throw new Error('unreachable');
+    expect(result.reason).toBe('PROVIDER_FAILURE');
+    expect(spy.calls).toHaveLength(1);
+    expect(profilesCalled(spy.calls)).toEqual(['QUICK_SYNTHESIS']);
+    expect(port.rows).toHaveLength(1);
+  });
+
+  it('never falls back to a CANDIDATE even when a reservation for it is supplied', async () => {
+    // QUICK_SYNTHESIS → DEEP_SYNTHESIS on the SHIPPED promotion states: DEEP_SYNTHESIS is CANDIDATE.
+    const candidateRegistry = registryWith('QUICK_SYNTHESIS', {
+      approvedFallbackProfileId: 'DEEP_SYNTHESIS',
+    });
+    const spy = perProfileTransport();
+    const { deps, port } = harness({ transport: spy.transport, profileRegistry: candidateRegistry });
+    const result = await generate(gatewayCall(), reservation, deps, fallbackReservation);
+
+    expect(result.outcome).toBe('UNAVAILABLE');
+    if (result.outcome !== 'UNAVAILABLE') throw new Error('unreachable');
+    expect(result.reason).toBe('PROVIDER_FAILURE');
+    expect(spy.calls).toHaveLength(1);
+    expect(port.rows).toHaveLength(1);
+  });
+
+  it('makes no third attempt when the fallback itself fails', async () => {
+    const spy = spyOnTransport(cassetteTransportFor('SERVER_ERROR_500', cassettes));
+    const { deps, port } = harness({ transport: spy.transport, profileRegistry: registry });
+    const result = await generate(gatewayCall(), reservation, deps, fallbackReservation);
+
+    expect(result.outcome).toBe('UNAVAILABLE');
+    if (result.outcome !== 'UNAVAILABLE') throw new Error('unreachable');
+    expect(result.reason).toBe('PROVIDER_FAILURE');
+    expect(spy.calls).toHaveLength(2);
+    expect(port.rows).toHaveLength(2);
   });
 });
 

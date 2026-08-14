@@ -81,6 +81,22 @@ inside the same package, and a source scan asserts no function in `src/**` retur
 At runtime a missing, expired or wrong-profile token yields `NO_RESERVATION` **before any provider
 call**.
 
+A reservation covers **one profile**. If the resolved profile carries an `approvedFallbackProfileId`,
+the fallback attempt needs **its own** token, passed as the optional fourth argument
+`generate(call, reservation, deps, fallbackReservation)`. Without it — or with a token for the wrong
+profile, or an expired one — the original failure is returned unchanged and **no second call is
+made**. The gateway never promotes a token minted for one profile into budget for another, differently
+priced model.
+
+**Known limitation, stated rather than implied.** The brand on `HeldReservation` is a compile-time
+guarantee. At runtime the gateway checks what it can see — presence, expiry against the injected clock,
+and that the token names the profile being called — but a structurally well-formed, unexpired,
+correct-profile token that was cast rather than minted will be accepted. Neither this ticket's nor
+`EVID-08`'s token design carries a signature, so runtime unforgeability is not available here; the
+in-process boundary between `src/budget/**` and this leaf is what the guarantee rests on. If a
+cryptographic check is wanted, it is a token-shape change in a docs PR amending both tickets
+(this ticket's Feedback obligation §2), never a local addition.
+
 ---
 
 ## 4. The failure matrix (deliverable 10, `ANS-007`)
@@ -102,8 +118,9 @@ provider text.
 
 **No unvalidated fallback** (PRD §17.3). A fallback is attempted only when the resolved profile
 carries `approvedFallbackProfileId` **and** that profile itself resolves as `APPROVED`, and only for
-provider-side failures — never for a schema failure. No shipped profile carries one, so today every
-failure path calls exactly one profile, one provider and one model.
+provider-side failures — never for a schema failure — and only when the caller supplied a reservation
+for that fallback profile (§3). No shipped profile carries one, so today every failure path calls
+exactly one profile, one provider and one model.
 
 ---
 
