@@ -466,6 +466,44 @@ def _seed_documents(connection: sqlite3.Connection, specs: Sequence[NodeSpec]) -
         )
 
 
+def seed_single_node_document(connection: sqlite3.Connection, canonical_text: str) -> str:
+    """Seed the whole provenance chain plus ONE node version holding *canonical_text*.
+
+    Used by the memory probe, which needs a corpus of a given SIZE rather than a corpus of a given
+    SHAPE. Returns the `node_version.id`. Shares `_seed_provenance` with `build_corpus` so the
+    DDL's NOT NULL and enum constraints are satisfied in one place rather than two.
+    """
+    text = unicodedata.normalize("NFC", canonical_text)
+    _seed_provenance(connection)
+    connection.execute(
+        "INSERT INTO legal_document (id, source_id, document_type, canonical_title,"
+        " official_identifier, neutral_citation, employer_abn, stable_source_key, created_at)"
+        " VALUES ('doc_1', 'src_1', 'PRIMARY_LEGISLATION', 'Example Act 2026', 'C2026A00042',"
+        " NULL, NULL, 'C2026A00042', ?)",
+        (TS,),
+    )
+    connection.execute(
+        "INSERT INTO document_version (id, document_id, source_artifact_id, version_label,"
+        " publication_date, effective_from, effective_to, legal_status, retrieved_at,"
+        " content_hash, official_url, created_at) VALUES ('dv_1', 'doc_1', 'art_1', '2026-07-01',"
+        " ?, ?, NULL, 'IN_FORCE', ?, ?, 'https://example.gov.au/a', ?)",
+        (DATE, DATE, TS, FILLER_HASH, TS),
+    )
+    connection.execute(
+        "INSERT INTO document_node (id, document_id, stable_node_key, node_kind, created_at)"
+        " VALUES ('dn_bulk', 'doc_1', 'bulk', 'SECTION', ?)",
+        (TS,),
+    )
+    connection.execute(
+        "INSERT INTO node_version (id, document_version_id, document_node_id,"
+        " parent_node_version_id, display_label, heading, canonical_text, ordinal, effective_from,"
+        " effective_to, text_hash, created_at)"
+        " VALUES ('nv_bulk', 'dv_1', 'dn_bulk', NULL, NULL, NULL, ?, 0, ?, NULL, ?, ?)",
+        (text, DATE, sha256_hex(text), TS),
+    )
+    return "nv_bulk"
+
+
 def search_chunk_id(node_version_id: str, chunk_ordinal: int) -> str:
     """Fixture policy: `SearchChunkDraft` carries no `id`, and the row needs a primary key."""
     return f"sc_{node_version_id}_{chunk_ordinal:04d}"

@@ -1,0 +1,66 @@
+{
+  "builder_version": "0.0.0",
+  "built_at": "<normalised>",
+  "determinism": {
+    "deterministic": true,
+    "seed": 20260803
+  },
+  "dimensions": 8,
+  "distance_metric": "cosine",
+  "input_contract_version": "1.0.0",
+  "licence": {
+    "attribution_required": true,
+    "identifier": "CC-BY-4.0",
+    "notes": "Fixture licence. PRD §11.1's conservative default applies to weights as to sources.",
+    "redistribution_permitted": true,
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "manifest_version": "1.0.0",
+  "model_artifact": {
+    "byte_size": 18,
+    "format": "stub",
+    "sha256": "eac31793765bd60492141df60d0f403bfa0352308eea45c1442613d29ad0c5e4"
+  },
+  "model_id": "stub:20260803",
+  "model_revision": "stub:eac31793765bd604",
+  "normalisation": "l2",
+  "profile_id": "embed-fixture-v1",
+  "quantisation": "none",
+  "runtime": {
+    "execution_providers": [
+      "CPUExecutionProvider"
+    ],
+    "family": "stub:onnxruntime",
+    "integration": {
+      "crate": "ort",
+      "version": "2.0.0-rc.9"
+    },
+    "pinned_by": "RETR-07",
+    "tokenizer_library": {
+      "crate": "tokenizers",
+      "version": "0.20.3"
+    },
+    "version": "1.20.1"
+  },
+  "source_release_id": null,
+  "tier_selection": {
+    "chunk_count": 5,
+    "embedded_count": 5,
+    "skipped_count": 0,
+    "tiers": [
+      "TIER_1_FULL_SEMANTIC"
+    ]
+  },
+  "tokenizer": {
+    "artifact_sha256": "a5675d81f10db6099087d20caa8a9c54c83304f4988e3131b399bbe9029d525a",
+    "id": "fixture/tiny-tokenizer",
+    "max_tokens": 256,
+    "truncation": "head"
+  },
+  "vector_file": {
+    "byte_size": -1,
+    "count": 5,
+    "path": "vectors.usearch",
+    "sha256": "<normalised>"
+  }
+}
