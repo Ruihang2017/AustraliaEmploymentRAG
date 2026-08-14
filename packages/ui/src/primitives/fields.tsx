@@ -14,6 +14,13 @@ import { Chip } from './basic.js';
 /** The label/description/error wiring every field shares. */
 type FieldShellProps = {
   readonly label: string;
+  /**
+   * An id supplied by the owning screen — typically so an `ErrorSummary` entry can link to this
+   * field. It replaces the generated id on BOTH the control and the label's `htmlFor`: applying it
+   * to only one of the two silently breaks the label association, which is the single most common
+   * way an accessible form stops being accessible.
+   */
+  readonly controlId?: string;
   readonly help?: string;
   readonly error?: string;
   readonly required?: boolean;
@@ -26,7 +33,7 @@ type FieldShellProps = {
 
 function FieldShell(props: FieldShellProps): ReactNode {
   const base = useId();
-  const controlId = `${base}-control`;
+  const controlId = props.controlId ?? `${base}-control`;
   const helpId = `${base}-help`;
   const errorId = `${base}-error`;
   const described = [
@@ -75,12 +82,13 @@ export function TextField(props: TextFieldProps): ReactNode {
       {...(props.help === undefined ? {} : { help: props.help })}
       {...(props.error === undefined ? {} : { error: props.error })}
       {...(props.required === undefined ? {} : { required: props.required })}
+      {...(props.id === undefined ? {} : { controlId: props.id })}
     >
       {({ controlId, describedBy, invalid }) => (
         <input
           className="tui-input"
           type="text"
-          id={props.id ?? controlId}
+          id={controlId}
           value={props.value}
           aria-describedby={describedBy}
           aria-invalid={invalid ? 'true' : undefined}
@@ -100,11 +108,12 @@ export function TextArea(props: TextAreaProps): ReactNode {
       {...(props.help === undefined ? {} : { help: props.help })}
       {...(props.error === undefined ? {} : { error: props.error })}
       {...(props.required === undefined ? {} : { required: props.required })}
+      {...(props.id === undefined ? {} : { controlId: props.id })}
     >
       {({ controlId, describedBy, invalid }) => (
         <textarea
           className="tui-textarea"
-          id={props.id ?? controlId}
+          id={controlId}
           rows={props.rows ?? 4}
           value={props.value}
           aria-describedby={describedBy}
@@ -126,6 +135,8 @@ export type SelectProps = {
   readonly help?: string;
   readonly error?: string;
   readonly required?: boolean;
+  /** Supplied by the owning screen so an `ErrorSummary` entry can link here. */
+  readonly id?: string;
 };
 
 /** A native `<select>`: keyboard behaviour and the mobile picker come from the platform. */
@@ -136,6 +147,7 @@ export function Select(props: SelectProps): ReactNode {
       {...(props.help === undefined ? {} : { help: props.help })}
       {...(props.error === undefined ? {} : { error: props.error })}
       {...(props.required === undefined ? {} : { required: props.required })}
+      {...(props.id === undefined ? {} : { controlId: props.id })}
     >
       {({ controlId, describedBy, invalid }) => (
         <select
@@ -231,6 +243,8 @@ export type DateFieldProps = {
   readonly help?: string;
   readonly error?: string;
   readonly required?: boolean;
+  /** Supplied by the owning screen so an `ErrorSummary` entry can link here. */
+  readonly id?: string;
 };
 
 /**
@@ -247,6 +261,7 @@ export function DateField(props: DateFieldProps): ReactNode {
       {...(props.help === undefined ? {} : { help: props.help })}
       {...(props.error === undefined ? {} : { error: props.error })}
       {...(props.required === undefined ? {} : { required: props.required })}
+      {...(props.id === undefined ? {} : { controlId: props.id })}
     >
       {({ controlId, describedBy, invalid }) => (
         <input
