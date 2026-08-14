@@ -1,0 +1,55 @@
+{
+  "_note": "PRD §32.4. TWO candidates with DISJOINT citation sets, so the leakage assertion has something real to fail on: rendering candidate A must leave B's quote absent from the DOM entirely.",
+  "candidates": [
+    {
+      "id": "cnd_0192f8c1-6a3f-7c21-9c8e-000000000080",
+      "label": "Synthetic Clerical Award 2026",
+      "status": "LIKELY"
+    },
+    {
+      "id": "cnd_0192f8c1-6a3f-7c21-9c8e-000000000081",
+      "label": "Synthetic Manufacturing Award 2026",
+      "status": "POSSIBLE"
+    }
+  ],
+  "evidence": [
+    {
+      "candidateId": "cnd_0192f8c1-6a3f-7c21-9c8e-000000000080",
+      "citationIds": ["cit_0192f8c1-6a3f-7c21-9c8e-000000000090"]
+    },
+    {
+      "candidateId": "cnd_0192f8c1-6a3f-7c21-9c8e-000000000081",
+      "citationIds": ["cit_0192f8c1-6a3f-7c21-9c8e-000000000091"]
+    }
+  ],
+  "citations": [
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000090",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000045",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000055",
+      "quote": "CLERICAL COVERAGE MARKER: this award covers employers throughout Australia in the clerical and administrative services industry.",
+      "pinpoint": "Synthetic Clerical Award 2026 cl 4.1",
+      "official_url": "https://www.example-awards.gov.au/MA000001/cl4-1",
+      "role": "SUPPORTS",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 10,
+      "end_offset": 137
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000091",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000046",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000056",
+      "quote": "MANUFACTURING COVERAGE MARKER: this award covers employers throughout Australia in the manufacturing and associated industries.",
+      "pinpoint": "Synthetic Manufacturing Award 2026 cl 4.1",
+      "official_url": "https://www.example-awards.gov.au/MA000002/cl4-1",
+      "role": "SUPPORTS",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 12,
+      "end_offset": 138
+    }
+  ]
+}

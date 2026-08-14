@@ -21,7 +21,7 @@ describe('the scan itself', () => {
     expect(FILES.some((file) => file.name.endsWith('.tsx'))).toBe(true);
     expect(FILES.every((file) => file.text.length > 0)).toBe(true);
     // Every subdirectory of src/ is reached, so the walk is really recursive.
-    for (const dir of ['primitives/', 'status/', 'safe/', 'format/']) {
+    for (const dir of ['primitives/', 'status/', 'safe/', 'format/', 'evidence/', 'async-state/']) {
       expect(FILES.some((file) => file.name.startsWith(dir)), `${dir} was not scanned`).toBe(true);
     }
   });

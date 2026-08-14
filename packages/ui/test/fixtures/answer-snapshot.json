@@ -1,0 +1,118 @@
+{
+  "id": "ans_0192f8c1-6a3f-7c21-9c8e-000000000001",
+  "record_id": "rec_0192f8c1-6a3f-7c21-9c8e-000000000002",
+  "answer_version": 1,
+  "schema_version": "1.0",
+  "status": "SUPPORTED",
+  "correction_state": "NONE",
+  "created_at": "2026-08-03T02:15:00Z",
+  "knowledge_cutoff_at": "2026-07-31T00:00:00Z",
+  "legal_as_at": "2026-08-03",
+  "corpus_release_id": "crl_0192f8c1-6a3f-7c21-9c8e-000000000003",
+  "jurisdictions": ["AU-CTH", "AU-VIC"],
+  "short_answer": "A casual employee who has worked a regular pattern for twelve months may request conversion to permanent employment, subject to the employer's reasonable grounds for refusal.",
+  "limitations": [
+    "This answer covers the national system only and does not consider a state industrial instrument."
+  ],
+  "next_checks": [
+    "Confirm whether an enterprise agreement covering the employee alters the conversion process."
+  ],
+  "assumptions": [
+    {
+      "id": "asm_0192f8c1-6a3f-7c21-9c8e-000000000010",
+      "text": "The employee is a national system employee.",
+      "impact_if_false": "State industrial law would apply instead and the conversion pathway would differ.",
+      "source": "STATED_BY_USER"
+    }
+  ],
+  "claims": [
+    {
+      "id": "clm_0192f8c1-6a3f-7c21-9c8e-000000000020",
+      "sequence": 1,
+      "kind": "RULE",
+      "text": "A casual employee may request conversion after twelve months of employment.",
+      "support_status": "DIRECTLY_SUPPORTED",
+      "citation_ids": [
+        "cit_0192f8c1-6a3f-7c21-9c8e-000000000030",
+        "cit_0192f8c1-6a3f-7c21-9c8e-000000000031"
+      ],
+      "assumption_ids": ["asm_0192f8c1-6a3f-7c21-9c8e-000000000010"]
+    },
+    {
+      "id": "clm_0192f8c1-6a3f-7c21-9c8e-000000000021",
+      "sequence": 2,
+      "kind": "QUALIFICATION",
+      "text": "The employer may refuse the request on reasonable grounds.",
+      "support_status": "CONDITIONAL",
+      "citation_ids": ["cit_0192f8c1-6a3f-7c21-9c8e-000000000032"],
+      "assumption_ids": []
+    },
+    {
+      "id": "clm_0192f8c1-6a3f-7c21-9c8e-000000000022",
+      "sequence": 3,
+      "kind": "CAVEAT",
+      "text": "An earlier decision reached the opposite conclusion on similar facts.",
+      "support_status": "CONTRADICTED",
+      "citation_ids": ["cit_0192f8c1-6a3f-7c21-9c8e-000000000033"],
+      "assumption_ids": []
+    }
+  ],
+  "citations": [
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000030",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000040",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000050",
+      "quote": "An employee who has been employed as a casual employee for at least 12 months may notify the employer that they seek to change to full-time or part-time employment.",
+      "pinpoint": "Synthetic Employment Act 2026 (Cth) s 66AAB(1)",
+      "official_url": "https://www.example-legislation.gov.au/C2026A00001/s66aab",
+      "role": "SUPPORTS",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 120,
+      "end_offset": 281
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000031",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000041",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000051",
+      "quote": "For the purposes of section 66AAB, the twelve month period is calculated from the day the employment commenced.",
+      "pinpoint": "Synthetic Employment Regulations 2026 (Cth) reg 2.13",
+      "official_url": "https://www.example-legislation.gov.au/F2026L00002/r2-13",
+      "role": "DEFINES",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 0,
+      "end_offset": 110
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000032",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000042",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000052",
+      "quote": "The employer may refuse the request only on reasonable grounds, and must give written reasons within 21 days.",
+      "pinpoint": "Synthetic Employment Act 2026 (Cth) s 66AAC(3)",
+      "official_url": "https://www.example-legislation.gov.au/C2026A00001/s66aac",
+      "role": "QUALIFIES",
+      "legal_status": "IN_FORCE",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "start_offset": 40,
+      "end_offset": 148
+    },
+    {
+      "id": "cit_0192f8c1-6a3f-7c21-9c8e-000000000033",
+      "document_version_id": "dvr_0192f8c1-6a3f-7c21-9c8e-000000000043",
+      "node_version_id": "nvr_0192f8c1-6a3f-7c21-9c8e-000000000053",
+      "quote": "On these facts the tribunal was not satisfied that the pattern of work was regular and systematic.",
+      "pinpoint": "Synthetic Pty Ltd v Example [2025] FSY 44, [61]",
+      "official_url": "https://www.example-courts.gov.au/decisions/2025FSY44",
+      "role": "CONTRADICTS",
+      "legal_status": "SUPERSEDED",
+      "effective_from": "2025-03-14",
+      "effective_to": "2026-01-01",
+      "start_offset": 4102,
+      "end_offset": 4199
+    }
+  ]
+}
