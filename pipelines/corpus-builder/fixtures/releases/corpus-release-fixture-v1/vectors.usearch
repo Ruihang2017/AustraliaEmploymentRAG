@@ -1,0 +1,5 @@
+{
+  "reason": "synthetic fixture; no embedding pass has run (CRPS-05 has not landed)",
+  "state": "PLACEHOLDER",
+  "vector_count": 0
+}

@@ -15,7 +15,7 @@
 | Depends on modules | `00-foundation` |
 | Modules that depend on this one | `05-ingestion-framework`, `11-retrieval-engine`, `16-monitor-alerts`, `18-ops-release`, `21-evaluation-600` |
 | Master spec | [`docs/PRD.md`](../../PRD.md) |
-| Version | v0.2 (2026-08-03) |
+| Version | v0.3 (2026-08-15) |
 
 ## Problem
 
@@ -105,6 +105,8 @@ does not answer, the item is an open question below, not a decision.
 | D13 | Unit/integration tests live inside the owning package (`pipelines/*/tests/**`), one disjoint sub-directory per ticket. | Breakdown plan §1.1 (Tests); PRD §20.1 reserves `tests/**` for cross-boundary suites. |
 | D14 | **The manifests are where the local model, tokenizer and runtime are pinned.** `schemas/corpus-manifest/**` carries, as *fields*: the runtime family and version, its execution providers, the exact `ort` crate version and the pinned tokenizer-library version; the tokenizer artefact identity (id + artefact hash); and, per local model artefact and per role, an immutable revision identifier, artefact hash, dimensions, normalisation, truncation and licence information. `CRPS-02` owns the schema fields, `CRPS-05` emits them for the document-embedding profile it actually executed, `CRPS-06` gates them, and `RETR-07` may only **consume and verify** them. The **values** are never chosen here: the models stay plan §8 **Q2** (benchmark-selected), the runtime pin is supplied to the build as an explicit input recorded by `RETR-07`. | Breakdown plan §8 **Q11** (confirmed architecture decision): *"Models, tokenizers and runtime metadata are pinned in the corpus/retrieval manifest"* and *"Model artefacts must carry an immutable revision identifier, hash, dimensions, normalisation, truncation and licence information"*; PRD §18.4; §44.3 (the manifest is serial-owned here). |
 | D15 | **Pinning is identity, not payload.** The manifest pins *what* must be loaded and verified; it does not add model weight files to the bundle. PRD §18.4 fixes five bundle paths and `RETR-07` loads weights from a configured local path, so a model artefact appears in `files[]`/`artifacts.*` only if it is genuinely a bundle file. Deciding to ship weight bytes inside the bundle would change PRD §18.4's fixed layout and is a **plan/PRD writeback**, never a ticket-local addition. | PRD §18.4 (fixed bundle layout; `docs/PRD.md` is frozen per breakdown plan §4); PRD §39.6 (runtime configuration, not repository content); breakdown plan §8 Q11 ("Model artefacts reach production only through the signed corpus/model release path"). |
+
+| D16 | **A placeholder index is declared with a sentinel *string*, never `null`.** While `tantivy/` is a placeholder, `versions.index` carries `"PLACEHOLDER_NO_INDEX"`. `CRPS-02`'s frozen release-manifest schema makes `versions.index` required and typed `{"type": "string", "minLength": 1}`, and `verify_bundle()` records `MANIFEST_SCHEMA_INVALID` at BLOCKING severity — so `null` makes a bundle fail its own verification. Widening the schema was rejected: it reopens a PRD §44.3 serial-owned signed contract to accommodate a fixture. "Declared, not disguised" is carried by three independent declarations (`tantivy/INDEX_STATE.json`, this sentinel, and `embedding-manifest.json`'s zero `vector_file.count` + `stub:` `model_id`). If `CRPS-06`'s `NullLexicalIndexBuilder` later writes a different placeholder form, this converges on **CRPS-06**'s form (it is the build-side owner) and `CRPS-08` is amended in the same docs PR — Q-CRPS-2. | `CRPS-02` `schemas/corpus-manifest/v1/release-manifest.schema.json` + `pins.schema.json#/$defs/version_string` (measured); PRD §18.4; `CRPS-08` deliverable 3 + its Feedback obligation. |
 
 ## Rejected alternatives
 
@@ -238,6 +240,18 @@ The module is done when all eight tickets are delivered (`/verify-delivery` gree
 
 ## Changelog
 
+- **v0.3 — 2026-08-15** — `CRPS-08` writeback (its Feedback obligation §1: the ticket is amended
+  before the code diverges, never after). Adds decision **D16** — a placeholder index declares itself
+  with the sentinel string `"PLACEHOLDER_NO_INDEX"` in `versions.index`, because `CRPS-02`'s frozen
+  schema makes that member a required non-empty string and `verify_bundle()` rejects `null` at
+  BLOCKING severity, so the ticket's original `null` and its first acceptance item (`verify_bundle()`
+  returns `ok`) could not both hold. Amends `CRPS-08` deliverable 3, deliverable 8 and the matching
+  acceptance item: deliverable 8's `uv run python -m corpus_builder.fixtures regenerate` is replaced
+  by the script-path form, because an importable `corpus_builder` package cannot exist without
+  breaking `tools/workspace-assertions.mjs::assertSkeleton()` repository-wide, and the `--out` target
+  is now explicitly guarded against destroying a directory that is not a fixture bundle. No change to
+  module scope, the ticket set, dependency order, file-scope allocation, PRD §44.3 serial ownership,
+  or any quality gate. `CRPS-02`'s schema is **not** widened — that would reopen a signed contract.
 - **v0.2 — 2026-08-03** — aligned with the `docs/prd/breakdown-plan.md` §8 decision register. **Q11**
   is recorded as a confirmed architecture decision owned by `RETR-07`, with its manifest-pinning
   consequence resolved inside this module's serial-owned scope as decisions **D14** (the manifest
