@@ -1,0 +1,142 @@
+{
+  "$comment": [
+    "EVID-07 deliverable 14 — one entry per rejected shape. Synthetic (sub-PRD D22).",
+    "`body` is a parsed JSON value; `raw` is a string handed to parseModelResponse unparsed.",
+    "Every entry names the exact code and path parseModelResponse must return. A failure must carry a",
+    "PATH and never a value: the assertions in response.test.ts check that too."
+  ],
+  "cases": [
+    {
+      "name": "unknown top-level property",
+      "why": "PRD §36.5 is closed; an extra property is a failure, not a dropped extra.",
+      "expect": { "code": "UNKNOWN_PROPERTY", "path": "$.confidence" },
+      "patch": { "confidence": 0.87 }
+    },
+    {
+      "name": "reasoning field on a claim",
+      "why": "PRD §9.4 / sub-PRD D14 — hidden chain-of-thought is never accepted.",
+      "expect": { "code": "REASONING_FIELD_REJECTED", "path": "$.claims[0].reasoning" },
+      "patchClaim": { "reasoning": "step one, step two" }
+    },
+    {
+      "name": "unknown claim kind",
+      "why": "Only the seven PRD §36.5 kinds exist.",
+      "expect": { "code": "NOT_IN_ENUM", "path": "$.claims[0].kind" },
+      "patchClaim": { "kind": "SPECULATION" }
+    },
+    {
+      "name": "unknown claim support",
+      "why": "CLAIM_SUPPORT_VALUES is owned by packages/contracts and consumed, never widened.",
+      "expect": { "code": "NOT_IN_ENUM", "path": "$.claims[0].support" },
+      "patchClaim": { "support": "PROBABLY" }
+    },
+    {
+      "name": "unknown citation role",
+      "why": "CITATION_ROLE_VALUES is owned by packages/contracts.",
+      "expect": { "code": "NOT_IN_ENUM", "path": "$.claims[0].evidence[0].role" },
+      "patchCitation": { "role": "MENTIONS" }
+    },
+    {
+      "name": "unknown proposed_status",
+      "why": "ANSWER_STATUS_VALUES is owned by packages/contracts.",
+      "expect": { "code": "NOT_IN_ENUM", "path": "$.proposed_status" },
+      "patch": { "proposed_status": "PROBABLY_FINE" }
+    },
+    {
+      "name": "non-integer quote offset",
+      "why": "Offsets index into exact_text; a fraction cannot.",
+      "expect": { "code": "NOT_AN_INTEGER", "path": "$.claims[0].evidence[0].quote_start" },
+      "patchCitation": { "quote_start": 1.5 }
+    },
+    {
+      "name": "negative quote offset",
+      "why": "As above; a negative offset is not a position in the text.",
+      "expect": { "code": "NOT_AN_INTEGER", "path": "$.claims[0].evidence[0].quote_start" },
+      "patchCitation": { "quote_start": -1 }
+    },
+    {
+      "name": "inverted quote span",
+      "why": "quote_end before quote_start is not a span.",
+      "expect": { "code": "NOT_AN_INTEGER", "path": "$.claims[0].evidence[0].quote_end" },
+      "patchCitation": { "quote_start": 30, "quote_end": 5 }
+    },
+    {
+      "name": "quote offset of the wrong type",
+      "why": "A string offset is not coerced.",
+      "expect": { "code": "WRONG_TYPE", "path": "$.claims[0].evidence[0].quote_end" },
+      "patchCitation": { "quote_end": "20" }
+    },
+    {
+      "name": "dangling assumption_refs",
+      "why": "A reference to an assumption that was not returned is a failure, not a warning.",
+      "expect": { "code": "DANGLING_REFERENCE", "path": "$.claims[0].assumption_refs[0]" },
+      "patchClaim": { "assumption_refs": [7] }
+    },
+    {
+      "name": "missing evidence_id on a citation",
+      "why": "Every citation must name an evidence_id from the supplied pack.",
+      "expect": { "code": "MISSING_PROPERTY", "path": "$.claims[0].evidence[0].evidence_id" },
+      "deleteCitationKey": "evidence_id"
+    },
+    {
+      "name": "unknown citation property",
+      "why": "An invented URL arrives as an extra property and is rejected here before EVID-05 sees it.",
+      "expect": { "code": "UNKNOWN_PROPERTY", "path": "$.claims[0].evidence[0].url" },
+      "patchCitation": { "url": "https://invented.invalid/source" }
+    },
+    {
+      "name": "missing top-level property",
+      "why": "A truncated-but-parseable object is still a failure.",
+      "expect": { "code": "MISSING_PROPERTY", "path": "$.limitations" },
+      "deleteKey": "limitations"
+    },
+    {
+      "name": "non-string entry in missing_facts",
+      "why": "Arrays of strings are arrays of strings.",
+      "expect": { "code": "WRONG_TYPE", "path": "$.missing_facts[0]" },
+      "patch": { "missing_facts": [42] }
+    },
+    {
+      "name": "claims is not an array",
+      "why": "A single claim object is not a claim list; it is not unwrapped for the model.",
+      "expect": { "code": "WRONG_TYPE", "path": "$.claims" },
+      "patch": { "claims": {} }
+    },
+    {
+      "name": "truncated JSON",
+      "why": "Malformed JSON fails at $ with no excerpt of the offending text.",
+      "expect": { "code": "MALFORMED_JSON", "path": "$" },
+      "raw": "{\"proposed_status\": \"SUPPORTED\", \"short_answer\": \"tru"
+    },
+    {
+      "name": "prose before the object",
+      "why": "There is no salvage path that scrapes an object out of surrounding text.",
+      "expect": { "code": "MALFORMED_JSON", "path": "$" },
+      "raw": "Here is the answer you asked for:\n{\"proposed_status\": \"SUPPORTED\"}"
+    },
+    {
+      "name": "empty body",
+      "why": "An empty provider body is a schema failure, never an empty answer.",
+      "expect": { "code": "EMPTY_BODY", "path": "$" },
+      "raw": ""
+    },
+    {
+      "name": "whitespace-only body",
+      "why": "As above.",
+      "expect": { "code": "EMPTY_BODY", "path": "$" },
+      "raw": "   \n\t "
+    },
+    {
+      "name": "a JSON array at the top level",
+      "why": "§36.5 returns one object.",
+      "expect": { "code": "NOT_AN_OBJECT", "path": "$" },
+      "raw": "[]"
+    },
+    {
+      "name": "a JSON string at the top level",
+      "why": "As above.",
+      "expect": { "code": "NOT_AN_OBJECT", "path": "$" },
+      "raw": "\"SUPPORTED\""
+    }
+  ]
+}
