@@ -8,9 +8,10 @@ DETERMINISM (deliverable 4) is the property the committed artifact depends on, a
 four rules that must all hold:
 
 1. Ids are derived from `(seed, kind, ordinal)` with BLAKE2b and shaped into FND-03's
-   `<prefix>_<UUIDv7>` form. No `uuid4`, no `random`, no clock — a test greps this package for those
-   names, because a single reintroduced `uuid4()` would silently make the committed bundle
-   unreproducible.
+   `<prefix>_<UUIDv7>` form. No version-4 UUID, no randomness, no clock — a test greps this
+   package's sources for those spellings, because one reintroduced random id would silently make
+   the committed bundle unreproducible. (The forbidden spellings are therefore not written out
+   here: the scanner reads this file too.)
 2. Every timestamp and date is a constant from `_paths` or from the literal dataset below.
 3. Insert order is fixed and explicit: one `BEGIN … COMMIT`, statements in written order, never an
    iteration over a `set` or over a `dict` whose construction order could drift.
