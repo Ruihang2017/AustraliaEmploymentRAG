@@ -121,6 +121,16 @@ tracker write no agent in this pipeline may perform.
 uv run python pipelines/corpus-builder/fixtures/generator/cli.py regenerate [--out DIR] [--seed N] [--now]
 ```
 
+**`--out` is guarded.** Regeneration replaces a directory, and this is the one command every
+consumer is told to run, so the CLI rewrites a target only when it is absent, empty, or recognisably
+a `SYNTHETIC_FIXTURE` bundle (a `release-manifest.json` that parses and says so, among nothing but
+the five PRD §18.4 members). Anything else — a populated directory that is not a bundle, a file, a
+symlink, a real release — is refused with exit code 2 and left untouched, so a mistyped `--out`
+cannot delete an unrelated tree. Staging is a unique `tempfile.mkdtemp` sibling removed in a
+`finally`, so two concurrent runs against the same target cannot delete each other's in-flight
+build and a failed run leaves no untracked residue. `tests/fixtures/test_fixture_cli.py` covers
+each of those refusals, including that the refused directory's contents survive byte-for-byte.
+
 Running this on a clean tree leaves `git status` clean: the bundle is a pure function of
 `(seed, key, built_at)`, and without `--now` the build timestamp already recorded in the target's
 manifest is reused. That reuse is necessary rather than cosmetic — the signed manifest covers
