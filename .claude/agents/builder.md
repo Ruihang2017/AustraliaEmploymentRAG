@@ -24,27 +24,35 @@ You implement the ticket yourself, with Read/Write/Edit, against the real conten
 
 Input: a ticket and its plan at `docs/plans/<ticket-id>.md`. Read both before writing any code.
 
-## Environment — do this first, every shell
+## Environment — check `node -v` first, in whichever shell you are about to use
 
 The machine-level PATH contains `C:\Program Files\nodejs\` (Node **v22.11.0**) and always precedes the user-level PATH, so the repo's pinned Node **24.18.0** at `C:\Users\HoraceHou\AppData\Local\node-24.18.0` is shadowed by default. `pnpm` 11.4.0 resolves from that same directory.
 
 **Failure mode:** under Node 22.11.0 the workspace suite fails with `node:internal/modules/esm/get_format` errors in every test that spawns a child process. With Node 24.18.0 first on PATH the whole suite passes (8 projects green, exit 0). This has been the single largest source of wasted work in this repo — a red suite here usually means the wrong Node, not a regression.
 
-So in **every** shell you open, prepend the pinned Node and verify before running any build or test:
+The fix is **per execution context**, and the three contexts are not the same:
 
-```powershell
-$env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
-node -v   # MUST print v24.18.0 — if it does not, stop and fix PATH before proceeding
-```
+1. **Bash tool — no prefix.** `~/.bashrc` was repaired on 2026-08-15 and now puts the pinned directory first on PATH, so bare `node`, `pnpm`, `npx` already resolve correctly. **Do not write an `export PATH=...` prefix** — it is noise and makes the command harder to auto-approve. If a bare `node -v` here does not print `v24.18.0`, the startup files have regressed (they must stay **UTF-8 without BOM**); report that rather than prefixing around it.
+2. **PowerShell tool — prefix still required.** It runs `powershell.exe -NoProfile`, so no profile is ever read and it resolves v22.11.0:
 
-Bash-tool equivalent:
+   ```powershell
+   $env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
+   node -v   # MUST print v24.18.0 — if it does not, stop and fix PATH before proceeding
+   ```
 
-```bash
-export PATH="/c/Users/HoraceHou/AppData/Local/node-24.18.0:$PATH"
-node -v   # MUST print v24.18.0
-```
+3. **`--test-cmd` strings for `deliver-ticket.mjs` — prefix still required**, in `cmd.exe` form and with no double quotes: `set PATH=C:\Users\HoraceHou\AppData\Local\node-24.18.0;%PATH% && <cmd>`. That string reaches a `cmd.exe` child, which reads no startup files at all.
 
-If `node -v` does not report v24.18.0, do not run tests and do not interpret any failure — fix the PATH first.
+If `node -v` does not report v24.18.0, do not run tests and do not interpret any failure — fix the context first.
+
+## Command shape — so your commands can be approved without interrupting the human
+
+Every command is checked statically before it runs; one whose effect cannot be read from its text alone interrupts the human. Keep yours checkable:
+
+- **Absolute paths, always.** Never `cd` into a directory (or a lane worktree) and then use relative paths — under Git Bash the classifier cannot determine the final working directory, so a relative *write* target cannot be checked.
+- **Use the directory flag instead of `cd`:** `git -C <dir>`, `pnpm --filter <pkg>`, `codex exec -C <dir>`, `node <absolute-path-to-script>`, an absolute path to the test file.
+- **One purpose per command.** Long `&&`/`;` chains and shell loops that mix a directory change with a write are the unapprovable shape.
+- **Scratch output only into `.claude/tmp/`, by absolute path** (the rule in step 3 below; absolute is what makes it checkable).
+- **Never pass a Windows path through `node -e` in the Bash tool** — a shell layer eats one level of backslashes and `C:\\Program Files\\nodejs` arrives as a literal newline. This corrupted two files on 2026-08-15. Write a script file under `.claude/tmp/` and run it with `node <absolute-path>` instead.
 
 ## Method
 

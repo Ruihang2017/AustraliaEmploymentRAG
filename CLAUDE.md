@@ -3,24 +3,32 @@
 > Auto-loaded into every session. Installed by agent-templates adopt.mjs on 2026-08-03.
 > Add your project facts and non-negotiable constraints above the pipeline section.
 
-## Toolchain and environment — pinned Node/pnpm, the PATH rule, the Codex sandbox flags (non-negotiable)
+## Toolchain and environment — pinned Node/pnpm, the three-context PATH rule, command shape, the Codex sandbox flags (non-negotiable)
 
-This repo is pinned to Node **24.18.0** and pnpm **11.4.0** (breakdown-plan §8 Q12). Both resolve from `C:\Users\HoraceHou\AppData\Local\node-24.18.0` (pnpm via the corepack shim there). The machine-level Windows PATH contains `C:\Program Files\nodejs\` (Node **v22.11.0**) and always precedes the user-level PATH, so the pinned toolchain is **shadowed by default** — and nobody on this machine has admin rights, so the machine PATH cannot be reordered. Every shell must therefore prepend that directory itself.
+This repo is pinned to Node **24.18.0** and pnpm **11.4.0** (breakdown-plan §8 Q12). Both resolve from `C:\Users\HoraceHou\AppData\Local\node-24.18.0` (pnpm via the corepack shim there). The machine-level Windows PATH contains `C:\Program Files\nodejs\` (Node **v22.11.0**) and always precedes the user-level PATH, so the pinned toolchain is **shadowed by default** — and nobody on this machine has admin rights, so the machine PATH cannot be reordered.
 
-**Hard rule:** in every shell — Bash tool, PowerShell tool, agent subshell, and any `--test-cmd` passed to `deliver-ticket.mjs` — prepend the pinned directory to PATH and confirm `node -v` prints `v24.18.0` **before** running any build, test, or generator.
+**The first thing to check, always, is a bare `node -v` in the shell you are about to use.** It must print `v24.18.0` before any build, test, or generator. What you do when it does not depends on which of the three execution contexts you are in — and they are *not* the same. Getting this split wrong in either direction is expensive: too broad and you paper over a real regression in the Bash context; too narrow and PowerShell/`--test-cmd` runs silently execute on Node 22.11.0.
+
+**1. Bash tool — no prefix. Repaired 2026-08-15.** `~/.bashrc` now exports the pinned directory first on PATH, so bare `node`, `pnpm`, `npx`, `corepack` already resolve to the pinned toolchain. **Do not write an `export PATH=...` prefix in Bash-tool commands** — it is noise, and it makes an otherwise ordinary command harder to approve. If a bare `node -v` in the Bash tool does *not* print `v24.18.0`, that means **the startup files have regressed** (see the UTF-16 note below) — fix them; never paper over it with a prefix.
+
+**2. PowerShell tool — the prefix is still mandatory, and always will be.** The tool spawns `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass`, so no profile file is ever read and it resolves Node **v22.11.0**. Every PowerShell-tool command that touches the toolchain must start with:
 
 ```powershell
 $env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
 node -v   # MUST print v24.18.0
 ```
 
+**3. `--test-cmd` strings passed to `deliver-ticket.mjs` — the prefix is still mandatory.** The script runs them with `spawnSync(TEST_CMD, { shell: true })`, i.e. a `cmd.exe` child that reads neither bash nor PowerShell startup files. Use the `cmd.exe` form:
+
 ```text
 set PATH=C:\Users\HoraceHou\AppData\Local\node-24.18.0;%PATH% && <cmd>
 ```
 
-(the `--test-cmd` form must contain no double quotes)
+(the `--test-cmd` form must contain **no double quotes** — `run-milestone.js` and `start-all.js` both reject a `testCmd` containing one, because they splice it into a double-quoted argument.)
 
-**Failure signature:** `node:internal/modules/esm/get_format` errors, concentrated in tests that spawn a child process (the child re-resolves `node` from PATH). Under Node 22.11.0 that is 11 failures across `packages/database` and `apps/api`; under 24.18.0 the workspace is green (8 projects, exit 0). **Always check the toolchain before concluding a test failure is a regression** — mistaking this environment fault for a code regression has been the largest single source of wasted work in this repo.
+**Why the Bash context needed repairing at all — and what silently reverts it.** `~/.bash_profile` and `~/.bashrc` had been saved as **UTF-16LE**. Bash parsed the byte-order mark as the first token of line 1 and died there (`$'\377\376source': command not found`), so neither file had *ever* executed — which is why a PATH export sitting further down the file never took effect. They are now **UTF-8 without BOM and must stay that way**: an editor that re-saves either file as UTF-16 reverts every relaxation above without a word, and all three contexts quietly fall back to Node 22.11.0. The *absence* of the `$'\377\376source'` line is the proof the file ran; a file failing on line 1 never reaches its PATH export. The originals are kept at `~/.bash_profile.utf16.bak-2026-08-15` and `~/.bashrc.utf16.bak-2026-08-15`. `~/.bashrc`, `~/.bash_profile` and the PowerShell profile are the human's; pipeline work never edits them.
+
+**Failure signature:** `node:internal/modules/esm/get_format` errors, concentrated in tests that spawn a child process (the child re-resolves `node` from PATH). Under Node 22.11.0 that is 11 failures across `packages/database` and `apps/api`; under 24.18.0 the workspace is green (8 projects, exit 0). **Always check the toolchain before concluding a test failure is a regression** — mistaking this environment fault for a code regression has been the largest single source of wasted work in this repo. The check is a bare `node -v` in the shell that produced the red suite: in PowerShell or a `--test-cmd` child a wrong answer means the prefix was omitted, and in the Bash tool it means the startup files regressed.
 
 **Codex sandbox flags — hard rule (same class of fault: no admin rights).** Every `codex exec` invocation that may write (the Builder's delegation, and any `codex exec resume`) must carry both:
 
@@ -32,6 +40,16 @@ set PATH=C:\Users\HoraceHou\AppData\Local\node-24.18.0;%PATH% && <cmd>
 *Reason:* `-s workspace-write` declares **two** writable roots — the workspace and `%TEMP%` — and the unelevated restricted-token Windows sandbox this machine is forced onto cannot enforce a split writable root set, so it refuses to start (`windows unelevated restricted-token sandbox cannot enforce split writable root sets directly`). With its native patch binding unavailable, Codex improvises: it pipes patch text through a PowerShell here-string into the `apply_patch` shim, PowerShell rewrites the line endings, the patch arrives with a stray CR, `apply_patch` rejects it, and the full context is re-sent on every retry. Excluding `%TEMP%` collapses the root set to one, the sandbox enforces it, and the patch passes as a string that never touches a shell. Measured on the same 380-line 7-file workload: **4–10 `apply_patch` failures and ~0.5–1.0M input tokens without the flags, 0 failures and ~150K with them**, over three consecutive runs. Keep them as **per-invocation** `-c` flags — writing them into `~/.codex/config.toml` would change the human's interactive Codex, which is not ours to touch. The sandbox is kept; `danger-full-access` is not an acceptable substitute. Two consequences: Codex has **no `%TEMP%`/`/tmp` scratch space** (point anything that needs one at a path inside the workspace), and `node --test` cannot spawn its per-file children inside the sandbox (`spawn EPERM`), so **Codex's own** test runs must pass `--test-isolation=none` — never the Builder's or Reviewer's unsandboxed runs, where it would mask exactly the child-process signature the PATH rule above exists to make readable. `codex exec resume` has no `-s/--sandbox` flag: pass `-c sandbox_mode="workspace-write"` alongside both exclusions.
 
 **Failure signature — a lane worktree poisoning the main checkout.** Parallel lanes run in git worktrees created *inside* the repo (`.claude/worktrees/<lane>/`), so a `pnpm install` inside a lane can write a symlink from the **main** checkout into the lane's store — observed: `apps/api/node_modules/fastify -> .claude/worktrees/<lane>/node_modules/.pnpm/fastify@5.11.3/node_modules/fastify`. When the lane worktree is removed the link dangles and `apps/api` fails with `Cannot find package 'fastify'` on a `main` whose diff explains nothing — it reads as a code regression in merged work. Recognise it by resolving the link (`readlink apps/api/node_modules/<pkg>`): a target under `.claude/worktrees/` is the bug, not the code. **`pnpm install --force` does not repair it** — it reports "Already up to date" and leaves the dangling link in place. The repair is to **delete the affected package's `node_modules` directory and reinstall**.
+
+## Command shape — write commands a static classifier can approve (non-negotiable)
+
+Every command an agent runs is checked **statically**, before it executes. A command whose effect cannot be determined from its text alone cannot be auto-approved, so it interrupts the human — and a human interrupted on every call stops reading the prompts. Writing approvable commands is therefore part of the work, not a style preference. This changes nothing about *what* is permitted; it is about writing the same command in a form that can be checked on its merits.
+
+- **Absolute paths, always.** Never `cd` into a subdirectory and then use relative paths: under Git Bash the classifier cannot statically determine the final working directory, so a relative write target cannot be checked at all.
+- **Use the directory flag instead of `cd`:** `git -C <dir>`, `pnpm --filter <pkg>`, `codex exec -C <dir>`, `node <absolute-path-to-script>`, an absolute path to the test file. Every tool in this repo's rotation has one.
+- **Keep commands single-purpose.** Long `&&` / `;` chains, and shell loops that mix a directory change with a write, are precisely the shape that cannot be checked. Two plain commands beat one clever one. (The `--test-cmd` `set PATH=... && <cmd>` form above is the deliberate exception — it is a `cmd.exe` string handed to `spawnSync`, not a Bash-tool command.)
+- **Scratch output goes only into `.claude/tmp/`, by absolute path.** That rule already exists for delivery reasons; writing the path absolutely is what makes it checkable.
+- **Never pass a Windows path through `node -e` in the Bash tool.** A shell layer consumes one level of backslashes, so `C:\\Program Files\\nodejs` arrives at Node as a literal newline. This corrupted two files on 2026-08-15 before it was caught. Write a script file under `.claude/tmp/` and run it with `node <absolute-path>` instead.
 
 <!-- Append this block to the target repo's CLAUDE.md.
      Source pattern: agent-templates/patterns/three-agent-architect-builder-reviewer (as of 2026-07-17). -->

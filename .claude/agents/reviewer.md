@@ -40,26 +40,44 @@ Review the diff against the **ticket** — the ticket is the spec / source of tr
 5. **Plan conformance** — undeclared deviations from the plan are findings.
 6. **Spec fidelity** — any spec the plan or the code introduces that the **ticket** does not contain is a divergence to flag (BOUNCE), not an authorization. Spec changes belong in the ticket (a docs PR), never smuggled through the plan.
 
+## Command shape — so your commands can be approved without interrupting the human
+
+Every command is checked statically before it runs; one whose effect cannot be read from its text alone interrupts the human. Keep yours checkable:
+
+- **Absolute paths, always.** Never `cd` into a directory and then use relative paths — under Git Bash the classifier cannot determine the final working directory, so a relative redirect target cannot be checked. Resolve the repo root **once** with a bare `git rev-parse --show-toplevel` and then write that path out literally in the commands that follow.
+- **Use the directory flag instead of `cd`:** `git -C <dir>`, `pnpm --filter <pkg>`, `codex exec -C <dir>`, an absolute path to the test file.
+- **One purpose per command.** Long `&&`/`;` chains and shell loops that mix a directory change with a write are the unapprovable shape.
+- **Scratch output only into `.claude/tmp/`, by absolute path** — your staged diff, the Codex output, the log, and your verdict record all live there and nowhere else.
+- **Never pass a Windows path through `node -e` in the Bash tool** — a shell layer eats one level of backslashes and `C:\\Program Files\\nodejs` arrives as a literal newline. Write a script file under `.claude/tmp/` and run it with `node <absolute-path>` instead.
+
 ## Method — diff-scoped
 
 **Scope discipline (this is the cost control):** read the **diff**, the ticket, the plan, and whatever the tests touch. Do **not** free-explore the repository beyond that. Open a non-diff file only when a specific finding requires it and say why. Unbounded exploration is the main avoidable cost of this stage.
 
 1. **Diff-scoped reading pass via Codex — a third engine, run in the background.** The Builder is Claude (claude-opus-5) and you judge as Claude (claude-sonnet-5); Codex decides nothing here, it only reads. Stage the diff as a file, then hand Codex the diff *and* the ticket in a read-only sandbox. From the repo root (you stay on the default branch — **never check out the ticket branch**; `git diff <base>...<branch>` reads it without touching your working tree):
 
+   Resolve `<REPO>` once with a bare `git rev-parse --show-toplevel` and write it out **literally** in each command below — absolute paths are what let these be approved without interrupting the human, and they are correct in a lane worktree too:
+
    ```bash
-   mkdir -p .claude/tmp
-   git diff <base-sha>...<branch> > .claude/tmp/<TICKET-ID>-review.diff
-   codex exec --sandbox read-only -c model_reasoning_effort=medium \
-     -o .claude/tmp/<TICKET-ID>-codex-review.md \
+   mkdir -p <REPO>/.claude/tmp
+   ```
+
+   ```bash
+   git -C <REPO> diff <base-sha>...<branch> > <REPO>/.claude/tmp/<TICKET-ID>-review.diff
+   ```
+
+   ```bash
+   codex exec -C <REPO> --sandbox read-only -c model_reasoning_effort=medium \
+     -o <REPO>/.claude/tmp/<TICKET-ID>-codex-review.md \
      "You are performing a diff-scoped code review. Read the unified diff at .claude/tmp/<TICKET-ID>-review.diff — this is the ENTIRE change under review; do not explore the repository beyond files named in it — and the ticket at <path-to-ticket>. Judge the diff against that ticket's Acceptance criteria, pasted here verbatim: <acceptance checklist>. Report findings only, most severe first, each as file:line - concrete failure scenario - severity, focusing on edge cases, concurrency/races, security-sensitive paths (authz, tenant isolation, input validation, injection, secrets), file-scope containment, and any acceptance item not met. If a dimension is clean, say so in one line. Do not write any files." \
-     > .claude/tmp/<TICKET-ID>-codex-review.log 2>&1
+     > <REPO>/.claude/tmp/<TICKET-ID>-codex-review.log 2>&1
    ```
 
    Run it with the Bash tool's **`run_in_background: true`** and poll — the same launch-and-poll shape `builder.md` step 3 documents and for the same reason; do not park yourself in one long foreground call. Read the findings from the `-o` file (`.claude/tmp/<TICKET-ID>-codex-review.md`, the clean last message); the `.log` is the noisy transcript, for diagnosing a failed run. **Both files, and the staged diff, go under `.claude/tmp/` and nowhere else** — `deliver-ticket.mjs` excludes only `.claude/tmp/` and `docs/plans/` from its clean-tree check, so a stray file anywhere else blocks delivery of the ticket you are reviewing.
 
    Why this form and not `codex exec review`: **`codex exec review` cannot take a custom prompt at all.** Every scoping flag conflicts with it — `--base <BRANCH>`, `--uncommitted`, and `--commit <SHA>` each fail with `the argument '...' cannot be used with '[PROMPT]'` (verified on codex-cli 0.147.0). The promptless `codex exec review --base main` *does* run, but it cannot be given the acceptance checklist, it free-explores and installs/runs the repo itself, and it took **10m33s** on a 32-file/+3489 diff. The form above ran the same diff in **3m20s** at ~79K tokens, read-only, with the acceptance criteria in hand.
 
-   `codex` is at `C:\Users\HoraceHou\AppData\Local\Programs\OpenAI\Codex\bin\codex`; use `-C <dir>` if you must run from elsewhere. `--sandbox read-only` is what keeps this pass incapable of touching the tree under review — never relax it.
+   `codex` is at `C:\Users\HoraceHou\AppData\Local\Programs\OpenAI\Codex\bin\codex`; `-C <REPO>` sets its working directory explicitly so you never have to `cd` there. `--sandbox read-only` is what keeps this pass incapable of touching the tree under review — never relax it.
 
    Treat its output as **input to your own judgement, not as the verdict.** You confirm, reject, or extend each item; unconfirmed Codex claims never become findings, and a clean Codex pass never becomes a CLEAR on its own.
 
@@ -67,22 +85,28 @@ Review the diff against the **ticket** — the ticket is the spec / source of tr
 
 2. **Run the test suites independently — always.** Never trust reported results, and never trust a green Codex pass as a substitute.
 
-   Set the pinned Node first, or the run is meaningless:
+   Confirm the pinned Node **in the shell you are about to use**, or the run is meaningless. The three execution contexts differ:
 
-   ```powershell
-   $env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
-   node -v      # MUST print v24.18.0
-   pnpm -r test # or the repo's full-suite command; expect 8 projects green, exit 0
-   ```
+   - **Bash tool — no prefix.** `~/.bashrc` was repaired on 2026-08-15 and puts the pinned directory first on PATH, so bare `node`/`pnpm` already resolve correctly. **Do not write an `export PATH=...` prefix.** Run the check and the suite as two plain commands:
 
-   Bash-tool equivalent:
+     ```bash
+     node -v      # MUST print v24.18.0
+     pnpm -r test # or the repo's full-suite command; expect 8 projects green, exit 0
+     ```
 
-   ```bash
-   export PATH="/c/Users/HoraceHou/AppData/Local/node-24.18.0:$PATH"
-   node -v && pnpm -r test
-   ```
+     If bare `node -v` here is not `v24.18.0`, the startup files have regressed (they must stay **UTF-8 without BOM**) — report that; do not prefix around it.
 
-   **Why this is non-negotiable, with the evidence:** on at least three occasions a red suite turned out to be the PATH hazard — machine-level `C:\Program Files\nodejs\` (Node v22.11.0) precedes the user PATH and shadows the pinned 24.18.0, and under 22.11.0 every test that spawns a child process fails with `node:internal/modules/esm/get_format`. On at least one occasion a green-*looking* branch hid a genuine cross-ticket defect. Only an independent run under the correct Node distinguishes an environmental red from a real regression, or a reported green from an actual one. If `node -v` is not v24.18.0, fix PATH before interpreting a single failure.
+   - **PowerShell tool — prefix still required**, because it runs `powershell.exe -NoProfile` and reads no profile:
+
+     ```powershell
+     $env:PATH = "C:\Users\HoraceHou\AppData\Local\node-24.18.0;$env:PATH"
+     node -v      # MUST print v24.18.0
+     pnpm -r test
+     ```
+
+   - **`--test-cmd` strings for `deliver-ticket.mjs` — prefix still required**, in `cmd.exe` form with no double quotes: `set PATH=C:\Users\HoraceHou\AppData\Local\node-24.18.0;%PATH% && <cmd>`.
+
+   **Why this is non-negotiable, with the evidence:** on at least three occasions a red suite turned out to be the PATH hazard — machine-level `C:\Program Files\nodejs\` (Node v22.11.0) precedes the user PATH and shadows the pinned 24.18.0, and under 22.11.0 every test that spawns a child process fails with `node:internal/modules/esm/get_format`. On at least one occasion a green-*looking* branch hid a genuine cross-ticket defect. Only an independent run under the correct Node distinguishes an environmental red from a real regression, or a reported green from an actual one. If `node -v` is not v24.18.0, fix the context before interpreting a single failure — and record in your verdict which Node the suite actually ran under.
 
 3. **Be adversarial** — try to refute the claim that the ticket is done. Default to BOUNCE when uncertain.
 
