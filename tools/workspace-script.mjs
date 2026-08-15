@@ -28,13 +28,32 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
- * Root-level implementations. Each is resolved to a JS entry point inside node_modules and run with
- * the current `node`, so it works whether the script was reached through `pnpm run` or invoked
- * directly, without depending on PATH.
+ * Root-level implementations. Each is resolved to a JS entry point and run with the current `node`,
+ * so it works whether the script was reached through `pnpm run` or invoked directly, without
+ * depending on PATH.
+ *
+ * FND-23 deliverable 1: there are exactly **two kinds**, each with its own resolution rule and its
+ * own "missing file" message. This is deliberately explicit rather than a heuristic that guesses the
+ * kind from the string, because the two failures mean opposite things — a missing `node-modules`
+ * entry means the dependencies are not installed, a missing `repository` entry means the checkout is
+ * incomplete, and giving the second the first's `pnpm install` advice would send a reader the wrong
+ * way. A third kind must be added here, with its own case; the dispatch below has no fallthrough.
+ *
+ *   kind 'node-modules' — `module` is resolved under <root>/node_modules.
+ *   kind 'repository'   — `script` is resolved against the repository root itself.
  */
-const ROOT_IMPLEMENTATIONS = {
-  lint: { module: 'eslint/bin/eslint.js', args: ['--config', 'tools/eslint.config.mjs', '.'] },
-  test: { module: 'vitest/vitest.mjs', args: ['run', '--config', 'tools/vitest.config.mjs'] },
+export const ROOT_IMPLEMENTATIONS = {
+  lint: {
+    kind: 'node-modules',
+    module: 'eslint/bin/eslint.js',
+    args: ['--config', 'tools/eslint.config.mjs', '.'],
+  },
+  test: {
+    kind: 'node-modules',
+    module: 'vitest/vitest.mjs',
+    args: ['run', '--config', 'tools/vitest.config.mjs'],
+  },
+  'ci:local': { kind: 'repository', script: 'tools/ci-local.mjs', args: [] },
 };
 
 export function loadScriptOwners(root = REPO_ROOT) {
@@ -78,6 +97,12 @@ export function membersProviding(name, root = REPO_ROOT) {
   });
 }
 
+function spawnNodeEntry(entry, args, root) {
+  const result = spawnSync(process.execPath, [entry, ...args], { cwd: root, stdio: 'inherit' });
+  return result.status ?? 1;
+}
+
+/** kind 'node-modules': an installed dependency's entry point. Absent means "not installed". */
 function runNode(entryRelativeToNodeModules, args, root) {
   const entry = join(root, 'node_modules', entryRelativeToNodeModules);
   if (!existsSync(entry)) {
@@ -86,8 +111,38 @@ function runNode(entryRelativeToNodeModules, args, root) {
     );
     return 1;
   }
-  const result = spawnSync(process.execPath, [entry, ...args], { cwd: root, stdio: 'inherit' });
-  return result.status ?? 1;
+  return spawnNodeEntry(entry, args, root);
+}
+
+/**
+ * kind 'repository': a script committed to this repository. Absent means the checkout is
+ * incomplete — `pnpm install` would not bring it back, so it must not be suggested.
+ */
+function runRepositoryScript(scriptRelativeToRoot, args, root) {
+  const entry = join(root, scriptRelativeToRoot);
+  if (!existsSync(entry)) {
+    process.stderr.write(
+      `${entry} is missing — it is committed to this repository, so the checkout is incomplete; ` +
+        'restore it from version control (installing dependencies will not bring it back).\n',
+    );
+    return 1;
+  }
+  return spawnNodeEntry(entry, args, root);
+}
+
+function runRootImplementation(impl, root) {
+  switch (impl.kind) {
+    case 'node-modules':
+      return runNode(impl.module, impl.args, root);
+    case 'repository':
+      return runRepositoryScript(impl.script, impl.args, root);
+    default:
+      process.stderr.write(
+        `unknown root implementation kind ${JSON.stringify(impl.kind)} in ROOT_IMPLEMENTATIONS ` +
+          '— add an explicit case for it rather than letting it fall through.\n',
+      );
+      return 2;
+  }
 }
 
 function runPnpmRecursive(name, root) {
@@ -132,7 +187,7 @@ export function main(argv, root = REPO_ROOT) {
   }
 
   if (rootImpl) {
-    const status = runNode(rootImpl.module, rootImpl.args, root);
+    const status = runRootImplementation(rootImpl, root);
     if (status !== 0) return status;
   }
 

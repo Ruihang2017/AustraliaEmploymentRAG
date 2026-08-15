@@ -7,7 +7,13 @@
     "An entry LEAVES `owners` the moment its owning ticket implements it in a workspace member, and stays",
     "in `rootScripts` forever. FND-04 (sub-PRD D22) removed `generate` and `generated:check`: they are now",
     "provided by packages/contracts, so tools/workspace-script.mjs delegates for real instead of printing",
-    "an owner line. tools/tests/scripts.test.mjs asserts that transition rather than the old empty state."
+    "an owner line. tools/tests/scripts.test.mjs asserts that transition rather than the old empty state.",
+    "FND-23 (PRD-02 DEV-005) added `ci:local`: a root script implemented in-repository by tools/ci-local.mjs,",
+    "which runs the command set derived from .github/workflows/ci.yml so that local green and CI green mean",
+    "the same thing. It is in `rootScripts` and NOT in `owners` — it is implemented, so it must never print",
+    "an owner line. It is NOT a PRD section 45.3 entry command: that list has fourteen members and is",
+    "transcribed verbatim in tools/fixtures/entry-commands.json, which stays at fourteen. `rootScripts` is a",
+    "different list, and this is its eleventh member."
   ],
   "messageTemplate": "{name}: not implemented yet (owner: {ticket}, module {module})",
   "owners": {
@@ -27,6 +33,7 @@
     "generated:check",
     "eval:smoke",
     "stack:up",
-    "stack:down"
+    "stack:down",
+    "ci:local"
   ]
 }
