@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { rmSync } from 'node:fs';
 
-import { createScratchDelivery } from './support/scratch-delivery.mjs';
+import { cleanupPrototypes, createScratchDelivery } from './support/scratch-delivery.mjs';
 
 /**
  * FND-20 / DEV-004 — the required-check gate, the hard-failure exit contract, the DoD rule and the
@@ -28,6 +28,10 @@ const build = (scenario, options = {}) => {
 afterEach(() => {
   if (scratch) rmSync(scratch.dir, { recursive: true, force: true });
   scratch = null;
+});
+
+afterAll(() => {
+  cleanupPrototypes();
 });
 
 describe('deliver-ticket required-check gate', () => {
