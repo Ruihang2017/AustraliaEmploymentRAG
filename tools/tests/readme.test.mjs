@@ -40,6 +40,15 @@ describe('root README (PRD 45.3 "document platform prerequisites in the root REA
     expect(flat, 'README does not explain why -Path is required').toMatch(
       /default `?-Path`?.{0,120}?repo-root `?PRD\.md`?/i,
     );
+    // …and the per-platform form actually used on Linux, with its reason (FND-22 / DEV-006).
+    // Added, never in place of an assertion above: the normative string and the Windows default
+    // must both keep appearing verbatim.
+    expect(text, 'README does not show the pwsh invocation used on Linux').toContain(
+      entry.platforms.linux.run,
+    );
+    expect(flat, 'README does not explain why the interpreter differs on Linux').toMatch(
+      /powershell: not found|does not exist on a Linux runner/i,
+    );
   });
 
   it('states each pinned version alongside the file it lives in', () => {

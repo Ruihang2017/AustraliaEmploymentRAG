@@ -90,7 +90,7 @@ and exits 0, and PRD §45.3 is normative, so none may be deleted from this list.
 | Command | What it does | Owner, if not implemented yet |
 |---|---|---|
 | `corepack pnpm install --frozen-lockfile` | Install the pnpm workspace from the committed lockfile without rewriting it. | — |
-| `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` | Validate `docs/PRD.md` structure and invariants. Run it with the `-Path` argument below. | — |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1` | Validate `docs/PRD.md` structure and invariants. Run it with the `-Path` argument below; on Linux, with `pwsh`. | — |
 | `pnpm dev` | Run the local development processes. | `RUNT-01/RUNT-05`, module `03-app-runtime` |
 | `pnpm lint` | Lint the repository — the PRD §20.3 gate. | — |
 | `pnpm typecheck` | TypeScript type-check every workspace member. | — |
@@ -122,6 +122,22 @@ recorded as a `deviation` on that one fixture entry — **not** a failure waiver
 forbids and `tools/tests/entry-commands.test.mjs` asserts is absent. Made spec by `FND-01` v1.1 /
 sub-PRD `00-foundation` decision **D18**; the durable fix (the script's default path, or the PRD §45.3
 text) is escalated to the Architect and is outside this ticket's file-scope.
+
+**And one carries a different interpreter on Linux.** `powershell` is the Windows PowerShell 5.1
+executable and does not exist on a Linux runner — the bare token gives `powershell: not found` and
+exit 127 on `ubuntu-latest`. PowerShell 7 ships there as `pwsh` and runs the same frozen script
+unmodified, so on Linux the same command is:
+
+```text
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1 -Path docs/PRD.md
+```
+
+Only the leading interpreter token changes; the script path and the `-Path` argument are identical.
+This is recorded as a `platforms` substitution on that one fixture entry — again **not** a failure
+waiver, which is forbidden on every platform — authorised by `FND-22` / PRD-02 requirement
+**DEV-006**, with the same durable fix escalated as `Q-CI-D` (amend the PRD §45.3 text, or unfreeze
+`tools/validate-prd.ps1`). Both the sweep and the test select the invocation for the platform they
+run on through one shared resolver.
 
 Root `package.json` scripts are thin: each is `node tools/workspace-script.mjs <name>`, which runs the
 root implementation (if any), then `pnpm -r --if-present run <name>`, and falls back to the owner line
