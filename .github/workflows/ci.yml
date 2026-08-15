@@ -21,6 +21,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: Typecheck every workspace member
         run: pnpm typecheck
@@ -36,6 +38,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: Regenerate the bindings and prove the diff is clean
         run: pnpm generate && pnpm generated:check
@@ -49,6 +53,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: Migration and tenant-schema suite
         run: pnpm -r --if-present run test:migrations
@@ -60,6 +66,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: Tenant isolation, auth and permission suite
         run: pnpm -r --if-present run test:tenant
@@ -71,6 +79,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: PII and citation validation suite
         run: pnpm -r --if-present run test:pii-citation
@@ -82,6 +92,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -101,6 +113,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: uv sync and pytest
         run: uv sync --frozen && uv run pytest
@@ -112,6 +126,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
       - name: Retrieval and evaluation smoke set
         run: pnpm eval:smoke
@@ -123,10 +139,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/workflows/actions/setup
+      # D-CI1 (PRD-02 section 6): the blocking dependency gate is scoped to production dependencies.
+      # An unscoped audit is time-bombed — a newly published advisory turns CI red with no code
+      # change. Accepted cost: devDependency advisories are no longer surfaced by CI. The durable
+      # answer, a scheduled non-blocking full-tree audit, is deliberately deferred (follow-up Q-CI-C).
       - name: Dependency audit and lockfile integrity
         run: |
-          corepack pnpm audit --audit-level=high
+          corepack pnpm audit --prod --audit-level=high
           cargo metadata --locked --format-version 1 > /dev/null
           uv lock --check
       - name: Secret scan
