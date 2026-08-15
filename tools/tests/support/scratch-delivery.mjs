@@ -5,7 +5,7 @@
 // script, so a path containing one would mis-spawn) and the identity assertion (a leaked case must
 // never be able to push, merge or close anything in THIS repository). Treat their removal as a
 // defect, not a simplification.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
