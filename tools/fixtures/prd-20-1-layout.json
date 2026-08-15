@@ -78,12 +78,40 @@
     "tests"
   ],
   "topLevelPreexistingAllowed": {
-    "$comment": "Tracked top-level directories that predate FND-01 and are outside PRD section 20.1.",
-    "entries": [".claude", ".github", "templates", "tools"]
+    "$comment": [
+      "TRACKED top-level directories that are outside PRD section 20.1 and are legitimately part of",
+      "this repository: repository tooling predating FND-01 (.claude, .github, templates, tools) plus",
+      "agent-pipeline tooling adopted since — .agents (Codex skills) and .codex (Codex config and",
+      "scripts), both installed 2026-08-12 by `npx agent-templates@latest adopt` of the two upstream",
+      "three-agent architect/builder/reviewer patterns, and both tracked in git.",
+      "The key NAME is now narrower than its contents, deliberately: renaming it would mean editing",
+      "tools/workspace-assertions.mjs, which FND-19 (a one-file repair) does not touch.",
+      "ESCAPE HATCH — when the repository root legitimately gains a directory, add it HERE if it is",
+      "tracked, or to topLevelIgnored if it is git-ignored and never committed, together with its",
+      "basis and date. Never add it to `source`/`directories`: those are a verbatim transcription of",
+      "PRD section 20.1 and change only when the PRD does. Never widen the check itself — no",
+      "wildcard, prefix or dot-prefix rule, no skipped test, no removal of the unexpected-directory",
+      "loop. Establish first what the directory is (tracked or ignored, decided or accidental); an",
+      "accidental one is deleted or git-ignored, not allowed. FND-19."
+    ],
+    "entries": [".claude", ".github", "templates", "tools", ".agents", ".codex"]
   },
   "topLevelIgnored": {
-    "$comment": "Untracked build/tooling artifacts; all are git-ignored, none may be committed.",
-    "entries": [".git", "node_modules", "target", ".venv", ".pytest_cache", ".ruff_cache"]
+    "$comment": [
+      "Untracked build/tooling artifacts; all are git-ignored, none may be committed. .worktrees is",
+      "the root-level harness worktree directory used at concurrency > 1 (.gitignore line 31:",
+      "'agent-templates: root-level harness worktrees — never commit, never scan'); .claude/worktrees",
+      "and .codex/worktrees are nested, not top-level, and need no entry here.",
+      "STATIC ENUMERATION, and this is load-bearing: assertLayout() performs NO git access at all —",
+      "it is a pure readdirSync/statSync read — so being git-ignored does not by itself exempt a",
+      "directory. A new git-ignored top-level directory must be added to this list explicitly.",
+      "The guard is deliberately NOT made to consult git: (1) .gitignore is itself writable by the",
+      "00-foundation module, so an 'anything git-ignored is allowed' rule would let one unrelated",
+      "appended line retire the layout guard for any directory; (2) tools/tests/layout.test.mjs runs",
+      "assertLayout against mkdtemp scratch roots that contain no git repository at all, so git",
+      "queries there would fail or answer from the machine's global ignore file. FND-19."
+    ],
+    "entries": [".git", "node_modules", "target", ".venv", ".pytest_cache", ".ruff_cache", ".worktrees"]
   },
   "doNotRead": {
     "$comment": "PRD section 45.1 item 6 / breakdown plan section 9 R9: blind gold. FND-01 creates the directory and never reads its contents.",
