@@ -33,7 +33,7 @@ const FORBIDDEN = [
   /^tools\/export-visible-transcript\.ps1$/,  // §4 frozen row — "the two pre-existing tools/*.ps1"
   /^templates\//,                             // §4 frozen row
   /^CLAUDE\.md$/,                             // §4 frozen row
-  /^\.claude\//,                              // §4 frozen row
+  /^\.claude\/(?!scripts\/deliver-ticket\.mjs$)/,  // §4 frozen row, narrowed by D-CI4 (breakdown-plan-02-ci-repair.md §3): FND-20 owns .claude/scripts/deliver-ticket.mjs; every other .claude/ path stays frozen
   /^\.github\/PULL_REQUEST_TEMPLATE\.md$/,    // unallocated — no write-owns row names it (Q-F6, open)
   /^\.github\/ISSUE_TEMPLATE\//,              // unallocated — no write-owns row names it (Q-F6, open)
   /^\.gitattributes$/,                        // unallocated — see FND-11 Background, ".gitattributes"
@@ -52,6 +52,8 @@ const FORBIDDEN_CONTROL = [
   'templates/ticket.template.md',
   'CLAUDE.md',
   '.claude/settings.json',
+  '.claude/workflows/run-milestone.js',   // the D-CI4 carve-out is ONE file: the workflows stay frozen
+  '.claude/scripts/publish-tickets.mjs',  // ... and so does every other script under .claude/scripts/
   '.github/PULL_REQUEST_TEMPLATE.md',
   '.github/ISSUE_TEMPLATE/bug.md',
   '.gitattributes',
@@ -65,6 +67,7 @@ const ALLOWED_CONTROL = [
   ['README.md', '00-foundation (root files)'],
   ['tools/check-workspace.mjs', '00-foundation — tools/** minus the two .ps1'],
   ['tools/tests/frozen-paths.test.mjs', '00-foundation — this very file'],
+  ['.claude/scripts/deliver-ticket.mjs', '00-foundation (FND-20) — D-CI4 single-file carve-out'],
   ['docs/prd/breakdown-plan.md', 'planning artifacts row — and the case-sensitivity vector'],
   ['docs/prd/00-foundation/README.md', 'planning artifacts row'],
   ['docs/adr/0001-example.md', 'shared-additive row (A9)'],
