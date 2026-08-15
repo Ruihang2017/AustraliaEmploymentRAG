@@ -133,6 +133,30 @@ describe('deliver-ticket required-check gate', () => {
     expect(run.summary.merged).toBe(true);
     expect(run.status).toBe(0);
   }, 30_000);
+
+  // The intersection has to be REAL, not "any red anywhere in the rollup". Under the protection
+  // rule only the required contexts count, so an optional job that failed must not block the
+  // merge — otherwise the gate would be unfalsifiable and every delivery would stall on a
+  // non-required context nobody promised to keep green. The mirror of this case is the first
+  // test in this file: the same shape with the red context REQUIRED does refuse to merge.
+  it('counts only the required contexts — a red NON-required context does not block the merge', () => {
+    const s = build({
+      protection: protection(CONTEXT_A), // CONTEXT_B is deliberately NOT required
+      rollupPhases: [[
+        checkRun(CONTEXT_A, 'COMPLETED', 'SUCCESS'),
+        checkRun(CONTEXT_B, 'COMPLETED', 'FAILURE'),
+      ]],
+      mergeLands: true,
+    });
+    const run = s.runDeliver();
+
+    expect(s.called(run.calls, 'pr', 'merge'), 'a non-required red context blocked the merge').toBe(true);
+    expect(run.summary.checks.requiredChecksGreen).toBe(true);
+    expect(run.summary.checks.requiredCheckRule).toBe('protection');
+    expect(run.summary.checks.requiredCheckContexts).toEqual([CONTEXT_A]);
+    expect(run.summary.merged).toBe(true);
+    expect(run.status).toBe(0);
+  }, 30_000);
 });
 
 describe('deliver-ticket hard-failure contract', () => {
