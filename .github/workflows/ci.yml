@@ -30,6 +30,8 @@ jobs:
         run: pnpm test
       - name: Workflow gate-list replay (PRD 20.3)
         run: node --test .github/workflows/checks/workflows.test.mjs
+      - name: Checkout depth and audit scoping guard (FND-21)
+        run: node --test .github/workflows/checks/checkout-depth.test.mjs
 
   openapi-compat:
     name: API/OpenAPI compatibility
