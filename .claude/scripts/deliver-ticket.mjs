@@ -36,20 +36,38 @@
 //        [--default-branch main] [--issue <n>] [--platform gh|glab]
 //        [--delivery pr|direct|pushmr|auto] [--no-merge] [--verdict-file <path>]
 //        [--body-file <path>] [--test-cmd "<command>"]
+//        [--checks-timeout <seconds>] [--checks-interval <seconds>]
 //
-// PR/MR body (issue #58): a pre-composed --body-file (the deliver agent fills the repo's
-// .gitlab/merge_request_templates or .github/pull_request_template sections from the ticket,
-// diff, verdict, and CLAUDE.md constraints) is used verbatim; else the repo template is the
-// skeleton (Closes #N ensured); else a hardcoded fallback. The script only assembles/selects.
+// PR/MR body (issue #58): a pre-composed --body-file is REQUIRED to open a PR/MR, and is used
+// verbatim. There is no repo-template skeleton and no hardcoded fallback: an unfilled
+// .github/PULL_REQUEST_TEMPLATE.md cannot satisfy the PRD §45.4 contract check by construction
+// (.github/workflows/checks/pr-contract.mjs wants a requirement ID and a `## Constraint check`
+// heading, and its own header forbids editing the template to make it pass), so opening a PR
+// with one manufactures a red required context. Composing the body is the deliver AGENT's job
+// (CLAUDE.md, issue #58); with no --body-file this script opens no PR and reports NOT delivered.
+//
+// Required-check gate (FND-20 / DEV-004, phase-2 decision D-CI3): before merging on the `pr`
+// path this script resolves the pull request's REQUIRED check contexts from the forge and waits,
+// bounded, for each to CONCLUDE — the merge is attempted seconds after the push, when the
+// required contexts are still pending, so a plain refusal would deadlock delivery. It merges only
+// when every counted context concluded successfully. A failing context, a still-pending context
+// at the timeout, an unreadable rollup, and an empty counted set are all STOPS: no merge is
+// attempted. Defaults --checks-timeout 1200 (20 min) and --checks-interval 20 (seconds); the
+// numbers are open question Q-CI-B (docs/prd/breakdown-plan-02-ci-repair.md §7), owner Founder.
+// There is deliberately no --admin, no --auto, no force and no approval bypass.
 //
 // Last line of stdout is machine-readable for run-milestone:
 //   DELIVER-SUMMARY-JSON: {"id","branch","deliveryMode","merged","issueClosed",
 //     "dodPassed","awaitingMerge","prUrl","checks":{...},"notes"}
-// Exit codes: 0 = definitive summary printed (flags may still be false);
-//             1 = bad invocation or unexpected internal error.
+// Exit codes: 0 = delivered, or a documented awaiting-merge stop (--no-merge, pushmr's
+//                 human-web-merge stop);
+//             1 = bad invocation or unexpected internal error;
+//             2 = summary printed, delivery did NOT complete.
+// The DELIVER-SUMMARY-JSON line is printed BEFORE any exit other than an argv-validation exit,
+// so a caller that parses the line always gets it.
 
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -73,8 +91,25 @@ const VERDICT_FILE = opt('verdict-file')
 const BODY_FILE = opt('body-file') // pre-composed PR/MR body (agent-filled from the repo template)
 const TEST_CMD = opt('test-cmd')
 
+// Numeric option with a default. A malformed value is a BAD INVOCATION (exit 1) — the one class
+// of failure that exits before a summary exists, because nothing has been attempted yet.
+const numOpt = (name, dflt) => {
+  const raw = opt(name)
+  if (!raw) return dflt
+  const v = Number(raw)
+  if (!Number.isFinite(v) || v < 0) {
+    console.error(`invalid --${name} (expected a number of seconds >= 0): ${raw}`)
+    process.exit(1)
+  }
+  return v
+}
+// D-CI3 defaults; the numbers are Q-CI-B (owner: Founder). --checks-timeout 0 means
+// "evaluate the gate exactly once, do not wait" — it never means "skip the gate".
+const CHECKS_TIMEOUT_S = numOpt('checks-timeout', 1200)
+const CHECKS_INTERVAL_S = Math.max(1, numOpt('checks-interval', 20))
+
 if (!ID || !BRANCH) {
-  console.error('usage: node deliver-ticket.mjs --id <ticket-id> --branch <branch> [--default-branch main] [--issue <n>] [--platform gh|glab] [--delivery pr|direct|auto] [--no-merge] [--verdict-file <path>] [--test-cmd "<command>"]')
+  console.error('usage: node deliver-ticket.mjs --id <ticket-id> --branch <branch> [--default-branch main] [--issue <n>] [--platform gh|glab] [--delivery pr|direct|pushmr|auto] [--no-merge] [--verdict-file <path>] [--body-file <path>] [--test-cmd "<command>"] [--checks-timeout <seconds>] [--checks-interval <seconds>]')
   process.exit(1)
 }
 if (!/^[A-Za-z0-9._-]+$/.test(ID)) {
@@ -127,6 +162,10 @@ const checks = {
   pushRequired: false, pushed: false, branchPushed: false,
   prCreated: false, prExists: false, verdictPosted: false,
   issueClosed: false, testsPassed: null,
+  // FND-20: the required-check gate's own record. null = the gate was never reached.
+  requiredChecksGreen: null,   // true only when every counted context concluded successfully
+  requiredCheckRule: '',       // 'protection' | 'rollup-fallback' | 'skipped-already-merged' | 'skipped-glab'
+  requiredCheckContexts: [],   // the counted context names, as the forge reported them
 }
 let prUrl = ''
 let deliveryMode = 'direct'
@@ -134,20 +173,44 @@ let awaitingMerge = false
 const notes = []
 const note = (line) => { notes.push(line); console.log('  (note) ' + line) }
 
+// Definition-of-Done inputs. Runs at most once, from finish(), so that EVERY stop — not only the
+// happy path — reports an honest planExists/testsPassed. FND-20 deliverable 4: a run with no
+// --test-cmd tested nothing, so it cannot claim the DoD.
+let dodEvaluated = false
+const evaluateDod = () => {
+  if (dodEvaluated) return
+  dodEvaluated = true
+  checks.planExists = existsSync(join('docs', 'plans', `${ID}.md`))
+  if (!checks.planExists) note(`plan file missing: docs/plans/${ID}.md`)
+  if (!TEST_CMD) {
+    note('no --test-cmd supplied — the Definition of Done requires a test run, so dodPassed is false (declare the repository test command in CLAUDE.md and pass it as --test-cmd)')
+    return
+  }
+  const t = spawnSync(TEST_CMD, { shell: true, encoding: 'utf8' })
+  checks.testsPassed = t.status === 0
+  if (!checks.testsPassed) note(`--test-cmd failed (exit ${t.status}): ${String(t.stdout || t.stderr || '').trim().split('\n').slice(-3).join(' | ')}`)
+}
+
+// FND-20 deliverable 3: the exit code is DERIVED, not passed in. Call finish() with no argument at
+// every non-error stop; a stop that neither delivered nor is a deliberate awaitingMerge stop exits
+// 2, so an unlanded merge is a hard failure rather than a note() execution continues past. Do not
+// "restore" finish(0) at these call sites. finish(1) stays reserved for an internal error, and
+// skips the DoD evaluation because an internal error must not start a test run.
 const finish = (code) => {
+  if (code !== 1) evaluateDod()
   const dodPassed = !awaitingMerge &&
     checks.planExists &&
     checks.merged &&
     checks.issueClosed &&
     (!checks.pushRequired || checks.pushed) &&
-    (TEST_CMD ? checks.testsPassed === true : true)
+    checks.testsPassed === true
   const summary = {
     id: ID, branch: BRANCH, deliveryMode,
     merged: checks.merged, issueClosed: checks.issueClosed, dodPassed,
     awaitingMerge, prUrl, checks, notes: notes.join('; '),
   }
   console.log('DELIVER-SUMMARY-JSON: ' + JSON.stringify(summary))
-  process.exit(code)
+  process.exit(code !== undefined ? code : ((awaitingMerge || dodPassed) ? 0 : 2))
 }
 
 // close the tracker issue and verify the transition — never assume auto-close.
@@ -203,54 +266,21 @@ const prTitle = () => {
   const subject = (tryGit(['log', '-1', '--format=%s', BRANCH]).out || BRANCH).trim().slice(0, 100)
   return `[${ID}] ${subject}`.slice(0, 120)
 }
-const buildBody = () => {
-  const closes = ISSUE_ARG && Number(ISSUE_ARG) > 0 ? `Closes #${Number(ISSUE_ARG)}` : `(ticket ${ID} — issue looked up by \`[${ID}]\` title prefix)`
-  return `## Summary\nDelivered by the three-agent pipeline for ticket [${ID}].\n\n` +
-    `## Related issue / ticket\n${closes} — ticket \`${ID}\`\n\n` +
-    `## Pipeline evidence\n` +
-    `- Plan: \`docs/plans/${ID}.md\`\n` +
-    `- Builder branch: \`${BRANCH}\` -> \`${DEFAULT_BRANCH}\`\n` +
-    `- Reviewer verdict: **CLEAR** (full text posted as a comment below)\n` +
-    `- Delivered deterministically by \`run-milestone\` / \`deliver-ticket.mjs\`\n`
-}
-
-// the repo's own MR/PR template file, used as the body skeleton (issue #58) instead of a
-// hardcoded body — so an adopted repo's 8-section template actually applies to pipeline MRs.
-const findMrTemplate = () => {
-  const candidates = PLATFORM === 'glab'
-    ? ['.gitlab/merge_request_templates/default.md', '.gitlab/merge_request_templates/Default.md']
-    : ['.github/pull_request_template.md', '.github/PULL_REQUEST_TEMPLATE.md', 'pull_request_template.md', 'PULL_REQUEST_TEMPLATE.md', 'docs/pull_request_template.md', 'docs/PULL_REQUEST_TEMPLATE.md']
-  for (const c of candidates) { if (existsSync(c)) return { path: c, text: readFileSync(c, 'utf8') } }
-  if (PLATFORM === 'glab') {
-    try {
-      const dir = '.gitlab/merge_request_templates'
-      const f = readdirSync(dir).find((n) => n.toLowerCase().endsWith('.md'))
-      if (f) return { path: `${dir}/${f}`, text: readFileSync(`${dir}/${f}`, 'utf8') }
-    } catch {}
-  }
-  return null
-}
-// ensure `Closes #N` is in a template body (so the issue auto-closes on merge) — under a
-// "Related" section if the template has one, else appended.
-const ensureCloses = (text) => {
-  const n = ISSUE_ARG && Number(ISSUE_ARG) > 0 ? Number(ISSUE_ARG) : null
-  if (!n || new RegExp(`Closes\\s+#${n}\\b`).test(text)) return text
-  const m = text.match(/(^|\n)#+[ \t]*Related[^\n]*\n/i)
-  if (m) { const at = m.index + m[0].length; return text.slice(0, at) + `Closes #${n}\n` + text.slice(at) }
-  return `${text.trimEnd()}\n\nCloses #${n}\n`
-}
-// PR/MR body: a pre-composed --body-file (the deliver agent fills the repo template's
-// semantic sections — Type/Changes/Constraint-check/Evidence — issue #58) wins; else the
-// repo's own template as a skeleton (with Closes #N ensured); else the hardcoded fallback.
-// deliver-ticket stays deterministic: it only selects/assembles, never judges the diff.
+// PR/MR body: the pre-composed --body-file (the deliver AGENT fills the repo template's semantic
+// sections — Type/Changes/Constraint-check/Evidence — from the ticket, diff, verdict and this
+// repo's CLAUDE.md; issue #58) is the ONLY source. Returns null when there is none.
+//
+// FND-20 deliverable 5, recorded so it is not "simplified" back later: the previous fallbacks —
+// the repository template as a skeleton, then a hardcoded body — are deleted, not disabled. An
+// unfilled .github/PULL_REQUEST_TEMPLATE.md carries neither a requirement ID nor a
+// `## Constraint check` heading, so it is GUARANTEED to fail the PRD §45.4 contract context; a PR
+// opened with one manufactures a red required check, which combined with a merge that never read
+// CI is exactly how 32 pull requests merged red. The template is frozen and unallocated (Q-F6) and
+// pr-contract.mjs's own header forbids editing it to make the check pass, so the fix can only be
+// that the CALLER composes a body — never that this script invents one.
 const resolvePrBody = () => {
   if (BODY_FILE && existsSync(BODY_FILE)) return readFileSync(BODY_FILE, 'utf8')
-  const tpl = findMrTemplate()
-  if (tpl) {
-    note(`MR/PR body from repo template ${tpl.path}`)
-    return `<!-- Auto-delivered by the three-agent pipeline · plan docs/plans/${ID}.md · Reviewer verdict: CLEAR -->\n\n` + ensureCloses(tpl.text)
-  }
-  return buildBody()
+  return null
 }
 
 // Divergence guard — run immediately BEFORE any push of the TICKET branch.
@@ -290,7 +320,7 @@ const assertBranchNotDiverged = () => {
   note(`a HUMAN must choose which build to keep, then delete/replace the other: inspect with \`git log --oneline ${remoteSha}..${localSha}\` and \`git log --oneline ${localSha}..${remoteSha}\`, and \`git diff ${remoteSha} ${localSha}\``)
   note(`nothing was pushed, forced, rebased or deleted; ticket ${ID} is NOT delivered`)
   console.log(`= diverged ${BRANCH}: remote ${remoteSha} vs local ${localSha} — human decision required`)
-  finish(0)
+  finish()
   return false // unreachable (finish exits) — kept so the call site reads as a guard
 }
 
@@ -326,6 +356,84 @@ const findPr = () => {
   }
 }
 
+// ---- the required-check gate (FND-20 / DEV-004, decision D-CI3) ----
+//
+// Why a WAIT and not a refusal: DEV-004 says the script must not merge a PR whose required checks
+// are not green. Implemented as a plain refusal that deadlocks delivery — the merge is attempted
+// seconds after `git push`, when every required context is still *pending*, so "not green" is the
+// normal state at merge time and nothing would ever land. D-CI3 resolves it: wait, bounded, for
+// each counted context to CONCLUDE, then merge only if all concluded successfully. A timeout is a
+// hard failure, never a merge. Lowering the timeout until the gate is vacuous is the same defect
+// as removing it.
+//
+// Fail CLOSED everywhere: unreadable rollup, unparsable JSON, zero counted contexts and a required
+// context missing from the rollup all resolve to a STOP. A gate that finds nothing to check fails;
+// it never passes.
+
+// Sleep without a dependency and without going async — this script is synchronous top to bottom.
+const sleepMs = (ms) => { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms) }
+
+// The branch-protection required-context list for the TARGET branch. null = UNREADABLE (no
+// permission, or no protection configured) -> the documented rollup fallback, never "merge anyway".
+// An empty-but-readable list is NOT null: it means zero counted contexts, which is a stop.
+// `gh api` resolves the {owner}/{repo} placeholders from the checkout, so no extra lookup call.
+const requiredContextNames = () => {
+  const r = tryCli(['api', `repos/{owner}/{repo}/branches/${DEFAULT_BRANCH}/protection/required_status_checks`])
+  if (!r.ok) return null
+  try {
+    const j = JSON.parse(r.out)
+    const names = [...(j.contexts || []), ...((j.checks || []).map((c) => c && c.context))]
+    return [...new Set(names.filter(Boolean).map(String))]
+  } catch { return null }
+}
+
+// The PR's check rollup, normalised to { name, concluded, ok }. Deliberately reads the PER-CONTEXT
+// status/conclusion/state only — never a mergeStateStatus / statusCheckRollupState shortcut, which
+// would let a convenience field speak for a context that is in fact failing.
+const rollupEntries = (n) => {
+  const raw = JSON.parse(cli(['pr', 'view', String(n), '--json', 'statusCheckRollup']))
+  return (raw.statusCheckRollup || []).map((e) => {
+    const name = String((e && (e.name || e.context)) || '')
+    if (e && (e.status !== undefined || e.conclusion !== undefined)) { // CheckRun
+      const concluded = String(e.status || '').toUpperCase() === 'COMPLETED'
+      const c = String(e.conclusion || '').toUpperCase()
+      // SKIPPED/NEUTRAL count as passing — GitHub's own required-check semantics; treating a
+      // conditionally-skipped required job as a failure would deadlock delivery.
+      return { name, concluded, ok: ['SUCCESS', 'SKIPPED', 'NEUTRAL'].includes(c) }
+    }
+    const s = String((e && e.state) || '').toUpperCase() // StatusContext
+    return { name, concluded: s !== 'PENDING' && s !== 'EXPECTED' && s !== '', ok: s === 'SUCCESS' }
+  })
+}
+
+const awaitRequiredChecks = (n) => {
+  const required = requiredContextNames()
+  const rule = required === null ? 'rollup-fallback' : 'protection'
+  if (required === null) note('branch-protection required-context list unreadable — counting EVERY context in the PR rollup instead (this is the documented fallback, not a bypass)')
+  const deadline = Date.now() + CHECKS_TIMEOUT_S * 1000
+  for (;;) {
+    // Evaluated BEFORE the first sleep, so --checks-timeout 0 evaluates exactly once.
+    let entries
+    try { entries = rollupEntries(n) } catch (e) {
+      return { rule, green: false, counted: [], reason: `check rollup unreadable: ${firstLine(errText(e))} — a delivery script that cannot see the gate must not merge` }
+    }
+    const byName = new Map(entries.map((x) => [x.name, x]))
+    // A required context ABSENT from the rollup counts as PENDING, never as absent: that is the
+    // "queued but not yet reported" case, and dropping it would make the gate vacuous seconds
+    // after the push — precisely the window this gate exists to cover.
+    const counted = required === null ? entries : required.map((name) => byName.get(name) || { name, concluded: false, ok: false })
+    const names = counted.map((x) => x.name)
+    if (!counted.length) return { rule, green: false, counted: [], reason: 'no check context to gate on — a gate that finds nothing to check fails, it never passes' }
+    const failing = counted.filter((x) => x.concluded && !x.ok).map((x) => x.name)
+    if (failing.length) return { rule, green: false, counted: names, reason: `required check(s) did not pass: ${failing.join(', ')}` }
+    const pending = counted.filter((x) => !x.concluded).map((x) => x.name)
+    if (!pending.length) return { rule, green: true, counted: names, reason: '' }
+    if (Date.now() >= deadline) return { rule, green: false, counted: names, reason: `timed out after ${CHECKS_TIMEOUT_S}s waiting for required check(s) to conclude: ${pending.join(', ')}` }
+    console.log(`  (wait) required checks pending: ${pending.join(', ')}`)
+    sleepMs(CHECKS_INTERVAL_S * 1000)
+  }
+}
+
 try {
   // 0. operate from the repo root regardless of cwd
   process.chdir(git(['rev-parse', '--show-toplevel']).trim())
@@ -342,11 +450,11 @@ try {
   // path-anchored allowlist cannot match, so delivery refused every ticket as "dirty".
   // Observed on the catalog's own Level-1 rehearsal, 2026-07-27 (issue #75).
   const dirty = git(['status', '--porcelain', '-uall']).split('\n').filter((l) => l.trim() && !/\.claude\/tmp\/|docs\/plans\//.test(l))
-  if (dirty.length) { note('working tree not clean — refusing to merge'); finish(0) }
+  if (dirty.length) { note('working tree not clean — refusing to merge'); finish() }
 
   // 2. refs must exist locally
   for (const ref of [BRANCH, DEFAULT_BRANCH]) {
-    if (!tryGit(['rev-parse', '--verify', '--quiet', ref]).ok) { note(`ref not found: ${ref}`); finish(0) }
+    if (!tryGit(['rev-parse', '--verify', '--quiet', ref]).ok) { note(`ref not found: ${ref}`); finish() }
   }
 
   // 3. resolve delivery mode
@@ -359,11 +467,11 @@ try {
     : tryCli(['mr', 'list', '--per-page', '1'], { stdio: ['ignore', 'pipe', 'ignore'] }).ok)
   if (DELIVERY === 'direct') deliveryMode = 'direct'
   else if (DELIVERY === 'pushmr') {
-    if (PLATFORM !== 'glab') { note('--delivery pushmr is GitLab-only (a GitHub push cannot open a PR); use pr or direct'); finish(0) }
-    if (!checks.pushRequired) { note('--delivery pushmr requires an origin remote'); finish(0) }
+    if (PLATFORM !== 'glab') { note('--delivery pushmr is GitLab-only (a GitHub push cannot open a PR); use pr or direct'); finish() }
+    if (!checks.pushRequired) { note('--delivery pushmr requires an origin remote'); finish() }
     deliveryMode = 'pushmr'
   } else if (DELIVERY === 'pr') {
-    if (!checks.pushRequired || !cliAuthed) { note(`--delivery pr requires an origin remote and an authenticated ${PLATFORM}; falling back is not allowed under an explicit flag`); finish(0) }
+    if (!checks.pushRequired || !cliAuthed) { note(`--delivery pr requires an origin remote and an authenticated ${PLATFORM}; falling back is not allowed under an explicit flag`); finish() }
     deliveryMode = 'pr'
   } else if (!checks.pushRequired || !cliAuthed) deliveryMode = 'direct'
   else if (mrApiOk()) deliveryMode = 'pr'
@@ -376,7 +484,7 @@ try {
   if (NO_MERGE && deliveryMode === 'direct') {
     awaitingMerge = true
     note('supervised (--no-merge) with no forge: leaving the local branch for the human to merge')
-    finish(0)
+    finish()
   }
 
   if (deliveryMode === 'direct') {
@@ -421,7 +529,7 @@ try {
         '-o', `merge_request.title=${prTitle()}`, '-o', `merge_request.description=${desc}`, '-u', 'origin', BRANCH]
       const res = spawnSync('git', pushArgs, { encoding: 'utf8' })
       const out = (res.stdout || '') + '\n' + (res.stderr || '')
-      if (res.status !== 0 && !/merge_requests\//.test(out)) { note(`push-option MR failed: ${lastLine(out)}`); finish(0) }
+      if (res.status !== 0 && !/merge_requests\//.test(out)) { note(`push-option MR failed: ${lastLine(out)}`); finish() }
       checks.branchPushed = true
       const m = out.match(/https?:\/\/\S*\/-\/merge_requests\/\d+/) || out.match(/merge_requests\/(\d+)/)
       if (m) { prUrl = m[0].startsWith('http') ? m[0] : ('/-/merge_requests/' + m[1]); checks.prCreated = true; console.log(`+ mr      ${prUrl}`) }
@@ -439,7 +547,7 @@ try {
       } else if (commentSrc) note('evidence not posted — no --issue number to comment on')
       awaitingMerge = true
       console.log('= awaiting human merge on the web — no MR API to merge programmatically (issue #56)')
-      finish(0)
+      finish()
     }
   } else {
     // ---- pr path ----
@@ -450,14 +558,23 @@ try {
     assertBranchNotDiverged()
     const pb = tryGit(['push', '-u', 'origin', BRANCH])
     if (pb.ok) { checks.branchPushed = true; console.log(`+ pushed  ${BRANCH} -> origin`) }
-    else { note(`branch push failed: ${lastLine(pb.out)} — cannot open a PR without it`); finish(0) }
+    else { note(`branch push failed: ${lastLine(pb.out)} — cannot open a PR without it`); finish() }
 
     // 3b. find or create the PR/MR
     let pr = findPr()
     if (pr) { checks.prExists = true; prUrl = pr.url; console.log(`= pr      exists for ${BRANCH} (#${pr.number})`) }
     else {
       const title = prTitle()
-      const body = resolvePrBody() // repo MR/PR template (agent-filled) > template skeleton > hardcoded
+      const body = resolvePrBody() // the agent-composed --body-file, or null
+      // FND-20 deliverable 5: no body, no PR. Checked BEFORE mkdtempSync/`pr create`, so nothing
+      // is created and no temp dir leaks. The branch has already been pushed at this point; that
+      // is intended and harmless — a pushed branch with no PR is inert.
+      if (body === null) {
+        note('no --body-file supplied — refusing to open a PR/MR with an unfilled body')
+        note('the deliver agent composes the body from the repository template (CLAUDE.md, issue #58); .github/PULL_REQUEST_TEMPLATE.md is frozen and unfilled, and an unfilled body cannot satisfy the PRD §45.4 contract check')
+        console.log(`= blocked ${BRANCH}: no --body-file — no PR was opened`)
+        finish()
+      }
       const tmp = mkdtempSync(join(tmpdir(), 'deliver-'))
       const bodyFile = join(tmp, 'body.md')
       writeFileSync(bodyFile, body)
@@ -471,7 +588,7 @@ try {
         checks.prCreated = true; checks.prExists = true
         console.log(`+ pr      created: ${prUrl}`)
       } catch (e) {
-        note(`PR/MR create failed: ${firstLine(errText(e))}`); finish(0)
+        note(`PR/MR create failed: ${firstLine(errText(e))}`); finish()
       } finally {
         rmSync(tmp, { recursive: true, force: true })
       }
@@ -493,19 +610,40 @@ try {
     if (NO_MERGE) {
       awaitingMerge = true
       console.log(`= awaiting human merge: ${prUrl || '(PR open)'}`)
-      finish(0)
+      finish()
     }
 
     // 3e. merge THROUGH the forge, then fast-forward the local default to it.
     tryGit(['fetch', 'origin', DEFAULT_BRANCH])
     if (tryGit(['merge-base', '--is-ancestor', BRANCH, `origin/${DEFAULT_BRANCH}`]).ok) {
       checks.alreadyMerged = true
+      // The gate is skipped here and ONLY here: the work is already on the default branch, so
+      // there is nothing left to gate. Never widen this skip.
+      checks.requiredCheckRule = 'skipped-already-merged'
       console.log(`= merged  ${BRANCH} already on origin/${DEFAULT_BRANCH}`)
     } else if (pr && pr.number) {
+      // FND-20 / D-CI3: consult the gate BEFORE the merge call. No --admin, no --auto, no force,
+      // no approval bypass — `gh pr merge` keeps its exact argument list.
+      if (PLATFORM === 'gh') {
+        const gate = awaitRequiredChecks(pr.number)
+        checks.requiredCheckRule = gate.rule
+        checks.requiredCheckContexts = gate.counted
+        checks.requiredChecksGreen = gate.green
+        if (!gate.green) {
+          note(`required-check gate refused the merge (rule: ${gate.rule}): ${gate.reason}`)
+          note(`no merge was attempted; ticket ${ID} is NOT delivered`)
+          console.log(`= blocked ${BRANCH}: ${gate.reason}`)
+          finish() // summary first, then exit 2
+        }
+        console.log(`+ checks  ${gate.counted.length} required context(s) concluded successfully (rule: ${gate.rule})`)
+      } else {
+        checks.requiredCheckRule = 'skipped-glab'
+        note('required-check gate is GitHub-only in this version; the glab merge still respects server-side protection')
+      }
       const mg = PLATFORM === 'gh'
         ? tryCli(['pr', 'merge', String(pr.number), '--merge'])
         : tryCli(['mr', 'merge', String(pr.number), '--yes'])
-      if (!mg.ok) note(`forge merge failed (required checks pending, conflict, or approval required): ${firstLine(mg.out)}`)
+      if (!mg.ok) note(`forge merge failed (conflict, approval required, or a check that turned red after the gate): ${firstLine(mg.out)}`)
       else console.log(`+ merged  #${pr.number} via ${PLATFORM} (forge-side)`)
       tryGit(['fetch', 'origin', DEFAULT_BRANCH])
     }
@@ -517,26 +655,26 @@ try {
       const ff = tryGit(['merge', '--ff-only', `origin/${DEFAULT_BRANCH}`])
       if (!ff.ok) note(`local fast-forward to origin/${DEFAULT_BRANCH} failed: ${firstLine(ff.out)} (DoD test-cmd runs against local ${DEFAULT_BRANCH})`)
     } else if (!checks.alreadyMerged) {
+      // FND-20 deliverable 3: this is a HARD failure, not a note execution continues past. The
+      // remote default branch does not contain the work, so checks.merged stays false, dodPassed
+      // is therefore false, and finish() derives exit 2.
       note('merge did not land on the remote default branch — ticket is NOT delivered')
     }
     if (checks.alreadyMerged) checks.merged = true
   }
 
-  // 4. close the tracker issue only once the work landed
+  // 4. close the tracker issue ONLY once the work landed (FND-20 deliverable 6 — keep this
+  // precondition through any later tidying). A closed issue is what /start-all's resume filter
+  // reads as "delivered by an earlier run", so closing it on an unlanded merge silently drops the
+  // ticket from every future run. The same precondition governs the verdict-comment trail and any
+  // Asana completion: nothing downstream may claim a delivery the default branch does not contain.
   const landed = checks.merged && (!checks.pushRequired || checks.pushed)
   if (!landed) note('skipping tracker close — merge/push did not complete, ticket is NOT delivered')
   else closeIssue()
 
-  // 5. deterministic DoD inputs
-  checks.planExists = existsSync(join('docs', 'plans', `${ID}.md`))
-  if (!checks.planExists) note(`plan file missing: docs/plans/${ID}.md`)
-  if (TEST_CMD) {
-    const t = spawnSync(TEST_CMD, { shell: true, encoding: 'utf8' })
-    checks.testsPassed = t.status === 0
-    if (!checks.testsPassed) note(`--test-cmd failed (exit ${t.status}): ${String(t.stdout || t.stderr || '').trim().split('\n').slice(-3).join(' | ')}`)
-  }
-
-  finish(0)
+  // 5. the DoD inputs (planExists / testsPassed) are evaluated inside finish(), so they are
+  // always present in the summary — including on the early stops above.
+  finish()
 } catch (e) {
   note(`unexpected error: ${firstLine(errText(e))}`)
   finish(1)
