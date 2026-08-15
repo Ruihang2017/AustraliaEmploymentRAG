@@ -28,14 +28,31 @@ function heading(text) {
   process.stdout.write(`\n=== ${text} ===\n`);
 }
 
+/**
+ * FND-22 deliverable 2 — the ONE place that decides what is executed for an entry.
+ *
+ * Both consumers (this sweep and tools/tests/entry-commands.test.mjs) import this function; two
+ * copies of this selection rule is precisely the defect FND-22 repairs, one level up.
+ *
+ *   a recorded per-platform run  ->  the D18 `run`  ->  the verbatim PRD 45.3 `command`
+ *
+ * @param {{ command: string, run?: string, platforms?: Record<string, { run: string }> }} entry
+ * @param {string} platform a `process.platform` value
+ * @returns {string} the invocation to execute on that platform
+ */
+export function resolveInvocation(entry, platform) {
+  return entry.platforms?.[platform]?.run ?? entry.run ?? entry.command;
+}
+
 function runEntryCommands() {
   const fixture = loadFixture('entry-commands.json', REPO_ROOT);
   const rows = [];
   for (const entry of fixture.commands) {
-    // `run` is what is executed; it defaults to the verbatim PRD 45.3 string and may differ only
-    // where the fixture records a `deviation` (FND-01 v1.1 / D18). A non-zero exit is a failure for
-    // every entry without exception — the fixture may not carry a waiver.
-    const invocation = entry.run ?? entry.command;
+    // What is executed may differ from the verbatim PRD 45.3 string on exactly two recorded axes:
+    // an appended argument (`deviation`, FND-01 v1.1 / D18) and a leading-token interpreter
+    // substitution for the current platform (`platforms`, FND-22 / DEV-006). A non-zero exit is a
+    // failure for every entry without exception — the fixture may not carry a waiver on any platform.
+    const invocation = resolveInvocation(entry, process.platform);
     const result = spawnSync(invocation, {
       cwd: REPO_ROOT,
       shell: true,
@@ -52,6 +69,8 @@ function runEntryCommands() {
       status,
       firstLine: firstLine.slice(0, 100),
       deviation: entry.deviation ?? null,
+      platform: entry.platforms?.[process.platform] ?? null,
+      platformKey: process.platform,
     });
   }
   return rows;
@@ -109,6 +128,13 @@ function main() {
       process.stdout.write(`       ^ deviates from the verbatim PRD 45.3 string: ${row.deviation.argument}\n`);
       process.stdout.write(`         ${row.deviation.authorisedBy}\n`);
     }
+    if (row.platform) {
+      process.stdout.write(
+        `       ^ interpreter substituted for platform "${row.platformKey}": ` +
+          `${row.platform.interpreter} (reason: ${row.platform.reason.split('.')[0]}.)\n`,
+      );
+      process.stdout.write(`         ${row.platform.authorisedBy}\n`);
+    }
     if (row.status !== 0) {
       problems.push(`entry command exited ${row.status}: ${row.command}`);
     }
@@ -139,4 +165,9 @@ function main() {
   return 1;
 }
 
-process.exit(main());
+// Run the sweep only when this file is the entry point. `tools/tests/entry-commands.test.mjs`
+// imports `resolveInvocation` from here (FND-22 deliverable 2), and a top-level `process.exit`
+// would run the whole sweep inside — and then kill — the Vitest worker.
+if (import.meta.main) {
+  process.exit(main());
+}
