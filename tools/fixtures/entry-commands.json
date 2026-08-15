@@ -8,7 +8,20 @@
     "A failure waiver is forbidden: no entry may carry `known_failing`, `expected_failure`, `allow_failure`",
     "or any equivalent. Every entry must exit 0 (FND-01 acceptance item 2, unconditional); a command that",
     "cannot is a red acceptance item and an escalation, never a fixture annotation. Asserted by",
-    "tools/tests/entry-commands.test.mjs."
+    "tools/tests/entry-commands.test.mjs.",
+    "Two axes, and only two, may separate what is executed from the normative string (FND-22, PRD-02",
+    "requirement DEV-006). First: `command` is always the verbatim section 45.3 string, and `run` is",
+    "always exactly `command + ' ' + deviation.argument` — the default invocation, which is the one used",
+    "on Windows. Second: an optional `platforms` object, keyed by `process.platform` values, may",
+    "substitute ONLY the leading interpreter token of `command` for the named platform, and each record",
+    "must carry `interpreter`, `run`, `reason`, `authorisedBy` and `durableFix`. A platform record may",
+    "not change the script path, add an argument, or drop one. A substitution is exceptional and",
+    "declared, exactly as a deviation is — it is never a table every entry carries.",
+    "The waiver ban above holds on every platform: no entry and no platform record may say that a",
+    "command is unsupported, failing, skipped or waived anywhere. A command that cannot exit 0 on a",
+    "supported platform is a red acceptance item and an escalation (phase-2 Q-CI-D), never an",
+    "annotation. Both consumers select the invocation through the single resolveInvocation() exported",
+    "by tools/check-workspace.mjs."
   ],
   "commands": [
     {
@@ -24,6 +37,15 @@
         "reason": "The frozen script defaults -Path to (Split-Path $PSScriptRoot -Parent)/PRD.md, i.e. repo-root PRD.md, while this repository's PRD lives at docs/PRD.md. Without the argument it throws 'PRD not found' and exits 1; with it, it exits 0 (Result: PASS).",
         "authorisedBy": "FND-01 v1.1 — Background 'Accepted caveats', deliverables 8 and 10, acceptance item 2; sub-PRD 00-foundation decision D18",
         "durableFix": "Escalated (non-blocking) to the Architect/founder: either unfreeze tools/validate-prd.ps1 in breakdown plan section 4 for a one-line default-path change, or amend the PRD section 45.3 text. Both are outside FND-01's file-scope."
+      },
+      "platforms": {
+        "linux": {
+          "interpreter": "pwsh",
+          "run": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1 -Path docs/PRD.md",
+          "reason": "The verbatim PRD 45.3 leading token `powershell` is the Windows PowerShell 5.1 executable and does not exist on a Linux runner: `/bin/sh: 1: powershell: not found`, exit 127 (PRD-02 section 1, failure class 1). PowerShell 7 is preinstalled on ubuntu-latest as `pwsh`, and tools/validate-prd.ps1 runs unmodified under it.",
+          "authorisedBy": "FND-22 — deliverable 1; PRD-02 section 2 requirement DEV-006",
+          "durableFix": "Escalated (non-blocking) to the Architect/founder as phase-2 Q-CI-D: either amend the PRD section 45.3 command text, or unfreeze tools/validate-prd.ps1 — the same two fixes D18 named. Both are outside a Builder's file-scope."
+        }
       }
     },
     { "command": "pnpm dev", "description": "Run the local development processes.", "owner": "dev" },
