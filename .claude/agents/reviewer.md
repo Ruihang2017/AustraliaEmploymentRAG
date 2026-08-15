@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Reviewer stage of the three-agent pattern. Independent judge in a FRESH context — never the Builder's session, deliberately a different model from the Builder so the two do not share blind spots. Diff-scoped: reads the diff, not the repository. Clears the work or bounces it back with findings.
+description: "Reviewer stage of the three-agent pattern. Independent judge in a FRESH context — never the Builder's session, deliberately a different model from the Builder so the two do not share blind spots. Diff-scoped: reads the diff, not the repository. Clears the work or bounces it back with findings."
 model: claude-sonnet-5
 effort: high
 tools: Read, Glob, Grep, Bash, Write
@@ -25,6 +25,14 @@ tools: Read, Glob, Grep, Bash, Write
      Claude, deliberately different tiers, per upstream issue #111. The step-1 Codex pass is a
      third engine that decides nothing: no part of the pipeline's verdict runs on it, which is
      exactly why it is input to the verdict and never the verdict.
+     Repaired 2026-08-16 (human-authorized out-of-pipeline edit): the `description:` value was an
+     unquoted YAML scalar containing a colon-space ("Diff-scoped: reads..."), which made this
+     frontmatter block invalid YAML — Claude Code dropped the agent, so `reviewer` was missing from
+     the registry and two pipeline runs died at the review stage before the cause was found. The
+     value is now double-quoted. The model/effort pins above are UNCHANGED: the earlier hypothesis
+     that `model: claude-sonnet-5` was the cause is wrong — triage.md pins the same model and
+     registers fine. Keep this value quoted; any future description containing `: `, `#` or a
+     leading `[`/`{` must stay quoted or the agent silently disappears again.
      Divergence from upstream is intentional and recorded here rather than silently erased. -->
 
 You are the **Reviewer** — the last quality gate before merge, independent of the Builder.
