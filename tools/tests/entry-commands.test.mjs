@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { REPO_ROOT, loadFixture } from '../workspace-assertions.mjs';
+import { resolveInvocation } from '../check-workspace.mjs';
 
 const fixture = loadFixture('entry-commands.json');
 
@@ -48,6 +49,8 @@ describe('PRD 45.3 entry commands', () => {
     'allowFailure',
     'xfail',
     'skip',
+    // FND-22: `supported: false` is the shape a waiver would take on the new per-platform axis.
+    'supported',
   ];
 
   it('carries no failure waiver on any entry — a red command escalates, it is not annotated', () => {
@@ -59,13 +62,89 @@ describe('PRD 45.3 entry commands', () => {
             'a command that cannot exit 0 is a red acceptance item, not a fixture annotation',
         ).toBe(false);
       }
+      // FND-22: the ban reaches into every platform record too — a waiver may not hide one level
+      // down on the axis this ticket added.
+      for (const [platformKey, record] of Object.entries(entry.platforms ?? {})) {
+        for (const field of WAIVER_FIELDS) {
+          expect(
+            Object.hasOwn(record, field),
+            `${entry.command} platform "${platformKey}" carries "${field}"; a command that cannot ` +
+              'exit 0 on a supported platform is a red acceptance item and an escalation (Q-CI-D), ' +
+              'not a fixture annotation',
+          ).toBe(false);
+        }
+      }
     }
     // Belt and braces: the waiver must not reappear anywhere in the fixture, at any nesting depth.
     const raw = readFileSync(join(REPO_ROOT, 'tools/fixtures/entry-commands.json'), 'utf8');
     for (const field of WAIVER_FIELDS.filter((f) => f !== 'skip')) {
       expect(raw, `entry-commands.json mentions "${field}"`).not.toContain(`"${field}"`);
     }
+    // …and assert deliberately that the raw scan above is actually covering the platform records
+    // rather than covering nothing (FND-22 deliverable 3).
+    expect(raw, 'the raw waiver scan no longer covers any platforms object').toContain('"platforms"');
   });
+
+  // -----------------------------------------------------------------------------------------------
+  // FND-22 (PRD-02 requirement DEV-006): the second recorded axis. `command` stays the verbatim
+  // PRD 45.3 string and `run` stays `command + ' ' + deviation.argument`; a `platforms` record may
+  // substitute the leading interpreter token only, for the one command whose token is Windows-only.
+  // -----------------------------------------------------------------------------------------------
+
+  const PS_COMMAND = 'powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1';
+
+  it('records a per-platform interpreter on exactly one entry, and only the leading token', () => {
+    const withPlatforms = fixture.commands.filter((entry) => entry.platforms);
+    expect(
+      withPlatforms.map((entry) => entry.command),
+      'a platform substitution is exceptional and declared — bumping this count is a deliberate ' +
+        'ticket change (FND-22 feedback obligation 2), never a silent one',
+    ).toEqual([PS_COMMAND]);
+
+    const entry = withPlatforms[0];
+    expect(Object.keys(entry.platforms)).toEqual(['linux']);
+    for (const [platformKey, record] of Object.entries(entry.platforms)) {
+      expect(platformKey, 'a wildcard platform key would make the substitution undeclared').toMatch(
+        /^[a-z0-9]+$/,
+      );
+      expect(typeof record.run, `${platformKey}.run must be a real invocation, not null`).toBe('string');
+      expect(record.run.length).toBeGreaterThan(0);
+      // Leading token only: everything after the first space of the normative string, plus the D18
+      // argument, must be byte-identical. This is what stops a record smuggling in another script
+      // path or an extra argument.
+      expect(record.run).toBe(
+        `${record.interpreter}${entry.command.slice(entry.command.indexOf(' '))} ${entry.deviation.argument}`,
+      );
+      expect(record.reason, `${platformKey} substitutes an interpreter without a reason`).toBeTruthy();
+      expect(record.durableFix, `${platformKey} records no durable fix`).toBeTruthy();
+      expect(record.authorisedBy).toContain('FND-22');
+      expect(record.authorisedBy).toContain('DEV-006');
+    }
+  });
+
+  it('resolves the invocation through one shared function, per platform (deliverable 2)', () => {
+    const entry = fixture.commands.find((candidate) => candidate.command.includes('validate-prd.ps1'));
+    // Platform-independent assertions, so both the Windows workstation and the ubuntu runner prove
+    // the same rule — a mutation of the linux record must be catchable on Windows too.
+    expect(resolveInvocation(entry, 'linux')).toBe(entry.platforms.linux.run);
+    expect(resolveInvocation(entry, 'linux').startsWith('pwsh ')).toBe(true);
+    expect(resolveInvocation(entry, 'win32')).toBe(entry.run);
+    expect(resolveInvocation(entry, 'win32').startsWith('powershell ')).toBe(true);
+    // Fallbacks: no platform record -> `run`; neither -> the verbatim command.
+    expect(resolveInvocation({ command: 'pnpm lint' }, 'linux')).toBe('pnpm lint');
+    expect(resolveInvocation(fixture.commands[0], 'linux')).toBe(fixture.commands[0].command);
+  });
+
+  it('still runs the sweep when invoked as a CLI, despite being importable', () => {
+    // Guards the `import.meta.main` change that makes tools/check-workspace.mjs importable: a
+    // botched guard would turn the sweep into a silent no-op that still exits 0.
+    const result = spawnSync(process.execPath, ['tools/check-workspace.mjs', '--no-sweep'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(result.stdout).toContain('PRD 20.1 layout');
+  }, 60_000);
 
   it('executes the verbatim §45.3 string unless a documented deviation says otherwise', () => {
     const deviating = fixture.commands.filter((entry) => (entry.run ?? entry.command) !== entry.command);
@@ -91,14 +170,18 @@ describe('PRD 45.3 entry commands', () => {
 
   it('runs the PRD validation entry command for real and exits 0 (acceptance item 2)', () => {
     const entry = fixture.commands.find((candidate) => candidate.command.includes('validate-prd.ps1'));
-    const result = spawnSync(entry.run ?? entry.command, {
+    // The invocation for the platform this suite is actually running on — never a skip, never a
+    // `process.platform` conditional: the point of DEV-006 is that a command that cannot run is
+    // visible on the platform it cannot run on.
+    const invocation = resolveInvocation(entry, process.platform);
+    const result = spawnSync(invocation, {
       cwd: REPO_ROOT,
       shell: true,
       encoding: 'utf8',
     });
     expect(
       result.status,
-      `\`${entry.run ?? entry.command}\` exited ${result.status}:\n${result.stdout}\n${result.stderr}`,
+      `\`${invocation}\` exited ${result.status}:\n${result.stdout}\n${result.stderr}`,
     ).toBe(0);
     expect(`${result.stdout}`).toContain('PASS');
   }, 120_000);
