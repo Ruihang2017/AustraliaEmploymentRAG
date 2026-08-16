@@ -31,7 +31,19 @@ import {
   WorkflowSyntaxError,
 } from './workflow-model.mjs';
 import { CONSTRAINT_HEADING, checkPrBody, failureReport } from './pr-contract.mjs';
-import { ALLOWLIST, PROSE_TREES, VALUE_PATTERN_IDS, isProse, scan, scanRepository } from './secret-scan.mjs';
+import {
+  ALLOWLIST,
+  EXCLUSIONS,
+  EXCLUSIONS_PATH,
+  PROSE_TREES,
+  VALUE_PATTERN_IDS,
+  digestOf,
+  isExcluded,
+  isProse,
+  scan,
+  scanRepository,
+  trackedFiles,
+} from './secret-scan.mjs';
 
 const CHECKS_DIR = dirname(fileURLToPath(import.meta.url));
 const WORKFLOWS_DIR = resolve(CHECKS_DIR, '..');
@@ -526,6 +538,136 @@ describe('J. secret-scan controls', () => {
     assert.ok(inspected.length > 50, `the scan inspected only ${inspected.length} files`);
     assert.ok(inspected.some((file) => file.startsWith('docs/')), 'the value-shaped scan never read docs/');
     assert.deepEqual(findings, []);
+  });
+});
+
+/**
+ * FND-24 — the scoped exclusion mechanism. Every literal used as scan input below is assembled at
+ * runtime from parts, because this file is itself scanned by the very scan it exercises.
+ *
+ * The two assertions that carry the security weight are "no entry is stale" (without it the list rots
+ * into an allowlist) and the three narrowness controls (without them "scoped" is a claim, not a
+ * property). The unfiltered repository scan is computed once and shared — it walks ~1500 files.
+ */
+describe('L. FND-24 — scoped secret-scan exclusions', () => {
+  let unfiltered;
+  const unfilteredScan = () => (unfiltered ??= scanRepository(REPO_ROOT, []));
+  const exclusionsDoc = () => JSON.parse(read(EXCLUSIONS_PATH));
+  const patternIds = () =>
+    new Set(JSON.parse(read('tools/fixtures/secret-patterns.json')).patterns.map((p) => p.id));
+
+  it('contains no wildcard and no regex metacharacter, anywhere', () => {
+    const raw = read(EXCLUSIONS_PATH);
+    assert.ok(!raw.includes('*'), `${EXCLUSIONS_PATH} contains a "*" — a wildcard would blind the scan`);
+    assert.ok(!raw.includes('?'), `${EXCLUSIONS_PATH} contains a "?" — a wildcard would blind the scan`);
+    const forbidden = ['*', '?', '[', ']', '{', '}', '(', ')', '|', '+', '^', '$', '\\'];
+    for (const entry of EXCLUSIONS) {
+      for (const field of ['path', 'patternId', 'identifierSha256', 'owner', 'ticket', 'date']) {
+        for (const char of forbidden) {
+          assert.ok(
+            !entry[field].includes(char),
+            `exclusion ${entry.path} field ${field} contains "${char}" — it must be a literal`,
+          );
+        }
+      }
+      assert.ok(!entry.path.split('/').includes('..'), `exclusion ${entry.path} escapes the repository`);
+    }
+  });
+
+  it('gives every entry all seven fields, a valid pattern id and a well-formed digest', () => {
+    const ids = patternIds();
+    const triples = new Set();
+    for (const entry of EXCLUSIONS) {
+      for (const field of ['path', 'patternId', 'identifierSha256', 'basis', 'owner', 'ticket', 'date']) {
+        assert.equal(typeof entry[field], 'string', `exclusion ${entry.path} is missing ${field}`);
+        assert.ok(entry[field].length > 0, `exclusion ${entry.path} has an empty ${field}`);
+      }
+      assert.ok(ids.has(entry.patternId), `"${entry.patternId}" is not one of the fixture pattern ids`);
+      assert.match(entry.identifierSha256, /^[0-9a-f]{64}$/);
+      assert.equal(entry.ticket, 'FND-24');
+      const triple = `${entry.path} ${entry.patternId} ${entry.identifierSha256}`;
+      assert.ok(!triples.has(triple), `duplicate exclusion: ${triple}`);
+      triples.add(triple);
+    }
+  });
+
+  it('points every path at a real, git-tracked file', () => {
+    const tracked = new Set(trackedFiles(REPO_ROOT));
+    for (const entry of EXCLUSIONS) {
+      assert.ok(tracked.has(entry.path), `exclusion path ${entry.path} is not a git-tracked file`);
+    }
+  });
+
+  it('declares its own count, and the count is not zero', () => {
+    const doc = exclusionsDoc();
+    assert.equal(EXCLUSIONS.length, doc.count, 'the declared count does not match the array length');
+    assert.ok(doc.count > 0, 'the exclusions array is empty');
+  });
+
+  it('holds no stale entry — every exclusion matches an actual finding (the list prunes itself)', () => {
+    const live = new Set(
+      unfilteredScan().findings.map((f) => `${f.label} ${f.patternId} ${digestOf(f.match)}`),
+    );
+    for (const entry of EXCLUSIONS) {
+      assert.ok(
+        live.has(`${entry.path} ${entry.patternId} ${entry.identifierSha256}`),
+        `stale exclusion: ${entry.path} (pattern ${entry.patternId}) matches no finding — delete it`,
+      );
+    }
+  });
+
+  it('is narrow (a) — the same digest and pattern at a different path is NOT excluded', () => {
+    const real = unfilteredScan().findings[0];
+    assert.ok(real, 'the unfiltered scan produced no finding to derive a control from');
+    assert.ok(isExcluded(real, EXCLUSIONS), 'the derived control is not itself an excluded finding');
+    const elsewhere = { ...real, label: 'nonexistent/elsewhere.ts' };
+    assert.equal(
+      isExcluded(elsewhere, EXCLUSIONS),
+      false,
+      'an excluded identifier was also excluded at a different path — the match is not path-exact',
+    );
+  });
+
+  it('is narrow (b) — a different credential-shaped name in an excluded file is NOT excluded', () => {
+    const real = unfilteredScan().findings.find((f) => f.patternId === 'token') ?? unfilteredScan().findings[0];
+    const assembled = ['BRAND', 'NEW', 'TOKEN'].join('_');
+    const clone = { ...real, patternId: 'token', match: assembled };
+    assert.equal(
+      isExcluded(clone, EXCLUSIONS),
+      false,
+      `${assembled} was excluded in ${real.label} — a new credential-shaped name must still fail`,
+    );
+    const found = scan(`const ${assembled} = process.env.${assembled};\n`, real.label);
+    assert.ok(found.length > 0, `${assembled} was not reported end-to-end in the excluded file ${real.label}`);
+  });
+
+  it('is narrow (c) — a private key block in an excluded file is NOT excluded', () => {
+    const path = EXCLUSIONS[0].path;
+    const block = ['-----BEGIN', 'RSA', 'PRIVATE', 'KEY-----'].join(' ');
+    const found = scan(block, path);
+    assert.ok(found.length > 0, `an inlined private key block in the excluded file ${path} was not reported`);
+    assert.ok(found.some((f) => f.patternId === 'private-key-block'));
+  });
+
+  it('is not blinded — both describe-J positive controls still fire', () => {
+    const synthetic = ['AWS', 'SECRET', 'ACCESS', 'KEY'].join('_');
+    assert.ok(scan(`env:\n  ${synthetic}: value\n`, 'synthetic.yml').length > 0);
+    const block = `-----BEGIN ${['RSA', 'PRIVATE', 'KEY'].join(' ')}-----`;
+    assert.ok(scan(block, 'docs/whatever.md').length > 0);
+  });
+
+  it('is non-vacuous — the unfiltered scan finds things, the filtered one finds none', () => {
+    assert.ok(
+      unfilteredScan().findings.length > 0,
+      'the unfiltered scan found nothing — the mechanism would be doing no work',
+    );
+    const filtered = scanRepository(REPO_ROOT);
+    assert.deepEqual(filtered.findings, []);
+    assert.equal(
+      filtered.excluded,
+      unfilteredScan().findings.length,
+      'the excluded count does not account for every unfiltered finding',
+    );
   });
 });
 
