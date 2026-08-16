@@ -93,7 +93,11 @@ Verified against `main` @ `0b19067`; each closes off the obvious approach:
    small, explicit extension.
 3. **Root `package.json` is a shared file scope.** PRD-02 §4: *"The nanoid override and the `ci:local`
    script both touch it; they belong to one ticket, or the lanes will collide."* Hence one ticket for
-   both halves.
+   both halves. As of v1.1 the override itself lands in `pnpm-workspace.yaml#overrides` rather than the
+   root manifest (deliverable 4 — pnpm 11.4.0 does not read `package.json#pnpm.overrides`), which does
+   not reopen PRD-02 §4's conclusion: `pnpm-workspace.yaml` and `pnpm-lock.yaml` are `FND-01`-owned
+   serial artifacts on exactly the same footing as the root manifest, so the two halves still belong to
+   one ticket.
 
 ### The nanoid advisory
 
@@ -130,9 +134,9 @@ other.
 Give the repository one command — `pnpm ci:local` — that runs, on a developer machine under the pinned
 Node 24.18.0, the same command set the nine `ci.yml` jobs run, reports each one's outcome in a single
 readable summary, and exits non-zero if any of them fails; and close the `nanoid` advisory at its
-source with a pinned override in the root manifest, so `pnpm audit --audit-level=high` has nothing to
-report regardless of D-CI1's scoping. Completion is mechanically checkable: `pnpm ci:local` exits 0 on
-this workstation, its summary lists every one of the CI command set's entries with an outcome and names
+source with a pinned override in `pnpm-workspace.yaml#overrides`, so `pnpm audit --audit-level=high`
+has nothing to report regardless of D-CI1's scoping. Completion is mechanically checkable:
+`pnpm ci:local` exits 0 on this workstation, its summary lists every one of the CI command set's entries with an outcome and names
 the one context it cannot reproduce, and `corepack pnpm audit --audit-level=high` (unscoped) exits 0.
 
 ## Non-goals
@@ -157,15 +161,25 @@ the one context it cannot reproduce, and `corepack pnpm audit --audit-level=high
 - **No range specifier anywhere.** `tools/tests/skeleton.test.mjs` requires every declared dependency
   to be pinned to an exact version — `^`, `~`, `latest` and `workspace:*` are each asserted rejected
   (sub-PRD **D22a**). The override is an exact version.
-- **No product code, no new workspace member, no change to `pnpm-workspace.yaml`.** PRD-02 §3;
-  sub-PRD **D3** (globs, so no module edits a root file to register itself).
-- **No reordering or reformatting of `package.json` beyond the two additions.**
+- **No product code, no new workspace member, and no change to `pnpm-workspace.yaml` other than the
+  single `overrides.nanoid` key.** PRD-02 §3; sub-PRD **D3** (globs, so no module edits a root file to
+  register itself). The carve-out is that one key and nothing else — the `packages:` list is untouched,
+  no workspace member is added, and no second override key is introduced (File-scope).
+- **No reordering or reformatting of `package.json` beyond the single `ci:local` script addition**,
+  and none of `pnpm-workspace.yaml` beyond the single `overrides.nanoid` key.
 
 ## File-scope (write-owns)
 
 Owned by this ticket:
 
-- `package.json` (root) — the `ci:local` script entry and the `pnpm.overrides` block.
+- `package.json` (root) — the `ci:local` script entry.
+- `pnpm-workspace.yaml` — **one key only**: the `overrides.nanoid` entry (plus the `overrides:` block
+  header if the file does not already have one). pnpm 11.4.0 reads overrides from here and not from
+  `package.json#pnpm.overrides`, which is why deliverable 4 lands here at all. The narrowness is
+  enforceable: `git diff main...HEAD -- pnpm-workspace.yaml` must show the `overrides.nanoid` entry and
+  nothing else — **no new workspace member, no change to the `packages:` list, no other override key**,
+  no pin moved, no reordering or reformatting of the rest of the file. Anything beyond that one key is
+  `FND-01`'s and out of scope here (**D17**: no silent upgrade).
 - `pnpm-lock.yaml` — regenerated as a build artifact by the override, never hand-edited
   (`breakdown-plan.md` §4.1: *"conflicts resolve by re-running the package manager, never hand-merge"*).
 - `tools/ci-local.mjs` — **new**, the runner.
@@ -185,9 +199,11 @@ Does not touch:
 - `tools/workspace-assertions.mjs`, `tools/tests/{layout,line-endings,pins,skeleton}.test.mjs`,
   `tools/fixtures/{prd-20-1-layout,toolchain-pins}.json`, `tools/vitest.config.mjs`,
   `tools/eslint.config.mjs`, `tools/pytest_exit_zero_when_empty.py` — `FND-01`; read-only here.
-- `pnpm-workspace.yaml`, `.npmrc`, `.node-version`, `tsconfig.base.json`, `Cargo.toml`, `Cargo.lock`,
+- `.npmrc`, `.node-version`, `tsconfig.base.json`, `Cargo.toml`, `Cargo.lock`,
   `rust-toolchain.toml`, `pyproject.toml`, `uv.lock`, `.editorconfig`, `.gitignore` — `FND-01`; no pin
-  changes here (**D17**: no silent upgrade).
+  changes here (**D17**: no silent upgrade). (`pnpm-workspace.yaml` was in this list through v1.0; as of
+  v1.1 it moved to write-owns under the single-key `overrides.nanoid` carve-out above, and is `FND-01`'s
+  in every other respect.)
 - `docs/PRD.md`, `docs/discovery/**`, `docs/archive/**`, `templates/**`, `CLAUDE.md`, `.claude/**`
   (other than `FND-20`'s carve-out), the two `tools/*.ps1`, `.github/PULL_REQUEST_TEMPLATE.md`,
   `.github/ISSUE_TEMPLATE/**`, `.gitattributes` — frozen or unallocated.
@@ -256,13 +272,17 @@ on this pull request**, acceptance item 8, rather than assuming it.
    - that the tenth context, `PRD 45.4 pull-request contract`, is **not** reproduced, because it reads a
      pull-request body that does not exist locally (Background).
 
-4. **The `nanoid` advisory is closed at source.** Add a `pnpm.overrides` entry in root `package.json`
-   pinning `nanoid` to an **exact** version `>= 3.3.18` that satisfies GHSA-2v37-7h3g-55p8, with a
-   sibling comment (or a `$comment`-style key the manifest tolerates — the Builder's choice, as long as
-   the basis is written down in the file) naming the advisory, the transitive path
-   (`vitest → vite → postcss`), and D-CI1's division of labour: the override closes the advisory, the
-   `--prod` scoping (`FND-21`) governs what the gate does next time. Regenerate `pnpm-lock.yaml` with
-   the package manager; never hand-edit it.
+4. **The `nanoid` advisory is closed at source.** Add an `overrides` entry in **`pnpm-workspace.yaml`**
+   pinning `nanoid` to an **exact** version `>= 3.3.18` that satisfies GHSA-2v37-7h3g-55p8, with an
+   adjacent YAML comment naming the advisory, the transitive path (`vitest → vite → postcss`), and
+   D-CI1's division of labour: the override closes the advisory, the `--prod` scoping (`FND-21`) governs
+   what the gate does next time. **Not** `package.json#pnpm.overrides`: pnpm **11.4.0** — the version
+   this repo pins (CLAUDE.md; **D17**) — no longer reads overrides from the root manifest, so that form
+   would be **silently ignored**, leaving GHSA-2v37-7h3g-55p8 open while the ticket appeared to have
+   closed it. A gate that looks green while the advisory stands is this phase's own root cause one level
+   down, so the manifest form is a **rejected outcome**, not a stylistic alternative. Regenerate
+   `pnpm-lock.yaml` with the package manager; never hand-edit it. That one key is the entire change to
+   `pnpm-workspace.yaml` (File-scope).
 
 5. **Assertions in `tools/tests/scripts.test.mjs`** — keep every existing test, and extend the
    `rootScripts` set assertion so it covers `ci:local` and still asserts each script's value is exactly
@@ -317,7 +337,8 @@ an environment fault, not a regression.
       is green with `ci:local` in `rootScripts` and absent from `owners`, and every root script's value
       is still `node tools/workspace-script.mjs <name>` (deliverable 5).
 - [ ] `[machine]` **The pins did not move.** `git diff main...HEAD -- package.json` shows only the
-      `ci:local` entry and the `pnpm.overrides` block; `.node-version`, `rust-toolchain.toml`,
+      `ci:local` entry, and `git diff main...HEAD -- pnpm-workspace.yaml` shows only the
+      `overrides.nanoid` key; `.node-version`, `rust-toolchain.toml`,
       `pyproject.toml` and every `devDependencies` version are unchanged (deliverable 7; D17).
 - [ ] `[machine]` **The branch is mergeable under the live protection**, and in particular
       `API/OpenAPI compatibility` — the one required context that depends on the lockfile — is green.
@@ -367,7 +388,8 @@ than a second YAML parser); for a `spawnSync`-driven suite, `tools/tests/entry-c
 6. **Audit both ways.** On `main`, `corepack pnpm audit --audit-level=high` reports the advisory; on the
    branch it exits 0. Then confirm `corepack pnpm install --frozen-lockfile` exits 0, so the lockfile
    and the manifest agree.
-7. **Read the manifest diff.** Only two additions; no pin moved; no range specifier introduced
+7. **Read the manifest diff.** Only the `ci:local` entry in `package.json` and only the
+   `overrides.nanoid` key in `pnpm-workspace.yaml`; no pin moved; no range specifier introduced
    (`tools/tests/skeleton.test.mjs` asserts exact pins, and D22a's positive control rejects `^`, `~`,
    `latest` and `workspace:*`).
 8. **Suite and gates.** `pnpm test` (exit 0, pass count recorded), `pnpm lint`, `pnpm typecheck`,
@@ -426,3 +448,4 @@ this phase exists to remove, reproduced one level up.
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 2026-08-15 | Initial ticket. Implements DEV-005 — one command reproducing the nine-job `ci.yml` command set on a developer machine — and applies the `nanoid` override D-CI1 keeps regardless of the `--prod` scoping, both in root `package.json`, which PRD-02 §4 folds into one ticket because it is a shared file scope. Records the three constraints that fix where the command can live: `tools/tests/scripts.test.mjs` asserts the root `scripts` key set exhaustively and asserts every value is `node tools/workspace-script.mjs <name>`; `ROOT_IMPLEMENTATIONS` resolves only `node_modules` module paths and needs an explicit second kind; and the tenth CI context (`PRD 45.4 pull-request contract`) has no local equivalent because it reads a pull-request body. Requires the command set to be **derived** from `ci.yml` through `FND-02`'s restricted reader rather than transcribed — a transcription is the `FND-11`/`FND-12`/`FND-19` defect class, one level up — and requires a vacuous `--if-present` gate to be reported green, exactly as CI reports it. |
+| v1.1 | 2026-08-16 | Moves the `nanoid` override's target from `package.json#pnpm.overrides` to `pnpm-workspace.yaml#overrides` (deliverable 4, Goal, §3 constraint 3, Non-goals, acceptance item 11, test plan step 7). Basis: pnpm **11.4.0**, the version this repo pins, no longer reads overrides from the root manifest, so the v1.0 form would have been silently ignored — GHSA-2v37-7h3g-55p8 would have stayed open while the ticket read as having closed it, which is this phase's own root cause reproduced one level down. As a consequence `pnpm-workspace.yaml` moves out of the does-not-touch list into **write-owns under a single-key carve-out**: the `overrides.nanoid` entry and nothing else — no new workspace member, no change to the `packages:` list, no other override key — with `FND-01` still owning the file in every other respect. Unblocks deliverable 4 and acceptance items 8 (`corepack pnpm audit --audit-level=high` unscoped exits 0) and 9 (`--frozen-lockfile` clean), which v1.0 had made unreachable by putting the file in both the does-not-touch list and the Non-goals. Deliverables 1, 2, 3, 5, 6 and 7 are unchanged and already green on `ticket/FND-23`. Authorised by the repo owner on 2026-08-16 after the Builder reproduced the pnpm 11.4.0 behaviour in a scratch project and escalated rather than writing outside its declared file-scope. |
