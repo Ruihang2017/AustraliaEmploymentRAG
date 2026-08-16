@@ -31,9 +31,9 @@ const REPO_ROOT = join(PACKAGE_ROOT, '..', '..');
  * `00-foundation` to settle, and it is filed as **M-Q4** in `docs/prd/01-app-data/README.md` under
  * the ticket's Feedback obligation. Until it is settled, these tests do two things:
  *
- *  1. bound DATA-01's OWN exception — `allowBuilds` is present and carries one entry, and nothing
- *     else is added to any root file, so a *second* DATA-01 root edit fails a test instead of
- *     riding along on this one;
+ *  1. bound DATA-01's OWN exception — `allowBuilds` is declared exactly once and carries exactly one
+ *     entry, and nothing else is added to any root file, so a *second* DATA-01 root edit fails a
+ *     test instead of riding along on this one;
  *  2. bind it to its escalation record — remove the M-Q4 entry and this suite fails. An
  *     out-of-file-scope edit that is no longer declared anywhere is the failure mode; an undeclared
  *     one must not be able to survive quietly.
@@ -69,16 +69,30 @@ function topLevelKeys(yaml: string): string[] {
 }
 
 /**
- * The two-space-indented entries belonging to `key`'s block, stopping at the next top-level key.
- * Unbounded slicing to end-of-file made a later block's entries join this list (FND-25).
+ * The two-space-indented entries belonging to `key`, from **every** block that declares it, each
+ * bounded at the next top-level key.
+ *
+ * Two failure modes, and this shape is the only one that closes both. Unbounded slicing to
+ * end-of-file made a *later, different* key's entries join this list, which is what made a
+ * `00-foundation` key fail `DATA-01`'s guard (FND-25). But bounding at the next top-level key and
+ * reading only the *first* matching block opens the opposite hole: a second, wholly separate
+ * `allowBuilds:` block appended lower down terminates the first block's scan and its own entries are
+ * then never compared, so an arbitrary extra native-build policy — including a conflicting
+ * `better-sqlite3: true` — rides in under an exact-equality check that still passes. The pre-FND-25
+ * unbounded slice would have caught that; collecting every block keeps that strength while dropping
+ * the over-reach into other keys.
  */
 function entriesUnder(yaml: string, key: string): string[] {
   const lines = yaml.split('\n');
-  const start = lines.findIndex((line) => line.startsWith(`${key}:`));
-  if (start === -1) return [];
-  const rest = lines.slice(start + 1);
-  const next = rest.findIndex((line) => TOP_LEVEL_KEY.test(line));
-  return (next === -1 ? rest : rest.slice(0, next)).filter((line) => /^ {2}\S/.test(line));
+  const entries: string[] = [];
+  lines.forEach((line, index) => {
+    if (!line.startsWith(`${key}:`)) return;
+    for (const candidate of lines.slice(index + 1)) {
+      if (TOP_LEVEL_KEY.test(candidate)) break;
+      if (/^ {2}\S/.test(candidate)) entries.push(candidate);
+    }
+  });
+  return entries;
 }
 
 /**
@@ -109,9 +123,17 @@ describe('DATA-01 out-of-file-scope exception (root pnpm-workspace.yaml)', () =>
 
   it('adds exactly one key to the root pnpm-workspace.yaml, carrying exactly one entry', () => {
     const workspace = repoText('pnpm-workspace.yaml');
-    expect(topLevelKeys(workspace)).toContain('allowBuilds');
+    const keys = topLevelKeys(workspace);
+    expect(keys).toContain('allowBuilds');
     // DATA-01 asserts only ITS key stays narrow; other
     // modules' keys are theirs to declare, not ours to forbid.
+    // `toContain` alone is satisfied by a DUPLICATED `allowBuilds:` block, which is DATA-01's own
+    // key twice over and squarely inside what DATA-01 has standing to forbid — so count it.
+    expect(
+      keys.filter((key) => key === 'allowBuilds'),
+      'root pnpm-workspace.yaml declares allowBuilds more than once; DATA-01 borrowed exactly one ' +
+        'key and a second block of it is a second, undeclared exception',
+    ).toEqual(['allowBuilds']);
 
     const entries = entriesUnder(workspace, 'allowBuilds');
     expect(entries).toEqual(['  better-sqlite3: false']);
@@ -214,6 +236,31 @@ describe('DATA-01 out-of-file-scope exception (root pnpm-workspace.yaml)', () =>
     expect(entriesUnder(threeKeysBefore, 'allowBuilds')).toEqual(['  better-sqlite3: false']);
     // and the bound is a bound, not a hard-coded stop at `overrides`
     expect(entriesUnder(threeKeysAfter, 'overrides')).toEqual(['  nanoid: 3.3.18']);
+
+    // Regression (FND-25 review): a DUPLICATED `allowBuilds:` block must not be able to hide its
+    // entries behind the bound. `toContain` passes trivially on a repeated key, and reading only the
+    // first block would stop at the second `allowBuilds:` line and drop everything under it — so a
+    // conflicting `better-sqlite3: true` would sail through an exact-equality check.
+    const duplicatedKey =
+      "packages:\n  - 'packages/*'\nallowBuilds:\n  better-sqlite3: false\nallowBuilds:\n  esbuild: false\n";
+    const duplicatedConflict =
+      "packages:\n  - 'packages/*'\nallowBuilds:\n  better-sqlite3: false\noverrides:\n  nanoid: 3.3.18\nallowBuilds:\n  better-sqlite3: true\n";
+    expect(topLevelKeys(duplicatedKey)).toEqual(['packages', 'allowBuilds', 'allowBuilds']);
+    // the occurrence count is what makes the duplicate visible — containment alone cannot see it
+    expect(topLevelKeys(duplicatedKey)).toContain('allowBuilds');
+    expect(topLevelKeys(duplicatedKey).filter((key) => key === 'allowBuilds')).toHaveLength(2);
+    // every block's entries are compared, so the exact-equality check above still fails on both
+    expect(entriesUnder(duplicatedKey, 'allowBuilds')).toEqual([
+      '  better-sqlite3: false',
+      '  esbuild: false',
+    ]);
+    expect(entriesUnder(duplicatedConflict, 'allowBuilds')).toEqual([
+      '  better-sqlite3: false',
+      '  better-sqlite3: true',
+    ]);
+    // and collecting every block did not re-open the original defect: a later DIFFERENT key's
+    // entries still stay out of the list
+    expect(entriesUnder(duplicatedConflict, 'overrides')).toEqual(['  nanoid: 3.3.18']);
   });
 });
 
