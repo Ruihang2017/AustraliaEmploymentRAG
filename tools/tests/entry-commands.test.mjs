@@ -147,7 +147,13 @@ describe('PRD 45.3 entry commands', () => {
   }, 60_000);
 
   it('executes the verbatim §45.3 string unless a documented deviation says otherwise', () => {
-    const deviating = fixture.commands.filter((entry) => (entry.run ?? entry.command) !== entry.command);
+    // Exactly equivalent to the previous `(entry.run ?? entry.command) !== entry.command`, rewritten
+    // so that the selection expression `entry.run ?? entry.command` survives in exactly one place in
+    // the repository — inside resolveInvocation() (FND-22 acceptance item "One resolver, not two").
+    // Nothing below this line changed.
+    const deviating = fixture.commands.filter(
+      (entry) => entry.run !== undefined && entry.run !== entry.command,
+    );
     // Exactly one deviation is authorised today: FND-01 v1.1 / D18.
     expect(deviating.map((entry) => entry.command)).toEqual([
       'powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate-prd.ps1',
