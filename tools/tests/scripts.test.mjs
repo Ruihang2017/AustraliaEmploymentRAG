@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { REPO_ROOT, loadFixture } from '../workspace-assertions.mjs';
-import { membersProviding, ownerLine } from '../workspace-script.mjs';
+import { ROOT_IMPLEMENTATIONS, membersProviding, ownerLine } from '../workspace-script.mjs';
 
 const owners = loadFixture('script-owners.json');
 
@@ -16,7 +16,7 @@ function runScriptWrapper(name) {
 }
 
 describe('root scripts (FND-01 deliverable 2)', () => {
-  it('declares all ten names in the root package.json', () => {
+  it('declares exactly the fixture root script names in the root package.json', () => {
     const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
     expect(Object.keys(manifest.scripts).sort()).toEqual([...owners.rootScripts].sort());
     for (const name of owners.rootScripts) {
@@ -84,6 +84,30 @@ describe('root scripts (FND-01 deliverable 2)', () => {
   it('detects a workspace provider for typecheck, so delegation is not vacuous', () => {
     expect(membersProviding('typecheck')).toHaveLength(21);
     expect(membersProviding('typecheck')).toContain('packages/contracts');
+  });
+
+  // FND-23 deliverable 5. `ci:local` is implemented in-repository, so it is a root script that must
+  // never print an owner line. It is asserted WITHOUT spawning the wrapper: spawning it would run the
+  // whole CI gate from inside `pnpm test`, which is itself one of the commands that gate runs.
+  it('`ci:local` is a root script, implemented, and therefore has no owner entry', () => {
+    expect(owners.rootScripts).toContain('ci:local');
+    expect(Object.keys(owners.owners)).not.toContain('ci:local');
+    expect(ownerLine('ci:local')).toBeNull();
+  });
+
+  it('`ci:local` resolves to a repository-kind root implementation whose script exists', () => {
+    const impl = ROOT_IMPLEMENTATIONS['ci:local'];
+    expect(impl.kind).toBe('repository');
+    expect(impl.script).toBe('tools/ci-local.mjs');
+    expect(existsSync(join(REPO_ROOT, impl.script))).toBe(true);
+  });
+
+  it('every root implementation declares one of the two explicit kinds', () => {
+    for (const [name, impl] of Object.entries(ROOT_IMPLEMENTATIONS)) {
+      expect(['node-modules', 'repository'], name).toContain(impl.kind);
+      expect(owners.rootScripts, name).toContain(name);
+      expect(Object.keys(owners.owners), name).not.toContain(name);
+    }
   });
 
   it('exits 2 on an unknown script rather than silently succeeding', () => {
