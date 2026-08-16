@@ -166,17 +166,19 @@ function statusLabel(result) {
  * Runs every derived command, in order, one child at a time.
  *
  * **Every command runs, even after one fails.** A run that stops at the first failure hides the
- * rest of the gate, which is exactly how one failure class masked another. `providersFor` is
- * injected so the suite can drive both vacuity branches without depending on live workspace state.
+ * rest of the gate, which is exactly how one failure class masked another. `providersFor` and
+ * `spawn` are injected so the suite can drive both vacuity branches without depending on live
+ * workspace state and without shelling out to the real gate; the real run uses the defaults.
  */
 export function runCommands(commands, options = {}) {
   const shell = options.shell;
   const cwd = options.cwd ?? REPO_ROOT;
   const providersFor = options.providersFor ?? ((name) => membersProviding(name, cwd));
   const write = options.write ?? ((text) => process.stdout.write(text));
+  const spawn = options.spawn ?? ((file, args, spawnOptions) => spawnSync(file, args, spawnOptions));
   const results = [];
   for (const entry of commands) {
-    const child = spawnSync(shell, ['-c', entry.command], { cwd, stdio: options.stdio ?? 'inherit' });
+    const child = spawn(shell, ['-c', entry.command], { cwd, stdio: options.stdio ?? 'inherit' });
     const status = child.status === null || child.status === undefined ? 1 : child.status;
     const scriptName = vacuousScriptName(entry.command);
     // A non-zero exit is never vacuous, whatever the command looks like.
