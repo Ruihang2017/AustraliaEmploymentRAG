@@ -14,6 +14,8 @@ import re
 from pathlib import Path
 from typing import NamedTuple
 
+import pytest
+
 from manifest_fixtures import DEV_SIGNER_ID, PRIVATE_KEYFILE, REPO_ROOT
 
 from manifest.signing import DEVELOPMENT_SIGNER_PREFIX
@@ -296,6 +298,153 @@ def test_the_credential_shape_control_still_matches_a_real_offender() -> None:
     patterns = _load_patterns()
     assert _scan_text("SIGNING" + "_KEY" + "_PATH", "<memory>", patterns)
     assert not _scan_text("SIGNING" + "_KEYFILE", "<memory>", patterns)
+
+
+# --- controls: the derivation is real, and the filter is narrow -------------------------------
+#
+# Every credential-shaped string below is assembled at runtime from parts, because this file is
+# scanned by `secret-scan.mjs` and by the guard above. A literal here would be a finding.
+
+#: A synthetic path that exists in no fixture entry. Not a real file; nothing reads it.
+_SYNTHETIC_PATH = "pipelines/corpus-builder/tests/chunking/synthetic_control.py"
+
+
+def _entry_for(path: str, pattern_id: str, digest: str) -> dict:
+    """One well-formed exclusion entry, for driving `_is_excluded` and `_validate_exclusions`."""
+    return {
+        "path": path,
+        "patternId": pattern_id,
+        "identifierSha256": digest,
+        "basis": "a synthetic control entry, not a real exclusion",
+        "owner": "00-foundation",
+        "ticket": "FND-27",
+        "date": "2026-08-17",
+    }
+
+
+def _document_with(*entries: dict) -> dict:
+    return {"count": len(entries), "exclusions": list(entries)}
+
+
+def test_the_shared_patterns_are_actually_loaded() -> None:
+    """Read from FND-01's fixture, ids intact, and reported with the id that fired."""
+    patterns = _load_patterns()
+    document = json.loads(_PATTERNS_FIXTURE.read_text(encoding="utf-8"))
+    assert len(patterns) == 8
+    assert [pattern_id for pattern_id, _ in patterns] == [entry["id"] for entry in document["patterns"]]
+    findings = _scan_text("SIGNING" + "_KEY" + "_PATH", "<memory>", patterns)
+    assert [finding.pattern_id for finding in findings] == ["key"]
+
+
+def test_the_shared_exclusions_are_actually_loaded() -> None:
+    """Read from FND-24's fixture — non-empty, and as many entries as the document declares."""
+    entries = _load_exclusions()
+    document = json.loads(_EXCLUSIONS_FIXTURE.read_text(encoding="utf-8"))
+    assert entries
+    assert len(entries) == document["count"]
+
+
+def test_the_exact_triple_is_excluded() -> None:
+    """The paired positive. Without it the three narrowness controls below pass vacuously."""
+    name = "SIGNING" + "_KEY" + "_PATH"
+    finding = Finding(_SYNTHETIC_PATH, "key", name)
+    assert _is_excluded(finding, [_entry_for(_SYNTHETIC_PATH, "key", _digest_of(name))])
+
+
+def test_the_same_digest_at_a_different_path_is_not_excluded() -> None:
+    name = "SIGNING" + "_KEY" + "_PATH"
+    entry = _entry_for(_SYNTHETIC_PATH, "key", _digest_of(name))
+    elsewhere = Finding("pipelines/corpus-builder/tests/chunking/other_control.py", "key", name)
+    assert not _is_excluded(elsewhere, [entry])
+
+
+def test_a_different_digest_at_an_excluded_path_is_not_excluded() -> None:
+    name = "SIGNING" + "_KEY" + "_PATH"
+    entry = _entry_for(_SYNTHETIC_PATH, "key", _digest_of(name))
+    neighbour = Finding(_SYNTHETIC_PATH, "key", "SIGNING" + "_KEY" + "_DIRECTORY")
+    assert not _is_excluded(neighbour, [entry])
+
+
+def test_a_different_pattern_id_at_the_excluded_path_and_digest_is_not_excluded() -> None:
+    name = "SIGNING" + "_KEY" + "_PATH"
+    entry = _entry_for(_SYNTHETIC_PATH, "key", _digest_of(name))
+    other_pattern = Finding(_SYNTHETIC_PATH, "secret", name)
+    assert not _is_excluded(other_pattern, [entry])
+
+
+def test_a_missing_exclusions_file_is_loud_and_not_an_empty_list(tmp_path: Path) -> None:
+    absent = tmp_path / "absent.json"
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _load_exclusions(absent)
+    assert str(absent) in str(raised.value)
+
+
+def test_an_unparseable_exclusions_file_is_loud(tmp_path: Path) -> None:
+    broken = tmp_path / "broken.json"
+    broken.write_text("{", encoding="utf-8")
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _load_exclusions(broken)
+    assert str(broken) in str(raised.value)
+
+
+def test_a_non_list_exclusions_member_is_loud() -> None:
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _validate_exclusions({"count": 0}, "<synthetic>")
+    assert "<synthetic>" in str(raised.value)
+
+
+def test_a_count_that_disagrees_with_the_entries_is_loud() -> None:
+    entry = _entry_for(_SYNTHETIC_PATH, "key", "0" * 64)
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _validate_exclusions({"count": 7, "exclusions": [entry]}, "<synthetic>")
+    assert "<synthetic>" in str(raised.value)
+
+
+def test_a_missing_or_empty_field_is_loud() -> None:
+    for field in _EXCLUSION_FIELDS:
+        entry = _entry_for(_SYNTHETIC_PATH, "key", "0" * 64)
+        del entry[field]
+        with pytest.raises(SecretScanFixtureError) as raised:
+            _validate_exclusions(_document_with(entry), "<synthetic>")
+        assert "<synthetic> entry 0" in str(raised.value)
+        assert field in str(raised.value)
+
+        emptied = _entry_for(_SYNTHETIC_PATH, "key", "0" * 64)
+        emptied[field] = ""
+        with pytest.raises(SecretScanFixtureError) as raised:
+            _validate_exclusions(_document_with(emptied), "<synthetic>")
+        assert "<synthetic> entry 0" in str(raised.value)
+
+
+def test_a_wildcard_in_any_field_is_loud() -> None:
+    for wildcard in ("*", "?"):
+        entry = _entry_for("pipelines/corpus-builder/" + wildcard, "key", "0" * 64)
+        with pytest.raises(SecretScanFixtureError) as raised:
+            _validate_exclusions(_document_with(entry), "<synthetic>")
+        assert "<synthetic> entry 0" in str(raised.value)
+        assert "wildcard" in str(raised.value)
+
+
+def test_an_unknown_pattern_id_is_loud() -> None:
+    entry = _entry_for(_SYNTHETIC_PATH, "not-a-fixture-pattern", "0" * 64)
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _validate_exclusions(_document_with(entry), "<synthetic>")
+    assert "<synthetic> entry 0" in str(raised.value)
+
+
+def test_a_digest_that_is_not_lowercase_hex_sha256_is_loud() -> None:
+    for bad in ("0" * 63, "0" * 65, "A" * 64, "z" * 64):
+        entry = _entry_for(_SYNTHETIC_PATH, "key", bad)
+        with pytest.raises(SecretScanFixtureError) as raised:
+            _validate_exclusions(_document_with(entry), "<synthetic>")
+        assert "<synthetic> entry 0" in str(raised.value)
+
+
+def test_a_duplicated_triple_is_loud() -> None:
+    entry = _entry_for(_SYNTHETIC_PATH, "key", "0" * 64)
+    with pytest.raises(SecretScanFixtureError) as raised:
+        _validate_exclusions(_document_with(entry, dict(entry)), "<synthetic>")
+    assert "<synthetic> entry 1" in str(raised.value)
 
 
 def test_every_key_under_the_fixture_directory_is_a_development_key() -> None:
