@@ -24,6 +24,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TEST_TIMEOUT_MS } from './vitest.config.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -34,7 +35,13 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  */
 const ROOT_IMPLEMENTATIONS = {
   lint: { module: 'eslint/bin/eslint.js', args: ['--config', 'tools/eslint.config.mjs', '.'] },
-  test: { module: 'vitest/vitest.mjs', args: ['run', '--config', 'tools/vitest.config.mjs'] },
+  // FND-26: `--testTimeout` is interpolated from the single definition site in
+  // tools/vitest.config.mjs (which also carries it as `test.testTimeout`, so the flag is
+  // deliberately redundant) — never transcribed.
+  test: {
+    module: 'vitest/vitest.mjs',
+    args: ['run', '--config', 'tools/vitest.config.mjs', `--testTimeout=${TEST_TIMEOUT_MS}`],
+  },
 };
 
 export function loadScriptOwners(root = REPO_ROOT) {
@@ -93,14 +100,23 @@ function runNode(entryRelativeToNodeModules, args, root) {
 function runPnpmRecursive(name, root) {
   // `npm_execpath` is set by pnpm when this script was reached through `pnpm run`; using it avoids
   // depending on pnpm being on PATH.
+  //
+  // FND-26: the global test timeout reaches the nine member suites only through this dispatch —
+  // each member runs a bare `vitest run` in its own cwd and Vite does not search parent directories
+  // for a config, so tools/vitest.config.mjs never loads there. NO `--` SEPARATOR:
+  // `pnpm … run test -- --testTimeout=N` makes pnpm inject a literal `--`, Vitest ignores the flag,
+  // and the suite goes green while proving nothing. Gated on `test` so `lint`, `typecheck` and the
+  // generators are dispatched exactly as before. Both spawnSync branches consume the same array, so
+  // the two can never drift apart.
+  const extraArgs = name === 'test' ? [`--testTimeout=${TEST_TIMEOUT_MS}`] : [];
   const execPath = process.env.npm_execpath;
   const result =
     execPath && execPath.endsWith('.cjs')
-      ? spawnSync(process.execPath, [execPath, '-r', '--if-present', 'run', name], {
+      ? spawnSync(process.execPath, [execPath, '-r', '--if-present', 'run', name, ...extraArgs], {
           cwd: root,
           stdio: 'inherit',
         })
-      : spawnSync('pnpm', ['-r', '--if-present', 'run', name], {
+      : spawnSync('pnpm', ['-r', '--if-present', 'run', name, ...extraArgs], {
           cwd: root,
           stdio: 'inherit',
           shell: process.platform === 'win32',
