@@ -65,6 +65,14 @@ const POLL_INTERVAL_MS = 25;
  * the test's own 60 s budget.
  */
 const WORKER_OUTCOME_CAP_MS = 30_000;
+/**
+ * How long `abandon()` waits for a killed worker to actually exit before giving up on it.
+ *
+ * It bounds the *reporting* path only. Waiting on the worker's own `result` promise without a bound
+ * would let a truly wedged child hold this test until the 60 s budget and replace the informative
+ * cap-reached message with a bare timeout.
+ */
+const WORKER_EXIT_GRACE_MS = 5_000;
 
 function blockFor(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -87,6 +95,25 @@ interface RunningWorker {
   readonly result: Promise<WorkerResult>;
   /** Whatever the worker wrote to stderr so far — for a failure message. */
   readonly readStderr: () => string;
+  /**
+   * Kills the worker and waits (up to `WORKER_EXIT_GRACE_MS`) for it to exit. Never rejects and
+   * never throws.
+   *
+   * Used on the cap path, where `result` is going to reject with "worker produced no result": the
+   * spin loop runs with the event loop blocked, so that rejection is still pending when the loop
+   * gives up, and failing the test without first settling it would leave an unhandled rejection to
+   * surface inside whatever ran next. Killing the child also releases its handles before the
+   * harness `rmSync`s the temp directory, which on Windows would otherwise fail with EBUSY and
+   * replace the cap-reached message with an unrelated one.
+   */
+  readonly abandon: () => Promise<void>;
+}
+
+/** Overrides used only by the harness self-check below; the real run passes none of them. */
+interface WorkerOverrides {
+  readonly argv?: readonly string[];
+  readonly capMs?: number;
+  readonly logPrefix?: string;
 }
 
 /** Complete (newline-terminated) output lines, minus the readiness handshake. */
@@ -112,16 +139,19 @@ function runWorker(
   rowId: string,
   label: string,
   dir: string,
+  overrides: WorkerOverrides = {},
 ): RunningWorker {
-  const outPath = join(dir, 'worker-out.log');
-  const errPath = join(dir, 'worker-err.log');
+  const prefix = overrides.logPrefix ?? 'worker';
+  const capMs = overrides.capMs ?? WORKER_OUTCOME_CAP_MS;
+  const outPath = join(dir, `${prefix}-out.log`);
+  const errPath = join(dir, `${prefix}-err.log`);
   const outFd = openSync(outPath, 'a');
   const errFd = openSync(errPath, 'a');
 
   const child = spawn(
     process.execPath,
     // Delay `0`: the ordering is structural now, so the worker contends as soon as it can.
-    [WORKER, databasePath, REPO_MIGRATIONS_DIR, ORG_A, rowId, '0', label],
+    overrides.argv ?? [WORKER, databasePath, REPO_MIGRATIONS_DIR, ORG_A, rowId, '0', label],
     { stdio: ['ignore', outFd, errFd] },
   );
 
@@ -131,7 +161,7 @@ function runWorker(
   const readStderr = (): string => readFileSync(errPath, 'utf8');
 
   const awaitOutcomeSync = (): boolean => {
-    const deadline = Date.now() + WORKER_OUTCOME_CAP_MS;
+    const deadline = Date.now() + capMs;
     for (;;) {
       if (outcomeLines(outPath).length > 0) return false;
       if (Date.now() >= deadline) return true;
@@ -153,7 +183,29 @@ function runWorker(
     });
   });
 
-  return { awaitOutcomeSync, result, readStderr };
+  // Attached at creation, not at the point of use: `result` rejects for a dead or silent worker,
+  // and every failure path below must be free to throw its own message without that rejection
+  // becoming an unhandled one. `settled` is the handled derivative the waits below observe.
+  const settled: Promise<void> = result.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  const abandon = async (): Promise<void> => {
+    child.kill();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const grace = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, WORKER_EXIT_GRACE_MS);
+      timer.unref();
+    });
+    try {
+      await Promise.race([settled, grace]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
+  };
+
+  return { awaitOutcomeSync, result, readStderr, abandon };
 }
 
 describe('two processes writing the same row', () => {
@@ -185,6 +237,11 @@ describe('two processes writing the same row', () => {
 
         if (worker === undefined) throw new Error('worker was never started');
         if (capReached) {
+          // Settle the worker *before* failing: its `result` promise is still pending here and is
+          // headed for a rejection, and a test that threw past it would leak that rejection into
+          // whatever runs next and let a Windows EBUSY on the temp-directory cleanup overwrite the
+          // message below. `abandon()` is bounded, so a wedged child cannot swallow it either.
+          await worker.abandon();
           throw new Error(
             `the worker reported no outcome within WORKER_OUTCOME_CAP_MS ` +
               `(${String(WORKER_OUTCOME_CAP_MS)}ms) — it died or hung; this is a harness failure, ` +
@@ -202,6 +259,36 @@ describe('two processes writing the same row', () => {
         // one that held the lock. The worker never got to overwrite it.
         const row = repository.get('p1') as Record<string, unknown>;
         expect(row['label']).toBe('written-by-parent');
+      });
+    },
+  );
+
+  /**
+   * Regression guard for the cap path itself (FND-29 review finding).
+   *
+   * The spin loop runs with the event loop blocked, so when the cap is reached the worker's
+   * `result` promise has not settled yet — it is still on its way to "worker produced no result".
+   * Failing the test at that moment without settling it first leaked an unhandled rejection into
+   * the next test to run. This drives a worker that deliberately never reports and asserts the
+   * three properties that make the cap path safe and legible: the loop reports the cap, `abandon()`
+   * resolves rather than throwing or hanging, and the rejection is observable afterwards — i.e.
+   * handled, not orphaned.
+   */
+  it(
+    'reports a worker that never writes an outcome without leaking its rejection',
+    { timeout: 30_000 },
+    async () => {
+      await withTenantDatabase(async ({ databasePath, dir }) => {
+        const worker = runWorker(databasePath, 'p1', 'never-written', dir, {
+          // A worker that starts, stays alive, and reports nothing at all.
+          argv: ['-e', 'setTimeout(() => undefined, 60_000);'],
+          capMs: 500,
+          logPrefix: 'silent-worker',
+        });
+
+        expect(worker.awaitOutcomeSync()).toBe(true);
+        await expect(worker.abandon()).resolves.toBeUndefined();
+        await expect(worker.result).rejects.toThrow(/worker produced no result/);
       });
     },
   );
