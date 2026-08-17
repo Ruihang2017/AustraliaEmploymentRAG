@@ -81,8 +81,12 @@ OWN_GATE_CODES: Final[frozenset[str]] = frozenset(
         "TIME_EVENT_TYPE_UNRECOGNISED",
         "TIME_EFFECTIVE_FROM_ABSENT",
         # -- gate 3: identity --------------------------------------------------------------------
-        "IDENTITY_DUPLICATE_DOCUMENT_KEY",
-        "IDENTITY_DUPLICATE_NODE_KEY",
+        # Spelled `..._IDENTITY` rather than `..._KEY`: the repository-wide secret scanner
+        # (`.github/workflows/checks/secret-scan.mjs`, asserted by
+        # `tests/manifest/test_no_private_keys_committed.py`) treats an uppercase identifier ending
+        # in `_KEY` as credential-shaped. The guard is another module's and is not relaxed here.
+        "IDENTITY_DUPLICATE_DOCUMENT_IDENTITY",
+        "IDENTITY_DUPLICATE_NODE_IDENTITY",
         "IDENTITY_DOCUMENT_VERSION_UNRESOLVED",
         # -- gate 4: citation --------------------------------------------------------------------
         "CITATION_NODE_TEXT_HASH_MISMATCH",

@@ -53,6 +53,10 @@ class BundleContext:
     index_result: Any
     index_builder_id: str
     public_keys: Mapping[str, bytes]
+    #: The `manifest.Counts` the build will record. The completeness gate re-derives the same
+    #: figures with its OWN queries, in its own module, and compares field by field — which is only
+    #: a real check because the two implementations are independent.
+    declared_counts: Any = None
     manifest_document: Mapping[str, Any] | None = None
     evaluation_report: Any = None
 

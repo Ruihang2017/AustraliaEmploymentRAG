@@ -27,8 +27,14 @@ from .anomalies import (
 from .codes import GATE_CODES, GATE_NAMES, OWN_GATE_CODES, Severity
 from .context import BundleContext, read_only_connector
 from .findings import Finding, GateResult, blocking, counts_of
+from .gates import GATES, corpus_counts, merge_results, run_phase_a, run_phase_b
 
 __all__ = [
+    "GATES",
+    "corpus_counts",
+    "merge_results",
+    "run_phase_a",
+    "run_phase_b",
     "BLOCKING_CLASSES",
     "COLLECTION_COUNT_CHANGE_FRACTION",
     "GATE_CODES",

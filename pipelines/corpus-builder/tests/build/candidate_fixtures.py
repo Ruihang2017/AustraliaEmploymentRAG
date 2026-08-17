@@ -61,6 +61,8 @@ from manifest import (
     write_manifest,
 )
 from tiering import IndexTier
+from validation.context import BundleContext, read_only_connector
+from validation.evaluation_report import load_evaluation_report
 from validation.source_groups import MANDATORY_SOURCE_GROUPS
 
 from build import BuildRequest, IndexBuildResult
@@ -381,7 +383,7 @@ def build_corpus(
 ) -> None:
     """Write a complete, gate-passing corpus database at *path*.
 
-    `customise` receives the READ-WRITE connection just before commit, so a test can introduce
+    `customise` receives the READ-WRITE connection just AFTER commit, so a test can introduce
     exactly one defect — including SQL a well-formed database forbids, such as dropping a UNIQUE
     index before inserting a duplicate. That is how the identity gate's fail case is written: the
     gate exists precisely because a hand-built or tampered database may lack the index.
@@ -570,9 +572,12 @@ def build_corpus(
                 (TS,),
             )
 
+        connection.execute("COMMIT")
+        # AFTER the commit, deliberately: `PRAGMA foreign_keys` and `PRAGMA
+        # ignore_check_constraints` are no-ops inside a transaction, and a test that needs to
+        # simulate a hand-built or tampered database needs both.
         if customise is not None:
             customise(connection)
-        connection.execute("COMMIT")
     finally:
         connection.close()
 
@@ -756,6 +761,49 @@ class Candidate:
 
     def connect(self) -> sqlite3.Connection:
         return open_corpus_database(self.corpus_db, read_only=True)
+
+    def phase_a_context(self, **overrides: Any) -> BundleContext:
+        """A phase-A `BundleContext` over the INPUTS, for a gate test that needs no bundle.
+
+        Phase A runs before any bundle exists, so `paths` and `public_keys` are unused by gates 1-7
+        and by the pin preflight; only gate 8's phase-B verification reads them.
+        """
+        request = overrides.pop("request", None) or self.request()
+        embedding = json.loads(
+            (self.embedding_dir / "embedding-manifest.json").read_text(encoding="utf-8")
+        )
+        report_path = self.embedding_dir / "embedding-build-report.json"
+        report = (
+            json.loads(report_path.read_text(encoding="utf-8")) if report_path.is_file() else None
+        )
+        evaluation = None
+        if request.evaluation_report_path is not None:
+            evaluation, _ = load_evaluation_report(request.evaluation_report_path)
+        index_result = overrides.pop(
+            "index_result",
+            IndexBuildResult(
+                index_version=FixtureLexicalIndexBuilder.index_version,
+                file_count=2,
+                byte_size=100,
+                doc_count=3,
+                builder_id=FixtureLexicalIndexBuilder.builder_id,
+            ),
+        )
+        fields: dict[str, Any] = {
+            "request": request,
+            "paths": None,
+            "connect": read_only_connector(self.corpus_db),
+            "parent_connect": None,
+            "embedding_manifest": embedding,
+            "embedding_report": report,
+            "index_result": index_result,
+            "index_builder_id": index_result.builder_id,
+            "public_keys": public_keys_from(DEV_PUBLIC_KEYFILE),
+            "declared_counts": None,
+            "evaluation_report": evaluation,
+        }
+        fields.update(overrides)
+        return BundleContext(**fields)
 
 
 @pytest.fixture
