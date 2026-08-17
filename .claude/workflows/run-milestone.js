@@ -173,6 +173,10 @@ async function runTicket(t, opts) {
   const P = 'T:' + t.id
   const branch = 'ticket/' + t.id
   const planPath = 'docs/plans/' + t.id + '.md'
+  // The Reviewer — not the delivery step — authors the review record at this path.
+  // Delivery only points `deliver-ticket.mjs --verdict-file` at it, so the comment
+  // posted to the PR/MR is the reviewer's own text, never a third party's transcription.
+  const verdictFile = '.claude/tmp/' + t.id + '-verdict.md'
 
   log('[' + t.id + '] architect: planning')
   const plan = await agent(
@@ -217,7 +221,17 @@ async function runTicket(t, opts) {
       ', diff = branch ' + branch + ' vs ' + cfg.defaultBranch + '. ' +
       (isolate ? 'You are in a fresh isolated worktree: `git fetch` if needed, then `git checkout --detach ' + branch + '` (detached, so a busy branch elsewhere is fine) to get the code, and run the tests there. ' : '') +
       'Review per your role definition; run the tests yourself — no test results are provided on purpose. ' +
-      'Return verdict CLEAR or BOUNCE with findings (a BOUNCE with zero findings is invalid).',
+      'Then WRITE YOUR OWN REVIEW RECORD to EXACTLY ' + verdictFile + ' (create the .claude/tmp directory if needed)' +
+      (isolate
+        ? ', resolved against the MAIN repo root, NOT your worktree — the delivery step reads it from there. ' +
+          'Get that root with `git rev-parse --path-format=absolute --git-common-dir` (it prints <main-repo>/.git; drop the trailing /.git) ' +
+          'and write to <main-repo>/' + verdictFile + '. '
+        : '. ') +
+      'That file is yours alone — it is posted verbatim as the PR/MR review comment, so it must be self-contained and factual: ' +
+      'the verdict (CLEAR or BOUNCE), ticket ' + t.id + ', the branch and base commit shas you actually judged, each acceptance item and how you checked it, ' +
+      'the test commands you really ran with their real output tails and exit codes (and node -v), and every finding. ' +
+      'Do not claim a check you did not run; if you skipped or narrowed something, say so. It is the only file you may write. ' +
+      'After writing it, return verdict CLEAR or BOUNCE with findings (a BOUNCE with zero findings is invalid).',
       Object.assign({ agentType: 'reviewer', label: 'review:' + t.id + '#' + tag, phase: P, schema: VERDICT }, isolate ? { isolation: 'worktree' } : {})
     )
   }
@@ -263,22 +277,31 @@ async function runTicket(t, opts) {
   }
 
   // Delivery is a deterministic script, not agent judgment (catalog issues #26, #50, #58). The
-  // agent only (1) writes the verdict, (2) composes the PR/MR body from the repo template, (3)
-  // runs the one command. It never merges, pushes, opens PRs, or closes issues.
-  const verdictNote = verdict && verdict.checkedNote ? verdict.checkedNote : 'CLEAR (the reviewer returned no note text)'
-  const verdictFile = '.claude/tmp/' + t.id + '-verdict.md'
+  // agent only (1) verifies the reviewer's record is there, (2) composes the PR/MR body from the
+  // repo template, (3) runs the one command. It never merges, pushes, opens PRs, or closes issues.
+  //
+  // The deliver step must NOT write, reword or recreate the review record: it used to be handed
+  // the reviewer's short `checkedNote` through this prompt and told to transcribe it verbatim
+  // into the verdict file, which (a) replaced the reviewer's full authored record with a summary
+  // relayed by a third party, and (b) reads as one agent writing another's approval — a safety
+  // classifier blocked delivery on it three times (FND-28, FND-30 twice). No verdict text passes
+  // through this prompt any more; the reviewer authors the file and delivery only reads it. A
+  // missing or empty record is a hard failure (deliver-ticket.mjs refuses too) — never fabricated.
   const bodyFile = '.claude/tmp/' + t.id + '-mrbody.md'
   const deliverCmd = 'node .claude/scripts/deliver-ticket.mjs --id ' + t.id + ' --branch ' + branch +
     ' --default-branch ' + cfg.defaultBranch + ' --platform ' + cfg.platform + (t.issue ? ' --issue ' + t.issue : '') +
     (cfg.testCmd ? ' --test-cmd "' + cfg.testCmd + '"' : '') + ' --verdict-file ' + verdictFile + ' --body-file ' + bodyFile +
     (cfg.mode === 'supervised' ? ' --no-merge' : '')
   const deliverPrompt =
-    'Delivery step. Delivery is DETERMINISTIC — you only (1) record the verdict, (2) compose the PR/MR body, and (3) run one command; never merge, push, open PRs/MRs, or close issues yourself. ' +
-    'First write the following Reviewer CLEAR verdict text VERBATIM to ' + verdictFile + ' (create the .claude/tmp directory if needed):\n' +
-    '<<<VERDICT\n' + verdictNote + '\nVERDICT\n' +
+    'Delivery step. Delivery is DETERMINISTIC — you only (1) check the review record exists, (2) compose the PR/MR body, and (3) run one command; never merge, push, open PRs/MRs, or close issues yourself. ' +
+    'The independent Reviewer has ALREADY WRITTEN its own review record to ' + verdictFile + '. That file is the reviewer\'s, not yours: ' +
+    'do NOT author it, edit it, reword it, extend it, or recreate it if it is absent — an approval written by the delivery step is not a review. ' +
+    'First VERIFY that ' + verdictFile + ' exists and is non-empty (e.g. read it / check its size). If it is missing or empty, STOP immediately: ' +
+    'do not run the delivery command and do not create the file — return merged/issueClosed/dodPassed = false with notes = "missing reviewer verdict record at ' + verdictFile + '". ' +
+    'Delivering without a review record is exactly what must not happen. ' +
     'Next compose the PR/MR body and write it to ' + bodyFile + ': START from the repo\'s MR/PR template ' +
     '(.gitlab/merge_request_templates/default.md on GitLab, else .github/pull_request_template.md; if neither exists, write nothing and skip this file) and FILL its sections from the ticket ' + t.path +
-    ', the diff (`git diff ' + cfg.defaultBranch + '...' + branch + '` — summarize, do not paste it whole), the CLEAR verdict above, and the repo CLAUDE.md non-negotiables for the **Constraint check** section (tick what the diff touches, mark the rest N/A). Include `Closes #' + (t.issue || '<n>') + '`. Do not invent spec the ticket lacks. ' +
+    ', the diff (`git diff ' + cfg.defaultBranch + '...' + branch + '` — summarize, do not paste it whole), the reviewer\'s CLEAR record at ' + verdictFile + ' (read it, quote it if useful, never change it), and the repo CLAUDE.md non-negotiables for the **Constraint check** section (tick what the diff touches, mark the rest N/A). Include `Closes #' + (t.issue || '<n>') + '`. Do not invent spec the ticket lacks. ' +
     'Then, from the repo root, run EXACTLY this command and let it do all git and tracker work: ' + deliverCmd +
     ' — this is the only sanctioned delivery path. Parse the DELIVER-SUMMARY-JSON line it prints last and return ' +
     'merged, issueClosed, dodPassed, awaitingMerge, and prUrl EXACTLY as reported there, with notes = its notes field plus anything unusual. ' +
