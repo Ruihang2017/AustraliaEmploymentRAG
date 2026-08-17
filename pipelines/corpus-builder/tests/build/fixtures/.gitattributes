@@ -1,0 +1,7 @@
+# The committed small corpus fixture is hashed BYTE FOR BYTE by the golden release manifest
+# (`artifacts.embedding_manifest_sha256`, every `files[]` entry). This machine's `core.autocrlf` is
+# `true`, so without this line git would rewrite `embedding-manifest.json` and friends to CRLF on
+# checkout, every recorded hash would miss, and `test_golden_small_corpus_build.py` would fail on
+# any fresh clone while passing on the machine that generated the fixture. `-text` disables end-of-
+# line conversion in both directions for everything under this directory.
+* -text

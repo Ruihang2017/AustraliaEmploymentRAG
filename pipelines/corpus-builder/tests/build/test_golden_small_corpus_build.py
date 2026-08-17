@@ -61,6 +61,17 @@ def test_the_fixture_is_committed_and_complete() -> None:
         assert path.is_file(), f"the committed fixture file {path} is missing"
 
 
+def test_the_hashed_fixture_files_were_checked_out_unconverted() -> None:
+    """A CRLF-mangled checkout must fail as a CHECKOUT problem, not as a mysterious hash mismatch.
+
+    `embedding-manifest.json` is hashed byte for byte into `artifacts.embedding_manifest_sha256` and
+    into `files[]`. This machine's `core.autocrlf` is `true`, so without
+    `fixtures/.gitattributes`' `* -text` git would rewrite it on checkout and every recorded hash
+    would miss on a fresh clone while passing on the machine that generated the fixture.
+    """
+    assert b"\r\n" not in (EMBEDDING_DIR / "embedding-manifest.json").read_bytes()
+
+
 def test_the_build_reproduces_the_recorded_golden_manifest(tmp_path: Path) -> None:
     outcome = _build(tmp_path / "out")
     produced = json.loads(
