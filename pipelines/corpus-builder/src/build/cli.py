@@ -103,8 +103,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--index-command",
         type=Path,
         default=None,
-        help="the pinned offline lexical index binary (ADR 0003). Without it the declared-ABSENT "
-        "null builder is used, which is a BLOCKING gate failure for a CANDIDATE",
+        help="the ABSOLUTE path to the pinned offline lexical index binary (ADR 0003); a relative "
+        "path or a bare name is refused, because PATH is never searched. Without it the "
+        "declared-ABSENT null builder is used, which is a BLOCKING gate failure for a CANDIDATE",
     )
     candidate.add_argument("--sign", action="store_true")
     candidate.add_argument("--key", type=Path, default=None, help="the signing key file")

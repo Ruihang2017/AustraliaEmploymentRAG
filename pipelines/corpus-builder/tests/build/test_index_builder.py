@@ -124,6 +124,49 @@ def test_an_absent_external_command_is_a_build_failure(tmp_path: Path) -> None:
         builder.build(tmp_path / "corpus.sqlite", tmp_path / "tantivy")
 
 
+def test_a_relative_external_command_is_refused_before_anything_runs(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """REGRESSION (reviewer, MEDIUM). The checked file and the executed binary must be the same one.
+
+    `Path("indexer").is_file()` is resolved against the CURRENT WORKING DIRECTORY, while
+    `subprocess.run(["indexer", ...], shell=False)` is resolved against `PATH` by the OS. With only
+    an `is_file()` check, a bare filename could pass the existence test against a file in the cwd and
+    then execute a completely different binary found on `PATH` — contradicting this module's and ADR
+    0003's explicit claim that the command is never resolved from `PATH`.
+    """
+    invoked: list[object] = []
+
+    def forbidden(*args, **kwargs):  # type: ignore[no-untyped-def]
+        invoked.append(args)
+        raise AssertionError("a relative command must never reach subprocess.run")
+
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    monkeypatch.chdir(tmp_path)
+    # The file EXISTS relative to the cwd, so an `is_file()`-only check would have accepted it.
+    (tmp_path / "indexer").write_bytes(b"")
+
+    builder = ExternalLexicalIndexBuilder(Path("indexer"))
+    with pytest.raises(IndexBuildFailed) as error:
+        builder.build(tmp_path / "corpus.sqlite", tmp_path / "tantivy")
+
+    assert "absolute path" in str(error.value)
+    assert invoked == []
+
+
+def test_a_relative_command_with_a_separator_is_refused_too(tmp_path: Path, monkeypatch) -> None:
+    """`./indexer` and `sub/indexer` are cwd-relative as well, and a release build's cwd is not a
+    stated input. Only an absolute path names one binary unambiguously."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "indexer").write_bytes(b"")
+
+    builder = ExternalLexicalIndexBuilder(Path("sub/indexer"))
+    with pytest.raises(IndexBuildFailed) as error:
+        builder.build(tmp_path / "corpus.sqlite", tmp_path / "tantivy")
+    assert "absolute path" in str(error.value)
+
+
 def test_result_is_serialisable() -> None:
     result = IndexBuildResult(
         index_version="1.0.0", file_count=2, byte_size=10, doc_count=3, builder_id="x"

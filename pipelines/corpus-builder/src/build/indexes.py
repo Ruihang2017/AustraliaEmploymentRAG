@@ -144,8 +144,13 @@ class ExternalLexicalIndexBuilder:
     it acceptable there are all enforced below rather than merely intended:
 
     * the command is an EXPLICIT input from the caller (`BuildRequest.index_command_path`, supplied
-      by `--index-command`). `PATH` is never searched, so the release cannot silently pick up a
-      different binary from a different machine;
+      by `--index-command`), and it MUST BE ABSOLUTE. `PATH` is never searched, so the release cannot
+      silently pick up a different binary from a different machine. The absoluteness requirement is
+      what makes that claim true rather than merely intended: a bare filename such as `indexer` is
+      resolved against the CURRENT WORKING DIRECTORY by `Path.is_file()` but against `PATH` by
+      `execvp`/`CreateProcess`, so the file that was checked and the binary that was executed could
+      be two different programs. A relative path is refused outright (`IndexBuildFailed`) rather than
+      normalised against the cwd, because the cwd of a release build is not a stated input either;
     * `shell=False` on a fixed argv, so no part of the command line is interpreted by a shell;
     * a bounded timeout, and a non-zero exit or a timeout raises `IndexBuildFailed`, which
       `assemble.py` converts into a BLOCKING gate finding;
@@ -174,6 +179,16 @@ class ExternalLexicalIndexBuilder:
         self.timeout_seconds = timeout_seconds
 
     def build(self, corpus_db: Path, out_dir: Path) -> IndexBuildResult:
+        if not self.command.is_absolute():
+            # CHECKED FILE == EXECUTED FILE. `Path.is_file()` resolves a bare name or a relative
+            # path against the cwd; the OS resolves the same string against PATH (or the cwd, per
+            # platform) when it execs. Refusing anything but an absolute path is what keeps the
+            # module docstring's "PATH is never searched" honest instead of aspirational.
+            raise IndexBuildFailed(
+                f"the lexical index command {str(self.command)!r} is not an absolute path. It is an "
+                "explicit build input and is never resolved from PATH or from the working "
+                "directory: supply the full path to the pinned binary"
+            )
         if not self.command.is_file():
             raise IndexBuildFailed(
                 f"the lexical index command {self.command} does not exist. It is an explicit build "
