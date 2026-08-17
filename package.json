@@ -17,7 +17,8 @@
     "generated:check": "node tools/workspace-script.mjs generated:check",
     "eval:smoke": "node tools/workspace-script.mjs eval:smoke",
     "stack:up": "node tools/workspace-script.mjs stack:up",
-    "stack:down": "node tools/workspace-script.mjs stack:down"
+    "stack:down": "node tools/workspace-script.mjs stack:down",
+    "ci:local": "node tools/workspace-script.mjs ci:local"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

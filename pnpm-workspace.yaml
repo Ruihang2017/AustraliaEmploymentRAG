@@ -12,3 +12,17 @@ packages:
 # `true` would opt into `node-gyp` on any platform whose prebuild is missing.
 allowBuilds:
   better-sqlite3: false
+# GHSA-2v37-7h3g-55p8 (high): nanoid < 3.3.18 can loop indefinitely inside a custom generator when
+# `size` is zero. It reaches this workspace only transitively, and only as a dev dependency, through
+# vitest -> vite -> postcss -> nanoid (and vitest -> @vitest/mocker -> vite -> postcss -> nanoid).
+# Pinned to the exact lowest patched version; no range specifier, per sub-PRD D22a.
+#
+# This closes the advisory at source. It is not a substitute for FND-21's `--prod` scoping of the CI
+# audit line, and that scoping is not a substitute for this: phase-2 decision D-CI1 keeps both,
+# because the override decides whether the advisory stands and the scoping decides what the gate
+# does about the next one.
+#
+# Overrides live here and not in `package.json#pnpm.overrides`: pnpm 11.4.0, the version this repo
+# pins, no longer reads the `pnpm` field from the root manifest and would ignore it silently.
+overrides:
+  nanoid: 3.3.18
