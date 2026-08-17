@@ -39,7 +39,7 @@ export function buildGraph(root) {
   for (const d of dirs) {
     const tdir = join(root, d, 'tickets')
     let ok = false
-    try { ok = statSync(tdir).isDirectory() } catch {}
+    try { ok = statSync(tdir).isDirectory() } catch { /* no tickets/ subdirectory in this module dir: ok stays false and the next line skips the module */ }
     if (!ok) continue
     const tickets = []
     for (const f of readdirSync(tdir).filter((n) => n.endsWith('.md')).sort()) {

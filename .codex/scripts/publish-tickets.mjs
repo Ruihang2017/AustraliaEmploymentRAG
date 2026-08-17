@@ -75,7 +75,7 @@ if (!moduleDir) {
 }
 const ticketsDir = join(moduleDir, 'tickets')
 let ticketsDirOk = false
-try { ticketsDirOk = statSync(ticketsDir).isDirectory() } catch {}
+try { ticketsDirOk = statSync(ticketsDir).isDirectory() } catch { /* an absent or unreadable tickets/ dir is reported by the explicit exit(1) just below; the raw ENOENT would only bury that message */ }
 if (!ticketsDirOk) {
   console.error(`no tickets directory: ${ticketsDir}`)
   process.exit(1)
@@ -117,7 +117,7 @@ let cliOk = false
 try {
   cli(PLATFORM, ['auth', 'status'], { stdio: ['ignore', 'ignore', 'ignore'] })
   cliOk = true
-} catch {}
+} catch { /* a non-zero `<cli> auth status` IS the answer: not installed or not authenticated. cliOk stays false, which only --create treats as fatal (below), so a dry-run preview still works with no forge CLI present. */ }
 if (CREATE && !cliOk) {
   console.error(`x ${PLATFORM} not found or not authenticated — install it and run \`${PLATFORM} auth login\`.`)
   process.exit(1)
@@ -343,7 +343,7 @@ const renderDeps = (blockedBy, blocks) => {
 const withBodyFile = (body, fn) => {
   const path = join(tmpdir(), `pt-body-${process.pid}-${bodySeq++}.md`)
   writeFileSync(path, body)
-  try { return fn(path) } finally { try { unlinkSync(path) } catch {} }
+  try { return fn(path) } finally { try { unlinkSync(path) } catch { /* best-effort cleanup of a temp body file in the OS temp dir: a failed unlink must never mask fn()'s result or its exception */ } }
 }
 let bodySeq = 0
 
