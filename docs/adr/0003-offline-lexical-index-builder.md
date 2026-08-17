@@ -93,7 +93,13 @@ and `ExternalLexicalIndexBuilder` implements it over this CLI contract:
 - a non-zero exit, a timeout, or an unrunnable command raises `IndexBuildFailed`, which the
   assembler converts into a **BLOCKING** gate finding — never a silent empty index;
 - the binary prints **one line on stdout: the index version**. That string becomes
-  `versions.index` in the release manifest. `04` never invents an index version.
+  `versions.index` in the release manifest. `04` never invents an index version;
+- **the artifact is measured, not taken on trust.** A command that exits `0` and prints a plausible
+  version while writing nothing into `--out` has not built an index: the builder raises
+  `IndexBuildFailed` when the output directory holds no bytes, and gate 8 independently refuses a
+  `CANDIDATE` whose `IndexBuildResult` reports a version with `file_count == 0` or `byte_size == 0`
+  (`INDEX_ARTIFACT_EMPTY_ON_CANDIDATE`). The process's own account of itself is not evidence, and the
+  port is an extension point — the guarantee has to hold for a builder this module has never seen.
 
 Alongside it, `NullLexicalIndexBuilder` writes a **declared-absent** index —
 `tantivy/INDEX_STATE.json` = `{"state": "ABSENT", "reason": …, "index_version": null}` — for

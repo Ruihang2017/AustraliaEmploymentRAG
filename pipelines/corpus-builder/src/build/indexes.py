@@ -212,6 +212,20 @@ class ExternalLexicalIndexBuilder:
                 "contract requires one, and this module never invents one"
             )
         file_count, byte_size = _measure(out_dir)
+        if file_count == 0 or byte_size == 0:
+            # A ZERO EXIT AND A PLAUSIBLE VERSION STRING ARE NOT EVIDENCE THAT AN INDEX EXISTS.
+            # Without this check a command that printed a version and wrote nothing produced
+            # `IndexBuildResult(index_version=<non-null>, file_count=0)`, which gate 8 could not tell
+            # from a real index — `INDEX_BUILDER_NULL_ON_CANDIDATE` keys on a null version and on the
+            # null builder's identity, and neither holds here. The candidate would then have been
+            # published with an empty, unusable `tantivy/`: exactly the outcome deliverable 3 exists
+            # to prevent, reached by a different route. The builder therefore verifies the ARTIFACT
+            # it was asked to produce and not merely the process's own account of itself.
+            raise IndexBuildFailed(
+                f"the lexical index command exited 0 and reported index version {index_version!r}, "
+                f"but wrote {file_count} file(s) totalling {byte_size} byte(s) into {out_dir}. An "
+                "empty index is a build failure, never a built index"
+            )
         return IndexBuildResult(
             index_version=index_version,
             file_count=file_count,

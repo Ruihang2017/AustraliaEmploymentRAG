@@ -127,6 +127,9 @@ OWN_GATE_CODES: Final[frozenset[str]] = frozenset(
         "MANIFEST_SIGNING_FAILED",
         # Deliverable 3: a fixture-grade index can never be published as a candidate.
         "INDEX_BUILDER_NULL_ON_CANDIDATE",
+        # …and neither can an EMPTY one. A builder that reports a version but writes no bytes is not
+        # null by either of the two identity tests, so the artifact itself is measured as well.
+        "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE",
         "INDEX_BUILDER_FAILED",
     }
 )

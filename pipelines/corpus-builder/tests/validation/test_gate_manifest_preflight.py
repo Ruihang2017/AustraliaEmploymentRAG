@@ -192,6 +192,75 @@ def test_a_null_equivalent_cannot_slip_through_by_renaming_itself(
     assert "INDEX_BUILDER_NULL_ON_CANDIDATE" in _codes(gate_manifest_preflight(context))
 
 
+def test_an_index_that_reports_a_version_but_wrote_nothing_blocks_a_candidate(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    """REGRESSION (reviewer, HIGH). The third, artifact-based leg of deliverable 3's guarantee.
+
+    A builder that exits 0 and prints a plausible version while writing zero files is null by
+    neither identity test, so the gate measures what was actually produced. `ExternalLexicalIndexBuilder`
+    now refuses to return such a result, but the port is an extension point and the gate must not
+    take an unknown builder's word for it.
+    """
+    candidate = candidate_factory(release_kind="CANDIDATE")
+    context = candidate.phase_a_context(
+        index_result=IndexBuildResult(
+            index_version="9.9.9",
+            file_count=0,
+            byte_size=0,
+            doc_count=0,
+            builder_id="a-builder-that-wrote-nothing",
+        )
+    )
+    findings = gate_manifest_preflight(context)
+    assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" in _codes(findings)
+    empty = [f for f in findings if f.code == "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE"]
+    assert empty[0].severity == "BLOCKING"
+    assert empty[0].evidence["file_count"] == 0
+
+
+def test_a_zero_byte_index_blocks_a_candidate_even_with_files_present(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    candidate = candidate_factory(release_kind="CANDIDATE")
+    context = candidate.phase_a_context(
+        index_result=IndexBuildResult(
+            index_version="9.9.9",
+            file_count=3,
+            byte_size=0,
+            doc_count=0,
+            builder_id="a-builder-that-wrote-empty-files",
+        )
+    )
+    assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" in _codes(gate_manifest_preflight(context))
+
+
+def test_a_real_index_is_not_flagged_as_empty(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    candidate = candidate_factory(release_kind="CANDIDATE")
+    findings = gate_manifest_preflight(candidate.phase_a_context())
+    assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" not in _codes(findings)
+    assert "INDEX_BUILDER_NULL_ON_CANDIDATE" not in _codes(findings)
+
+
+def test_an_empty_index_is_permitted_on_a_non_candidate(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    candidate = candidate_factory(release_kind="SYNTHETIC_FIXTURE")
+    context = candidate.phase_a_context(
+        request=candidate.request(release_kind="SYNTHETIC_FIXTURE"),
+        index_result=IndexBuildResult(
+            index_version="9.9.9",
+            file_count=0,
+            byte_size=0,
+            doc_count=0,
+            builder_id="a-builder-that-wrote-nothing",
+        ),
+    )
+    assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" not in _codes(gate_manifest_preflight(context))
+
+
 def test_a_null_index_is_permitted_on_a_non_candidate(
     candidate_factory: Callable[..., Candidate]
 ) -> None:

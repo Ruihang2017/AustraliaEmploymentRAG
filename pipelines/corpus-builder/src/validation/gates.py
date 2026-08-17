@@ -1313,13 +1313,43 @@ def gate_manifest_preflight(ctx: BundleContext) -> list[Finding]:
 def _index_builder_findings(ctx: BundleContext) -> list[Finding]:
     """Deliverable 3: a fixture-grade index can never be published as a candidate.
 
-    Checked from BOTH `index_version is None` and the builder's declared identity, so a future
-    null-equivalent cannot slip through by renaming its class.
+    Checked from THREE independent properties, because each on its own has a way through:
+
+    * `index_version is None` — the null builder's own report;
+    * the builder's declared identity — so a null-equivalent cannot slip through by renaming its
+      class;
+    * the MEASURED ARTIFACT. A builder that reports a non-null version but wrote no bytes satisfies
+      neither of the first two, and would otherwise publish a candidate whose `tantivy/` is empty and
+      unusable. `ExternalLexicalIndexBuilder` already refuses to return such a result, but this gate
+      does not take any builder's word for it: the port is an extension point, and deliverable 3's
+      guarantee has to hold for an implementation this module has never seen.
     """
     result = ctx.index_result
     if result is None:
         return []
     from build.indexes import NullLexicalIndexBuilder
+
+    if (
+        ctx.is_candidate
+        and getattr(result, "index_version", None) is not None
+        and ctx.index_builder_id != NullLexicalIndexBuilder.builder_id
+        and (int(getattr(result, "file_count", 0)) == 0 or int(getattr(result, "byte_size", 0)) == 0)
+    ):
+        return [
+            _finding(
+                "manifest",
+                "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE",
+                "BLOCKING",
+                f"this CANDIDATE's lexical index builder ({ctx.index_builder_id}) reported index "
+                f"version {result.index_version!r} but wrote {result.file_count} file(s) totalling "
+                f"{result.byte_size} byte(s). An empty tantivy/ is not a published index "
+                "(deliverable 3)",
+                "tantivy/",
+                index_builder_id=ctx.index_builder_id,
+                file_count=int(result.file_count),
+                byte_size=int(result.byte_size),
+            )
+        ]
 
     is_null = getattr(result, "index_version", None) is None or (
         ctx.index_builder_id == NullLexicalIndexBuilder.builder_id
