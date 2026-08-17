@@ -25,18 +25,25 @@ release. The check keys on `IndexBuildResult.index_version is None` **and** on t
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Protocol, Sequence, runtime_checkable
 
 __all__ = [
+    "INDEX_BUILD_TIMEOUT_SECONDS",
     "INDEX_STATE_FILENAME",
     "INDEX_VERSION_ABSENT_SENTINEL",
+    "ExternalLexicalIndexBuilder",
     "IndexBuildFailed",
     "IndexBuildResult",
     "LexicalIndexBuilder",
     "NullLexicalIndexBuilder",
 ]
+
+#: A local, offline index build over an MVP-scale corpus. A hung external process must fail the
+#: build rather than hang a release.
+INDEX_BUILD_TIMEOUT_SECONDS = 1800
 
 INDEX_STATE_FILENAME = "INDEX_STATE.json"
 
@@ -122,6 +129,91 @@ class NullLexicalIndexBuilder:
         _ = corpus_db  # deliberately unread: this builder indexes nothing
         return IndexBuildResult(
             index_version=None,
+            file_count=file_count,
+            byte_size=byte_size,
+            doc_count=0,
+            builder_id=self.builder_id,
+        )
+
+
+class ExternalLexicalIndexBuilder:
+    """ADR 0003 option (a): a pinned, separately-built search binary over a documented CLI contract.
+
+    THE ONLY `subprocess` CALL SITE IN `src/build/**` OR `src/validation/**`, and
+    `tests/build/test_no_environment_inference.py` allow-lists exactly this one. The rules that make
+    it acceptable there are all enforced below rather than merely intended:
+
+    * the command is an EXPLICIT input from the caller (`BuildRequest.index_command_path`, supplied
+      by `--index-command`). `PATH` is never searched, so the release cannot silently pick up a
+      different binary from a different machine;
+    * `shell=False` on a fixed argv, so no part of the command line is interpreted by a shell;
+    * a bounded timeout, and a non-zero exit or a timeout raises `IndexBuildFailed`, which
+      `assemble.py` converts into a BLOCKING gate finding;
+    * `index_version` is reported by the BINARY, on stdout, and is what `versions.index` records —
+      this module never invents one. That value is the compatibility handshake `RETR-01`/`RETR-02`
+      read; see the ADR.
+
+    THE CLI CONTRACT (ADR 0003):
+
+        <command> --corpus <corpus.sqlite> --out <tantivy dir>
+
+    with a single line on stdout: the index version. Anything else is a build failure.
+    """
+
+    builder_id = "external-lexical-index-builder"
+
+    def __init__(
+        self,
+        command: Path,
+        *,
+        extra_arguments: Sequence[str] = (),
+        timeout_seconds: int = INDEX_BUILD_TIMEOUT_SECONDS,
+    ) -> None:
+        self.command = Path(command)
+        self.extra_arguments = tuple(extra_arguments)
+        self.timeout_seconds = timeout_seconds
+
+    def build(self, corpus_db: Path, out_dir: Path) -> IndexBuildResult:
+        if not self.command.is_file():
+            raise IndexBuildFailed(
+                f"the lexical index command {self.command} does not exist. It is an explicit build "
+                "input and is never resolved from PATH"
+            )
+        out_dir.mkdir(parents=True, exist_ok=True)
+        argv = [
+            str(self.command),
+            "--corpus",
+            str(corpus_db),
+            "--out",
+            str(out_dir),
+            *self.extra_arguments,
+        ]
+        try:
+            completed = subprocess.run(  # noqa: S603 — fixed argv, shell=False, explicit command
+                argv,
+                shell=False,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout_seconds,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise IndexBuildFailed(
+                f"the lexical index command failed to run: {type(error).__name__}"
+            ) from error
+        if completed.returncode != 0:
+            raise IndexBuildFailed(
+                f"the lexical index command exited {completed.returncode}"
+            )
+        index_version = completed.stdout.strip().splitlines()[0].strip() if completed.stdout.strip() else ""
+        if not index_version:
+            raise IndexBuildFailed(
+                "the lexical index command printed no index version on stdout; the ADR 0003 CLI "
+                "contract requires one, and this module never invents one"
+            )
+        file_count, byte_size = _measure(out_dir)
+        return IndexBuildResult(
+            index_version=index_version,
             file_count=file_count,
             byte_size=byte_size,
             doc_count=0,
