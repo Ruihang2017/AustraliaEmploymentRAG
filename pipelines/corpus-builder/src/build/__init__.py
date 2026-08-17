@@ -29,6 +29,15 @@ by a single directory rename performed after the last gate.
 
 from __future__ import annotations
 
+from .assemble import (
+    BuildOutcome,
+    BundlePaths,
+    FinalPathExists,
+    StagingNotEmpty,
+    assemble_bundle,
+    stage_bundle,
+)
+from .diff import CHANGE_TYPES, DocumentChange, ReleaseDiff, release_diff, write_release_diff
 from .indexes import (
     INDEX_STATE_FILENAME,
     INDEX_VERSION_ABSENT_SENTINEL,
@@ -37,12 +46,31 @@ from .indexes import (
     LexicalIndexBuilder,
     NullLexicalIndexBuilder,
 )
+from .measure import Measurements, measure
 from .plan import BuildRequest, InvalidBuildRequest, load_model_pins, load_runtime_pin
+from .report import GateReport, gate_report_path, release_diff_path, write_gate_report
 
 __all__ = [
+    "CHANGE_TYPES",
     "INDEX_STATE_FILENAME",
     "INDEX_VERSION_ABSENT_SENTINEL",
+    "BuildOutcome",
     "BuildRequest",
+    "BundlePaths",
+    "DocumentChange",
+    "FinalPathExists",
+    "GateReport",
+    "Measurements",
+    "ReleaseDiff",
+    "StagingNotEmpty",
+    "assemble_bundle",
+    "gate_report_path",
+    "measure",
+    "release_diff",
+    "release_diff_path",
+    "stage_bundle",
+    "write_gate_report",
+    "write_release_diff",
     "IndexBuildFailed",
     "IndexBuildResult",
     "InvalidBuildRequest",
