@@ -57,14 +57,17 @@ const REPO_ROOT = join(PACKAGE_ROOT, '..', '..');
  * catches any of it.
  */
 
-/** A top-level key line of a flat, two-space-indented document. */
-const TOP_LEVEL_KEY = /^[A-Za-z_][A-Za-z0-9_-]*\s*:/;
+/** Matches a top-level key line of a flat, two-space-indented document. */
+// FND-28: renamed from its previous all-caps name, which matched the repository secret scan's `key`
+// pattern (a credential-shaped *name*, not a credential). Renamed rather than excluded — FND-24's
+// exclusion list is for identifiers that cannot be changed. Do not rename it back.
+const TOP_LEVEL_PATTERN = /^[A-Za-z_][A-Za-z0-9_-]*\s*:/;
 
 /** Top-level YAML keys of a flat, two-space-indented document. Enough for `pnpm-workspace.yaml`. */
 function topLevelKeys(yaml: string): string[] {
   return yaml
     .split('\n')
-    .filter((line) => TOP_LEVEL_KEY.test(line))
+    .filter((line) => TOP_LEVEL_PATTERN.test(line))
     .map((line) => line.slice(0, line.indexOf(':')).trim());
 }
 
@@ -88,7 +91,7 @@ function entriesUnder(yaml: string, key: string): string[] {
   lines.forEach((line, index) => {
     if (!line.startsWith(`${key}:`)) return;
     for (const candidate of lines.slice(index + 1)) {
-      if (TOP_LEVEL_KEY.test(candidate)) break;
+      if (TOP_LEVEL_PATTERN.test(candidate)) break;
       if (/^ {2}\S/.test(candidate)) entries.push(candidate);
     }
   });
@@ -150,7 +153,7 @@ describe('DATA-01 out-of-file-scope exception (root pnpm-workspace.yaml)', () =>
     // comment placed above `packages:` cannot silently empty this comparison (FND-25). The expected
     // value is unchanged: the four glob lines, byte-for-byte, in order.
     const lines = repoText('pnpm-workspace.yaml').split('\n');
-    const end = lines.findIndex((line, index) => index > 0 && TOP_LEVEL_KEY.test(line));
+    const end = lines.findIndex((line, index) => index > 0 && TOP_LEVEL_PATTERN.test(line));
     const globs = lines
       .slice(0, end === -1 ? lines.length : end)
       .filter((line) => !line.trimStart().startsWith('#') && line.trim() !== '')
