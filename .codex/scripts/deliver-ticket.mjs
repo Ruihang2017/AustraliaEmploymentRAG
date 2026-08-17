@@ -176,7 +176,7 @@ if (OPEN_INTEGRATION_MR) {
       const m = cli(['mr', 'list', '--source-branch', INTEGRATION_BRANCH]).match(/!(\d+)/)
       existing = m ? `!${m[1]}` : null
     }
-  } catch {}
+  } catch { /* the forge CLI errored or returned unparseable output: treat that as "no open handoff MR", leave existing null, and open one below - a lookup failure must not abort the handoff */ }
   if (existing) {
     console.log(`= handoff MR already open: ${existing} (${ahead} commit(s) ahead)`)
     console.log('INTEGRATION-MR-JSON: ' + JSON.stringify({ integrationBranch: INTEGRATION_BRANCH, defaultBranch: DEFAULT_BRANCH, ahead, opened: false, url: existing, alreadyOpen: true }))
@@ -449,7 +449,7 @@ const findMrTemplate = () => {
       const dir = '.gitlab/merge_request_templates'
       const f = readdirSync(dir).find((n) => n.toLowerCase().endsWith('.md'))
       if (f) return { path: `${dir}/${f}`, text: readFileSync(`${dir}/${f}`, 'utf8') }
-    } catch {}
+    } catch { /* .gitlab/merge_request_templates is optional: an absent or unreadable dir means "no template", so fall through to return null and let the caller use the built-in body */ }
   }
   return null
 }
@@ -559,7 +559,7 @@ const REFUSE_STATUS = new Set([
  */
 const waitForMergeable = (iid) => {
   const started = Date.now()
-  let last = ''
+  let last
   for (;;) {
     const mr = glabMr(iid)
     // No readable status is not "mergeable" — proceed and let the merge itself decide,
