@@ -19,7 +19,9 @@ No ADR — the decision is already made in PRD §12.2 (the eight candidate check
 and promotion stage graph); this is build ticket 6 of 8 against it. One sub-question genuinely
 undecided by the PRD — how the bundle's lexical index is produced offline without importing
 `services/search-rs` — is sub-PRD open question **Q-CRPS-2** and is recorded by this ticket as an ADR,
-not invented in code.
+not invented in code: [ADR 0003 — Offline lexical index builder](../../../adr/0003-offline-lexical-index-builder.md),
+which selects option (a), a pinned externally-built search binary invoked over a documented CLI
+contract, with `NullLexicalIndexBuilder` for fixtures and development builds.
 Parent sub-PRD: [04-corpus-contract README](../README.md). Master spec: [PRD](../../../PRD.md).
 Depends on: [CRPS-02 — CorpusRelease manifest schema, signing and verification](CRPS-02-corpusrelease-manifest-schema-signing-and-verification.md), [CRPS-05 — Embedding build pipeline and embedding manifest](CRPS-05-embedding-build-pipeline-and-embedding-manifest.md) (mirrors `blocked_by`).
 **Why `builder`:** a bounded change inside one module's declared file-scope against a fixed contract
@@ -156,7 +158,11 @@ failing test case.
 - Module-shared, append-only (breakdown plan §1.1): `pipelines/corpus-builder/pyproject.toml`
   (dependencies only; regenerate the root `uv.lock` as a build artifact, never hand-merge).
 - Per breakdown plan A9 (`docs/adr/**` is shared-additive with per-file ownership, claimed by the
-  creating ticket): `docs/adr/NNNN-offline-lexical-index-builder.md` — **required** (deliverable 3).
+  creating ticket): [`docs/adr/0003-offline-lexical-index-builder.md`](../../../adr/0003-offline-lexical-index-builder.md)
+  — **required** (deliverable 3). The number was `NNNN` until execution: `0003` is the next free one,
+  taken after checking `docs/adr/` as the serial-safety analysis below requires.
+- This ticket file itself, for the ADR link and the `cargo test --workspace` decision below — the
+  ticket's own acceptance list makes both writebacks acceptance items, so they land in the same PR.
 
 Does not touch:
 
@@ -211,7 +217,9 @@ and check `docs/adr/` first).
    Therefore this ticket:
    - defines the port and the bundle-side contract (`tantivy/` directory contents are opaque to this
      module; only its presence, `index_version` and file hashes are this module's business);
-   - **records the chosen mechanism in `docs/adr/NNNN-offline-lexical-index-builder.md`** — options to
+   - **records the chosen mechanism in
+     [`docs/adr/0003-offline-lexical-index-builder.md`](../../../adr/0003-offline-lexical-index-builder.md)**
+     (decision: option (a)) — options to
      weigh explicitly in the ADR: (a) invoke a pinned, separately-built search binary as an external
      command over a documented CLI contract; (b) a Python-side Tantivy binding pinned in
      `pyproject.toml`; (c) defer index construction to a `11-retrieval-engine` ticket invoked by the
@@ -366,16 +374,28 @@ and check `docs/adr/` first).
       candidate. Not required to merge — the automated half above is. (PRD §41.2; CLAUDE.md Gate 2)
 - [ ] `[machine]` `uv run pytest` green (Python; PRD §45.3).
 - [ ] `[machine]` `pnpm test` green (standing item, breakdown plan §1.1).
-- [ ] `[machine]` `docs/adr/NNNN-offline-lexical-index-builder.md` exists, states the chosen option,
+- [ ] `[machine]` [`docs/adr/0003-offline-lexical-index-builder.md`](../../../adr/0003-offline-lexical-index-builder.md)
+      exists, states the chosen option (**(a)**, a pinned externally-built search binary invoked over
+      a documented CLI contract, with `NullLexicalIndexBuilder` for fixtures and development builds),
       its consequences for `RETR-01`/`RETR-02` and CI reproducibility, and is linked from this
       ticket — the writeback is itself an acceptance item. (Sub-PRD Q-CRPS-2; PRD §45.5)
 - [ ] `[machine]` PR states requirement ID `ADM-002` and `UAT-OPS-01`; schema/API compatibility
       impact; source/licence/provenance impact (licensing gate, model-licence pins); cost/memory/disk
       impact (measured bundle sizes); rollback path (candidate discarded, active untouched); known gaps
       including the baseline-selected Q9 thresholds and the deferred Q3/Q5 measurements. (PRD §45.4)
-- [ ] `cargo test --workspace` not applicable — this ticket touches no Rust. If the ADR selects a
-      Rust-built lexical indexer, add `cargo test --workspace` to this list in the same docs PR that
-      records the ADR.
+- [ ] `cargo test --workspace` **not applicable — recorded decision, not an omission.** ADR 0003
+      selects option (a): the pinned lexical indexer *is* a Rust-built binary, but it is
+      `11-retrieval-engine`'s artifact, built and tested there, and this ticket invokes it across a
+      process boundary over a documented CLI contract. This ticket adds, changes and compiles **no
+      Rust** — `git diff --stat` over its branch touches no `.rs` file, no `Cargo.toml` and no
+      `Cargo.lock` — so `cargo test --workspace` here would re-run another module's suite over an
+      unchanged tree and report nothing about this change. The conditional in the previous wording
+      ("if the ADR selects a Rust-built lexical indexer, add `cargo test --workspace` to this list")
+      is therefore **answered in this docs PR rather than left implicit**: the item stays not
+      applicable, and it becomes applicable on the first ticket in this module that actually edits
+      Rust. The compatibility handshake between the two modules — the CLI contract, the
+      `index_version` string and the `versions.index` values `RETR-01` accepts — is a published
+      cross-module interface per ADR 0003 and is covered by `RETR-01`'s own acceptance list.
 
 ## Test plan
 
@@ -421,7 +441,8 @@ All steps run offline; no network, no cloud credentials, no production keys (dev
    code. Silent divergence is an incomplete ticket.
 2. **Foreseeable frictions, each with its exact writeback target:**
    - *No offline lexical index builder is available under any of the three ADR options* (Q-CRPS-2) →
-     write `docs/adr/NNNN-offline-lexical-index-builder.md` with the finding, then write back to
+     write [`docs/adr/0003-offline-lexical-index-builder.md`](../../../adr/0003-offline-lexical-index-builder.md)
+     with the finding, then write back to
      `docs/prd/breakdown-plan.md` §2.1 (a new ADR-candidate row) and §4.2 (a new contested-path row),
      and add the resulting edge — most likely a `blocked_by` on an `11-retrieval-engine` ticket — to
      `docs/prd/breakdown-plan.md` §5.5 **and** §6.2. Do **not** import `services/search-rs` from this

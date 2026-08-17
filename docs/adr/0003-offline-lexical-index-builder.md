@@ -87,8 +87,14 @@ and `ExternalLexicalIndexBuilder` implements it over this CLI contract:
 <command> --corpus <path to corpus.sqlite> --out <path to the tantivy/ directory>
 ```
 
-- the command **path is an explicit build input** (`--index-command`), never resolved from `PATH`:
-  a release must not silently pick up a different binary from a different machine;
+- the command **path is an explicit build input** (`--index-command`) and **must be absolute**,
+  never resolved from `PATH` or from the working directory: a release must not silently pick up a
+  different binary from a different machine. Absoluteness is what makes that guarantee real rather
+  than intended — a bare name such as `indexer` is resolved against the *current working directory*
+  by the builder's existence check but against `PATH` by `execvp`/`CreateProcess`, so the file that
+  was checked and the binary that ran could be two different programs. A relative path is refused
+  outright (`IndexBuildFailed`), not normalised: the cwd of a release build is not a stated input
+  either;
 - it is invoked with `shell=False` on a fixed argv, with a bounded timeout;
 - a non-zero exit, a timeout, or an unrunnable command raises `IndexBuildFailed`, which the
   assembler converts into a **BLOCKING** gate finding — never a silent empty index;
@@ -97,9 +103,13 @@ and `ExternalLexicalIndexBuilder` implements it over this CLI contract:
 - **the artifact is measured, not taken on trust.** A command that exits `0` and prints a plausible
   version while writing nothing into `--out` has not built an index: the builder raises
   `IndexBuildFailed` when the output directory holds no bytes, and gate 8 independently refuses a
-  `CANDIDATE` whose `IndexBuildResult` reports a version with `file_count == 0` or `byte_size == 0`
-  (`INDEX_ARTIFACT_EMPTY_ON_CANDIDATE`). The process's own account of itself is not evidence, and the
-  port is an extension point — the guarantee has to hold for a builder this module has never seen.
+  `CANDIDATE` whose staged `tantivy/` is empty (`INDEX_ARTIFACT_EMPTY_ON_CANDIDATE`). **The gate
+  measures the directory itself**, not the `file_count`/`byte_size` the builder reported: reading a
+  builder's own report back would leave a third-party implementation free to fabricate a size it
+  never wrote, which is exactly the case the port being an extension point creates. The reported
+  figures are carried into the finding's evidence so a divergence between claim and artifact is
+  visible. The process's own account of itself is not evidence — the guarantee has to hold for a
+  builder this module has never seen.
 
 Alongside it, `NullLexicalIndexBuilder` writes a **declared-absent** index —
 `tantivy/INDEX_STATE.json` = `{"state": "ABSENT", "reason": …, "index_version": null}` — for
@@ -157,8 +167,15 @@ than worked around, and the consequences are made mechanical:
   contents, or `artifacts.lexical_index_sha256` differs between them. `RLSE-11`'s real-scale
   benchmark is the first run that exercises this at size; if the binary proves non-deterministic,
   that is a defect to raise against `11-retrieval-engine`, not a reason to relax the artifact hash.
-- `cargo test --workspace` is **not** added to `CRPS-06`'s acceptance list: this ticket touches no
-  Rust. The binary is `11-retrieval-engine`'s artifact and is covered by that module's Rust tests.
+- `cargo test --workspace` is **not** added to `CRPS-06`'s acceptance list. `CRPS-06`'s own last
+  acceptance item makes the conditional ("if the ADR selects a Rust-built lexical indexer, add
+  `cargo test --workspace` to this list in the same docs PR that records the ADR"), so this ADR does
+  not decide it alone: the answer is written into that item, in the same docs PR, with its reasoning.
+  The reasoning is that the selected binary is `11-retrieval-engine`'s artifact, built and tested
+  there and invoked here across a process boundary, while `CRPS-06` itself adds, changes and compiles
+  no Rust — no `.rs` file, no `Cargo.toml`, no `Cargo.lock` — so the command would re-run another
+  module's suite over an unchanged tree. It becomes applicable on the first ticket in this module
+  that actually edits Rust.
 
 ### Still open
 
