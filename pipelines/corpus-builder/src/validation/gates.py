@@ -38,6 +38,7 @@ import re
 import sqlite3
 from contextlib import closing
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from chunking import DEFAULT_PROFILE, ChunkProfile, NodeVersionInput, SearchChunkDraft, validate_chunks
@@ -1310,6 +1311,31 @@ def gate_manifest_preflight(ctx: BundleContext) -> list[Finding]:
     return findings
 
 
+def _measure_index_directory(ctx: BundleContext) -> tuple[int, int]:
+    """`(file count, byte total)` of the STAGED `tantivy/`, measured from disk.
+
+    Symlinks are excluded exactly as `manifest.build_release_manifest()` excludes them, so a link
+    farm cannot inflate the figure either. When no bundle exists yet — a phase-A context assembled
+    directly by a gate unit test, where `paths` is `None` — the builder's own report is the only
+    thing there is, and it is used; every real build path (`assemble.py`) always supplies `paths`,
+    which is what makes the measurement authoritative where it matters.
+    """
+    paths = getattr(ctx, "paths", None)
+    directory = getattr(paths, "lexical_index_dir", None) if paths is not None else None
+    if directory is None:
+        result = ctx.index_result
+        return int(getattr(result, "file_count", 0)), int(getattr(result, "byte_size", 0))
+    try:
+        files = [
+            path for path in Path(directory).rglob("*") if path.is_file() and not path.is_symlink()
+        ]
+        return len(files), sum(path.stat().st_size for path in files)
+    except OSError:
+        # An unreadable index directory is an empty one for this gate's purposes: it certainly is
+        # not evidence that a usable index was written.
+        return 0, 0
+
+
 def _index_builder_findings(ctx: BundleContext) -> list[Finding]:
     """Deliverable 3: a fixture-grade index can never be published as a candidate.
 
@@ -1322,18 +1348,25 @@ def _index_builder_findings(ctx: BundleContext) -> list[Finding]:
       neither of the first two, and would otherwise publish a candidate whose `tantivy/` is empty and
       unusable. `ExternalLexicalIndexBuilder` already refuses to return such a result, but this gate
       does not take any builder's word for it: the port is an extension point, and deliverable 3's
-      guarantee has to hold for an implementation this module has never seen.
+      guarantee has to hold for an implementation this module has never seen. THE MEASUREMENT IS
+      THEREFORE TAKEN FROM THE STAGED DIRECTORY ITSELF (`paths.lexical_index_dir`), not from the
+      `IndexBuildResult` the builder handed back — a third-party builder that fabricates a non-zero
+      `file_count`/`byte_size` without writing bytes is exactly the failure this check exists to
+      close, and reading its own report back would have left it wide open. The reported figures are
+      still carried into the finding's evidence, so a divergence between claim and artifact is
+      visible to an operator.
     """
     result = ctx.index_result
     if result is None:
         return []
     from build.indexes import NullLexicalIndexBuilder
 
+    measured_files, measured_bytes = _measure_index_directory(ctx)
     if (
         ctx.is_candidate
         and getattr(result, "index_version", None) is not None
         and ctx.index_builder_id != NullLexicalIndexBuilder.builder_id
-        and (int(getattr(result, "file_count", 0)) == 0 or int(getattr(result, "byte_size", 0)) == 0)
+        and (measured_files == 0 or measured_bytes == 0)
     ):
         return [
             _finding(
@@ -1341,13 +1374,15 @@ def _index_builder_findings(ctx: BundleContext) -> list[Finding]:
                 "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE",
                 "BLOCKING",
                 f"this CANDIDATE's lexical index builder ({ctx.index_builder_id}) reported index "
-                f"version {result.index_version!r} but wrote {result.file_count} file(s) totalling "
-                f"{result.byte_size} byte(s). An empty tantivy/ is not a published index "
-                "(deliverable 3)",
+                f"version {result.index_version!r}, but the staged tantivy/ directory holds "
+                f"{measured_files} file(s) totalling {measured_bytes} byte(s) as measured from disk. "
+                "An empty tantivy/ is not a published index (deliverable 3)",
                 "tantivy/",
                 index_builder_id=ctx.index_builder_id,
-                file_count=int(result.file_count),
-                byte_size=int(result.byte_size),
+                file_count=measured_files,
+                byte_size=measured_bytes,
+                reported_file_count=int(getattr(result, "file_count", 0)),
+                reported_byte_size=int(getattr(result, "byte_size", 0)),
             )
         ]
 

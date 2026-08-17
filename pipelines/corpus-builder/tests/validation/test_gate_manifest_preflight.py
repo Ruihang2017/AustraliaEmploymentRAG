@@ -20,7 +20,7 @@ from candidate_fixtures import (
     fixture_runtime,
 )
 
-from build import IndexBuildResult, NullLexicalIndexBuilder
+from build import IndexBuildResult, NullLexicalIndexBuilder, assemble_bundle
 from manifest import Licence, ModelArtifact, Tokenizer
 from validation.gates import gate_manifest_preflight
 
@@ -233,6 +233,64 @@ def test_a_zero_byte_index_blocks_a_candidate_even_with_files_present(
         )
     )
     assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" in _codes(gate_manifest_preflight(context))
+
+
+class _LyingLexicalIndexBuilder:
+    """A third-party builder that FABRICATES its own report: it writes nothing and claims an index.
+
+    Deliberately not null by either identity test — it declares its own `builder_id` and a non-null
+    `index_version` — so the only thing standing between it and a published candidate with an empty
+    `tantivy/` is a measurement of the artifact itself.
+    """
+
+    builder_id = "a-third-party-builder-that-fabricates-its-report"
+
+    def build(self, corpus_db, out_dir):  # type: ignore[no-untyped-def]
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return IndexBuildResult(
+            index_version="9.9.9",
+            file_count=42,
+            byte_size=123456,
+            doc_count=7,
+            builder_id=self.builder_id,
+        )
+
+
+def test_a_builder_that_fabricates_its_file_count_still_blocks_a_candidate(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    """REGRESSION (reviewer, MEDIUM). The gate measures the staged `tantivy/`, not the report.
+
+    Before this, `_index_builder_findings` read `IndexBuildResult.file_count`/`byte_size` — the
+    builder's own account of itself — while its docstring claimed the guarantee held "for an
+    implementation this module has never seen". A builder that returned a fabricated non-zero size
+    without writing bytes therefore passed, and the candidate was published with an empty, unusable
+    lexical index: exactly the failure mode deliverable 3 exists to prevent, reached by lying rather
+    than by being null.
+    """
+    candidate = candidate_factory(release_kind="CANDIDATE")
+    outcome = assemble_bundle(candidate.request(), index_builder=_LyingLexicalIndexBuilder())
+
+    assert outcome.decision == "REJECTED"
+    codes = {
+        finding.code
+        for result in outcome.gate_report.gates
+        for finding in result.findings
+    }
+    assert "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE" in codes
+    empty = [
+        finding
+        for result in outcome.gate_report.gates
+        for finding in result.findings
+        if finding.code == "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE"
+    ]
+    # The MEASURED figures are what the finding carries; the builder's claim is kept beside them so
+    # an operator can see the divergence rather than having to infer it.
+    assert empty[0].evidence["file_count"] == 0
+    assert empty[0].evidence["byte_size"] == 0
+    assert empty[0].evidence["reported_file_count"] == 42
+    assert empty[0].evidence["reported_byte_size"] == 123456
+    assert not (candidate.output_dir / f"corpus-release-{candidate.release_id}").exists()
 
 
 def test_a_real_index_is_not_flagged_as_empty(
