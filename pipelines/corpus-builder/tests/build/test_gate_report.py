@@ -131,6 +131,43 @@ def test_a_finding_s_evidence_is_capped_and_carries_no_document_text() -> None:
     assert finding.evidence["excerpt"].endswith("[truncated]")
 
 
+def test_a_failed_publish_never_leaves_a_built_report_behind(
+    candidate_factory: Callable[..., Candidate], monkeypatch
+) -> None:
+    """REGRESSION (reviewer, MEDIUM). A `decision: BUILT` report must not outlive a failed rename.
+
+    The report was previously written BEFORE the terminal `os.replace`, so a crash, a kill or a
+    permission/disk failure in that window left an on-disk report claiming BUILT while no bundle
+    existed at the final path — misleading precisely the operator or automated verifier the report
+    exists to inform. The move now happens first, and a failed move is a REJECTED build with a
+    stated `BUNDLE_PUBLISH_FAILED` reason.
+    """
+    candidate = candidate_factory()
+
+    original = Path.replace
+
+    def failing_replace(self: Path, target):  # type: ignore[no-untyped-def]
+        # ONLY the terminal publication move: the final path is `corpus-release-<release_id>`.
+        if Path(target).name.startswith("corpus-release-"):
+            raise PermissionError("the final path could not be written")
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", failing_replace)
+    outcome = assemble_bundle(candidate.request(), index_builder=candidate.index_builder())
+    monkeypatch.undo()
+
+    assert outcome.decision == "REJECTED"
+    document = json.loads(outcome.gate_report_path.read_text(encoding="utf-8"))
+    assert document["decision"] == "REJECTED"
+    codes = {
+        finding["code"]
+        for gate in document["gates"]
+        for finding in gate["findings"]
+    }
+    assert "BUNDLE_PUBLISH_FAILED" in codes
+    assert not (candidate.output_dir / f"corpus-release-{candidate.release_id}").exists()
+
+
 def test_the_written_report_is_deterministic_json(
     candidate_factory: Callable[..., Candidate]
 ) -> None:

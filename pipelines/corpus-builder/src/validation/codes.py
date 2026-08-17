@@ -131,6 +131,10 @@ OWN_GATE_CODES: Final[frozenset[str]] = frozenset(
         # null by either of the two identity tests, so the artifact itself is measured as well.
         "INDEX_ARTIFACT_EMPTY_ON_CANDIDATE",
         "INDEX_BUILDER_FAILED",
+        # Every gate passed but the staged bundle could not be moved into the final output path.
+        # The build is REJECTED, never BUILT: a `decision: BUILT` report must only ever exist once
+        # the bundle it describes does.
+        "BUNDLE_PUBLISH_FAILED",
     }
 )
 

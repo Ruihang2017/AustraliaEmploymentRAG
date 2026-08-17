@@ -15,6 +15,10 @@ Deliverable 11 fixes the order, and this is it, literally:
     6. gates, phase B: verify_bundle() over the staged bundle
     7. any BLOCKING finding -> REJECTED, exactly as step 4
     8. os.replace(staging bundle, final path)  <- THE ONLY MOVE, after the last gate
+    9. write the gate report and the release diff, OUTSIDE the bundle — after the move, so a
+       `decision: BUILT` report can only exist once the bundle it describes does. A rename that
+       fails is a REJECTED build carrying `BUNDLE_PUBLISH_FAILED`, never a BUILT one with nothing
+       behind it.
 
 There is no window in which a partially built or ungated bundle exists at the final path, because
 the final path is created by one directory rename that happens after everything else. A reviewer can
@@ -380,7 +384,47 @@ def assemble_bundle(request: BuildRequest, *, index_builder: Any | None = None) 
             index_result,
         )
 
+    # MEASURED BEFORE THE MOVE, because the sizes are read from the staged paths; the rename does
+    # not change a single byte, so the figures describe the published bundle exactly.
     measurements = measure(paths, started_monotonic=started_monotonic)
+
+    # THE ONLY MOVE. After the last gate, and BEFORE the reports are written.
+    #
+    # THE REPORT IS WRITTEN LAST ON PURPOSE. A `decision: BUILT` report is an operator's evidence
+    # that a bundle exists at the final path, and writing it first opened a window — however narrow
+    # — in which a crash, a kill or a permission/disk failure during the rename left a report
+    # claiming BUILT with no bundle anywhere. An operator or an automated verifier that trusts the
+    # report over the filesystem would then act on a release that was never published. Ordering the
+    # move first means a BUILT report only ever exists once the thing it describes does. The reports
+    # are siblings of the bundle, so writing them still cannot change any hash the manifest recorded.
+    try:
+        paths.final_dir.parent.mkdir(parents=True, exist_ok=True)
+        paths.bundle_dir.replace(paths.final_dir)
+    except OSError as error:
+        # The publication itself failed. Nothing is at the final path (`os.replace` onto a directory
+        # is all-or-nothing, and a pre-existing final path was refused before any work began), so
+        # this is a REJECTED build with a stated reason — never a BUILT one.
+        failure = Finding(
+            gate="manifest",
+            code="BUNDLE_PUBLISH_FAILED",
+            severity="BLOCKING",
+            message=(
+                f"every gate passed but the staged bundle could not be moved into the final output "
+                f"path: {type(error).__name__}. Nothing was published"
+            ),
+            subject="bundle",
+            evidence={"error_type": type(error).__name__},
+        )
+        merged_phase_b: dict[str, list[Finding]] = {
+            gate: list(findings) for gate, findings in phase_b.items()
+        }
+        merged_phase_b.setdefault("manifest", []).append(failure)
+        return _reject(
+            request, paths, phase_a, merged_phase_b, diff, started_at, started_monotonic, builder,
+            index_result,
+        )
+    _remove_staging_root(paths)
+
     report = GateReport(
         release_id=request.release_id,
         release_kind=request.release_kind,
@@ -395,12 +439,6 @@ def assemble_bundle(request: BuildRequest, *, index_builder: Any | None = None) 
     )
     write_gate_report(report, paths.gate_report)
     write_release_diff(diff, paths.release_diff)
-
-    # THE ONLY MOVE. After the last gate, and after the reports — which are siblings of the bundle,
-    # so writing them cannot change any hash the manifest recorded.
-    paths.final_dir.parent.mkdir(parents=True, exist_ok=True)
-    paths.bundle_dir.replace(paths.final_dir)
-    _remove_staging_root(paths)
 
     return BuildOutcome(
         decision="BUILT",
