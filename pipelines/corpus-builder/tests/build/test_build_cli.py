@@ -116,6 +116,31 @@ def test_missing_pins_are_refused_before_any_work_happens(
     assert not candidate.output_dir.exists()
 
 
+def test_a_traversing_release_id_is_refused_and_touches_nothing_outside_out(
+    candidate_factory: Callable[..., Candidate], capsys
+) -> None:
+    """REGRESSION (reviewer, CRITICAL). `--release-id` is the CLI's unvalidated trust boundary.
+
+    A traversing id must be refused BEFORE any staging happens: it addresses both the final rename
+    target and the `rmtree` target of a rejected build, so accepting one would let a release be
+    written outside `--out`, or an unrelated directory be deleted.
+    """
+    candidate = candidate_factory()
+    files = _write_inputs(candidate)
+    outsider = candidate.root / "outside"
+    outsider.mkdir()
+    (outsider / "precious.txt").write_text("not this build's to touch", encoding="utf-8")
+
+    argv = _argv(candidate, files, "--evaluation-report", str(candidate.evaluation_report_path))
+    argv[argv.index(candidate.release_id)] = "../outside"
+
+    code = main(argv)
+    assert code == EXIT_INTERNAL_ERROR
+    assert "release_id" in capsys.readouterr().err
+    assert (outsider / "precious.txt").read_text(encoding="utf-8") == "not this build's to touch"
+    assert not (candidate.root / "corpus-release-../outside").exists()
+
+
 def test_a_pre_existing_final_path_is_an_internal_error_not_an_overwrite(
     candidate_factory: Callable[..., Candidate], capsys
 ) -> None:

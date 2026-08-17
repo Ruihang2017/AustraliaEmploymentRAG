@@ -28,6 +28,7 @@ unavoidable for deliverables 2, 8 and 10, and are reported as a ticket-wording w
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -43,11 +44,33 @@ from manifest import (
 from validation.anomalies import AnomalyThresholds
 
 __all__ = [
+    "RELEASE_ID_PATTERN",
     "BuildRequest",
     "InvalidBuildRequest",
     "load_model_pins",
     "load_runtime_pin",
 ]
+
+#: `release_id` IS A PATH COMPONENT, so it is validated as one before anything joins it to a
+#: directory. `output_dir / f"corpus-release-{release_id}"` and `output_dir / ".staging" /
+#: release_id` are both built from it, and one of those paths is the target of a `shutil.rmtree()`
+#: on a rejected build: an unvalidated value like `../../../evil` would place a release bundle
+#: OUTSIDE `--out`, or delete a directory the operator never named. `--release-id` is an
+#: unauthenticated string from the command line — the module's one genuine trust boundary — and
+#: PRD §12.2's "a failed release MUST NOT modify active production data" is only true if that string
+#: cannot address anything outside `output_dir`.
+#:
+#: The rule is therefore a WHITELIST, not a blacklist of traversal spellings: an id must start and
+#: end with an alphanumeric and may otherwise contain only `A-Za-z0-9._-`. No `/`, no `\`, no NUL, no
+#: drive letter (`:`), no leading dot, no whitespace, and `..` cannot be a whole component because a
+#: component must begin with an alphanumeric. `_` and `-` are in the set because the release ids this
+#: repository already uses need them (`rel-0001`, `cr_0199abcd`). The manifest schema types
+#: `release_id` as a non-empty string and imposes no pattern, so this constraint is this module's own
+#: and is stated here rather than assumed from CRPS-02.
+#:
+#: `\A`/`\Z` rather than `^`/`$` deliberately: `$` also matches immediately BEFORE a trailing
+#: newline, so `"rel-0001\n"` would pass a `^…$` pattern and then be used as a path component.
+RELEASE_ID_PATTERN = re.compile(r"\A[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?\Z")
 
 
 class InvalidBuildRequest(ValueError):
@@ -99,6 +122,14 @@ class BuildRequest:
                 "release_id is required: it names the output directory and the manifest, and this "
                 "module never invents one, derives one from a clock or defaults one"
             )
+        if not isinstance(self.release_id, str) or not RELEASE_ID_PATTERN.match(self.release_id):
+            raise InvalidBuildRequest(
+                f"release_id {self.release_id!r} is not a safe path component. It must match "
+                f"{RELEASE_ID_PATTERN.pattern} — it is joined onto output_dir to form both the "
+                "release bundle path and the staging path that a rejected build deletes, so a "
+                "separator, a drive letter or a `..` segment in it would let a build write, or "
+                "delete, outside --out (PRD §12.2: a failed release must not modify anything else)"
+            )
         for name in (
             "corpus_db_path",
             "embedding_dir",
@@ -122,6 +153,26 @@ class BuildRequest:
             raise InvalidBuildRequest(
                 "signing_key_path and signing_key_id must be supplied together"
             )
+        self._assert_paths_contained()
+
+    def _assert_paths_contained(self) -> None:
+        """Belt and braces over `RELEASE_ID_PATTERN`: BOTH derived paths must resolve inside
+        `output_dir`.
+
+        The pattern is what actually prevents traversal; this re-checks the RESULT rather than the
+        input, so that a future change to `bundle_name`, to `staging_dir` or to the pattern itself
+        cannot reintroduce an escape without failing here. It is deliberately a request-construction
+        error and not a gate finding: nothing about a corpus is being judged, and a build that cannot
+        name a safe output path must never reach the staging step at all.
+        """
+        root = self.output_dir.resolve()
+        for name, candidate in (("final_dir", self.final_dir), ("staging_dir", self.staging_dir)):
+            resolved = candidate.resolve()
+            if resolved != root and root not in resolved.parents:
+                raise InvalidBuildRequest(
+                    f"{name} would resolve to {resolved}, which is outside output_dir {root}. "
+                    "A release build never writes to, or deletes, anything outside --out"
+                )
 
     @property
     def signing_requested(self) -> bool:

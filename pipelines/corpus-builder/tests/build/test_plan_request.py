@@ -61,6 +61,61 @@ def test_release_id_is_never_defaulted() -> None:
         _request(release_id="")
 
 
+@pytest.mark.parametrize(
+    "release_id",
+    [
+        "../../../../evil",
+        "..",
+        "../sibling",
+        "..\\sibling",
+        "a/b",
+        "a\\b",
+        "C:evil",
+        "/absolute",
+        ".hidden",
+        "rel 0001",
+        "rel-0001/",
+        "rel\x00-0001",
+        "rel-0001\n",
+        "-leading-dash",
+        "trailing-dot.",
+        "x" * 200,
+    ],
+)
+def test_release_id_may_not_escape_the_output_directory(release_id: str) -> None:
+    """REGRESSION (reviewer, CRITICAL). `release_id` is joined onto `output_dir` to form BOTH the
+    final bundle path and the staging path that a rejected build `rmtree`s, so a traversing id could
+    write a release outside `--out` or delete a directory the operator never named."""
+    with pytest.raises(InvalidBuildRequest):
+        _request(release_id=release_id)
+
+
+@pytest.mark.parametrize("release_id", ["rel-0001", "cr_0199abcd", "20260817T101112Z", "a", "1.2.3"])
+def test_release_id_accepts_the_shapes_this_repository_uses(release_id: str) -> None:
+    request = _request(release_id=release_id)
+    assert request.bundle_name == f"corpus-release-{release_id}"
+
+
+def test_traversing_release_id_would_have_escaped_before_the_pattern_existed(
+    tmp_path: Path,
+) -> None:
+    """The concrete exploit the reviewer reproduced, asserted as an exploit rather than as a regex.
+
+    `Path(out) / 'corpus-release-../../../../evil'` resolves far outside `out`; the request must
+    refuse it, and the containment assertion must agree that the accepted ids stay inside.
+    """
+    escaped = (tmp_path / "out" / "corpus-release-../../../../evil").resolve()
+    root = (tmp_path / "out").resolve()
+    assert root not in escaped.parents  # the traversal is real, not hypothetical
+
+    with pytest.raises(InvalidBuildRequest):
+        _request(output_dir=tmp_path / "out", release_id="../../../../evil")
+
+    safe = _request(output_dir=tmp_path / "out", release_id="rel-0001")
+    assert root in safe.final_dir.resolve().parents
+    assert root in safe.staging_dir.resolve().parents
+
+
 def test_absent_pins_are_not_an_exception() -> None:
     """A CANDIDATE with no pins at all is constructible: it is a GATE rejection, not a TypeError.
 
