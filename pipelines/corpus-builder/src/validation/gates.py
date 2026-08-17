@@ -734,8 +734,11 @@ def gate_citation(ctx: BundleContext) -> list[Finding]:
                 )
 
     report = ctx.evaluation_report
+    # A `Decimal`, because the metric arrives as a decimal string and may be fractional. The test is
+    # `!= 0` rather than `> 0`: a negative count is nonsense for a count and is reported rather than
+    # read as "none". Carried into the evidence as a STRING so the gate report stays plain JSON.
     broken = getattr(report, "broken_gold_citations", 0) if report is not None else 0
-    if broken:
+    if broken != 0:
         findings.append(
             _finding(
                 "citation",
@@ -744,7 +747,7 @@ def gate_citation(ctx: BundleContext) -> list[Finding]:
                 f"the evaluation report records {broken} broken gold citation(s); PRD §40.9 makes a "
                 "broken gold citation a blocking class",
                 "evaluation_report.metrics.broken_gold_citations",
-                broken_gold_citations=broken,
+                broken_gold_citations=str(broken),
             )
         )
     return findings

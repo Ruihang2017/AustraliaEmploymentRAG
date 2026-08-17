@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -64,17 +65,28 @@ class EvaluationReport:
         return tuple(gate for gate in self.gates if not gate.passed)
 
     @property
-    def broken_gold_citations(self) -> int:
+    def broken_gold_citations(self) -> Decimal:
         """PRD §40.9's "broken gold citation" count, when the harness reports one.
 
         Read from the `broken_gold_citations` metric because the minimal contract has no dedicated
         member for it. Absent means "the harness did not report it", which is not zero — the citation
-        gate treats a positive count as BLOCKING and an absent one as simply unreported.
+        gate treats a non-zero count as BLOCKING and an absent one as simply unreported.
+
+        `Decimal`, NOT `int(float(raw))`. Every metric in this contract is a DECIMAL STRING, so the
+        value may legitimately be fractional (a rate, or a harness that reports a weighted count).
+        `int(float("0.5"))` is `0`, which is falsy, which silently turned "the harness found broken
+        gold citations" into "it did not" — the exact BLOCKING finding PRD §40.9 requires would never
+        have been emitted. `Decimal` also avoids binary-float rounding on a value that arrived as
+        text and is compared against zero. A NEGATIVE value is nonsense for a count and is therefore
+        also reported rather than treated as "none": the gate's test is `!= 0`, not `> 0`.
         """
         raw = self.metrics.get("broken_gold_citations")
         if raw is None or not _DECIMAL.match(raw):
-            return 0
-        return int(float(raw))
+            return Decimal(0)
+        try:
+            return Decimal(raw)
+        except InvalidOperation:  # pragma: no cover — `_DECIMAL` already constrains the shape
+            return Decimal(0)
 
 
 def _malformed(message: str, subject: str) -> Finding:

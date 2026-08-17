@@ -103,3 +103,21 @@ def test_broken_gold_citations_metric_is_read_when_present(tmp_path: Path) -> No
 def test_an_absent_broken_gold_metric_reads_as_unreported(tmp_path: Path) -> None:
     report, _ = load_evaluation_report(_write(tmp_path, _GOOD))
     assert report is not None and report.broken_gold_citations == 0
+
+
+def test_a_fractional_broken_gold_metric_is_not_truncated_to_zero(tmp_path: Path) -> None:
+    """REGRESSION (reviewer, MEDIUM). Metrics are decimal strings; `int(float("0.5"))` is `0`.
+
+    Truncation made a reported-positive count read as unreported, and the citation gate's BLOCKING
+    test is on that value.
+    """
+    from decimal import Decimal
+
+    document = json.loads(json.dumps(_GOOD))
+    document["metrics"]["broken_gold_citations"] = "0.5"
+    report, findings = load_evaluation_report(_write(tmp_path, document))
+    assert findings == []
+    assert report is not None
+    assert report.broken_gold_citations == Decimal("0.5")
+    assert report.broken_gold_citations != 0
+    assert bool(report.broken_gold_citations) is True

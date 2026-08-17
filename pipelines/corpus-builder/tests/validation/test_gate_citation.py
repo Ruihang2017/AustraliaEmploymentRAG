@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+import pytest
 from candidate_fixtures import TS, Candidate
 
 from validation.gates import gate_citation
@@ -137,4 +138,49 @@ def test_a_broken_gold_citation_from_the_evaluation_report_blocks(
     findings = gate_citation(context)
     broken = [finding for finding in findings if finding.code == "CITATION_GOLD_BROKEN"]
     assert broken and broken[0].severity == "BLOCKING"
-    assert broken[0].evidence["broken_gold_citations"] == 2
+    assert broken[0].evidence["broken_gold_citations"] == "2"
+
+
+@pytest.mark.parametrize("reported", ["0.5", "0.001", "-1", "2.5"])
+def test_a_fractional_broken_gold_citation_count_still_blocks(
+    candidate_factory: Callable[..., Candidate], reported: str
+) -> None:
+    """REGRESSION (reviewer, MEDIUM). The metric is a DECIMAL STRING and may be fractional.
+
+    `int(float("0.5"))` is `0`, which is falsy, so a positive-but-fractional count silently failed to
+    raise the BLOCKING `CITATION_GOLD_BROKEN` finding PRD §40.9 requires. A negative value is nonsense
+    for a count and is reported rather than read as "none".
+    """
+    from validation.evaluation_report import EvaluationReport
+
+    context = candidate_factory().phase_a_context(
+        evaluation_report=EvaluationReport(
+            report_id="eval-1",
+            ran_at=TS,
+            metrics={"broken_gold_citations": reported},
+            gates=(),
+        )
+    )
+    broken = [
+        finding for finding in gate_citation(context) if finding.code == "CITATION_GOLD_BROKEN"
+    ]
+    assert broken and broken[0].severity == "BLOCKING"
+    assert broken[0].evidence["broken_gold_citations"] == reported
+
+
+def test_a_zero_broken_gold_citation_count_does_not_block(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    from validation.evaluation_report import EvaluationReport
+
+    context = candidate_factory().phase_a_context(
+        evaluation_report=EvaluationReport(
+            report_id="eval-1",
+            ran_at=TS,
+            metrics={"broken_gold_citations": "0.0"},
+            gates=(),
+        )
+    )
+    assert not [
+        finding for finding in gate_citation(context) if finding.code == "CITATION_GOLD_BROKEN"
+    ]
