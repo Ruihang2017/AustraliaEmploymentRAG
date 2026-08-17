@@ -130,8 +130,17 @@ class _Document:
     versions: Mapping[str, tuple[str, str, str | None, str | None]]
     #: `(stable_node_key, version_label) -> (node_version row id, text_hash)`
     node_texts: Mapping[tuple[str, str], tuple[str, str]]
-    #: relation fingerprints, natural-keyed so two builds are comparable
-    relations: frozenset[tuple[str, str, str]]
+    #: Relation fingerprints, natural-keyed so two builds are comparable:
+    #: `(from stable_node_key, relation_type, to source_id, to stable_source_key, to
+    #: stable_node_key)`. THE TARGET'S DOCUMENT IS PART OF THE KEY. `stable_node_key` is unique only
+    #: within its document (`document_node` carries a UNIQUE index on
+    #: `(document_id, stable_node_key)`, not on the key alone), so a fingerprint that named only the
+    #: target node key could not tell "s14 of the Act" from "s14 of the Regulation": retargeting a
+    #: relation between two documents whose nodes happen to share a key string would produce an
+    #: identical fingerprint on both sides and `RELATION_CHANGED` would never be emitted — a silent
+    #: hole in the corpus-side change signal `WTCH-02` consumes. The target document is identified by
+    #: its NATURAL key, never by its row id, which differs between builds.
+    relations: frozenset[tuple[str, str, str, str, str]]
 
 
 def _read_side(connection: sqlite3.Connection) -> dict[tuple[str, str], _Document]:
@@ -177,17 +186,21 @@ def _read_side(connection: sqlite3.Connection) -> dict[tuple[str, str], _Documen
 
     for row in connection.execute(
         "SELECT dn_from.document_id, dn_from.stable_node_key, r.relation_type,"
-        " dn_to.stable_node_key FROM node_relation r"
+        " ld_to.source_id, ld_to.stable_source_key, dn_to.stable_node_key FROM node_relation r"
         " JOIN node_version nv_from ON nv_from.id = r.from_node_version_id"
         " JOIN document_node dn_from ON dn_from.id = nv_from.document_node_id"
         " JOIN node_version nv_to ON nv_to.id = r.to_node_version_id"
         " JOIN document_node dn_to ON dn_to.id = nv_to.document_node_id"
+        " JOIN legal_document ld_to ON ld_to.id = dn_to.document_id"
         " ORDER BY r.id"
     ).fetchall():
         entry = by_row_id.get(str(row[0]))
         if entry is None:
             continue
-        entry["relations"].add((str(row[1]), str(row[2]), str(row[3])))
+        # The TARGET DOCUMENT's natural key is part of the fingerprint — see `_Document.relations`.
+        entry["relations"].add(
+            (str(row[1]), str(row[2]), str(row[3]), str(row[4]), str(row[5]))
+        )
 
     return {
         key: _Document(
