@@ -264,7 +264,6 @@ describe('crossTenantElevatedContext (PRD §21.2 break-glass)', () => {
       unhandled.push(reason);
     };
     process.on('unhandledRejection', onUnhandledRejection);
-    // eslint-disable-next-line @typescript-eslint/require-await -- reproducing an async sink deliberately
     setTenantAuditSink(async (event) => {
       if (event.event === 'CROSS_TENANT_ELEVATION_GRANTED') {
         throw new Error('audit store down');
