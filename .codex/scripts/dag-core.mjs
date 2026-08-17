@@ -11,7 +11,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const fmOf = (text) => (text.replace(/^﻿/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || ''
+// the \uFEFF below strips a BOM (PowerShell 5.1 utf8 writes one); keep it as an escape, not a literal
+const fmOf = (text) => (text.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || ''
 const field = (fm, name) => ((fm.match(new RegExp(`^${name}\\s*:\\s*(.+)$`, 'm')) || [])[1] || '').trim()
 const listField = (fm, name) =>
   field(fm, name)
@@ -38,7 +39,7 @@ export function buildGraph(root) {
   for (const d of dirs) {
     const tdir = join(root, d, 'tickets')
     let ok = false
-    try { ok = statSync(tdir).isDirectory() } catch {}
+    try { ok = statSync(tdir).isDirectory() } catch { /* no tickets/ subdirectory in this module dir: ok stays false and the next line skips the module */ }
     if (!ok) continue
     const tickets = []
     for (const f of readdirSync(tdir).filter((n) => n.endsWith('.md')).sort()) {

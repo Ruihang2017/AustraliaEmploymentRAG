@@ -97,7 +97,8 @@ function scanModules(dir) {
     const tickets = []
     if (existsSync(tdir)) {
       for (const f of readdirSync(tdir).filter((n) => n.endsWith('.md')).sort()) {
-        const text = readFileSync(join(tdir, f), 'utf8').replace(/^﻿/, '')
+        // strip BOM (PowerShell 5.1 utf8 writes one); keep it as an escape, not a literal
+        const text = readFileSync(join(tdir, f), 'utf8').replace(/^\uFEFF/, '')
         const fm = (text.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || ''
         const idm = fm.match(/^id\s*:\s*(.+)$/m)
         if (idm) tickets.push(stripQuotes(idm[1]))
