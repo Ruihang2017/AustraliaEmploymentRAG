@@ -826,15 +826,26 @@ def gate_licensing(ctx: BundleContext) -> list[Finding]:
                     )
                 )
 
+        # DELIVERABLE 4.1 STATES TWO INDEPENDENT CONDITIONS — an excluded chunk must not be "present
+        # in the vector index" and must not be "marked lexically eligible" — so they are evaluated
+        # over TWO DIFFERENT ROW SETS and this query must not scope both to the embedded ones. A
+        # LEFT JOIN keeps every `search_chunk` row: a licensing-excluded chunk that was never
+        # dense-embedded has no `chunk_embedding` row at all, and an inner join would simply never
+        # visit it — the lexical condition would then pass with zero findings on exactly the corpus
+        # it exists to refuse. `embedded` is the count of embedding rows, so the dense condition
+        # still applies only where one exists.
         for row in connection.execute(
-            "SELECT c.id, c.index_tier FROM search_chunk c"
-            " JOIN chunk_embedding e ON e.search_chunk_id = c.id ORDER BY c.id"
+            "SELECT c.id, c.index_tier, COUNT(e.search_chunk_id) FROM search_chunk c"
+            " LEFT JOIN chunk_embedding e ON e.search_chunk_id = c.id"
+            " GROUP BY c.id, c.index_tier ORDER BY c.id"
         ).fetchall():
-            chunk_id, tier = str(row[0]), row[1]
+            chunk_id, tier, embedded = str(row[0]), row[1], int(row[2])
             if tier is None or str(tier) not in tiers:
+                # An unknown tier is already BLOCKING above (`LICENSING_TIER_UNKNOWN`); it is not
+                # graded twice, and it is never read as permitted.
                 continue
             # The predicate is CRPS-04's and is never re-implemented here.
-            if not is_eligible_for_dense(IndexTier(str(tier))):
+            if embedded and not is_eligible_for_dense(IndexTier(str(tier))):
                 findings.append(
                     _finding(
                         "licensing",

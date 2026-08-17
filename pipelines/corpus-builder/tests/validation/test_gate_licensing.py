@@ -88,6 +88,36 @@ def test_an_excluded_licensing_chunk_may_not_be_embedded(
     )
 
 
+def test_an_excluded_chunk_that_was_never_embedded_still_blocks_lexically(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    """REGRESSION (reviewer, HIGH). Deliverable 4.1 states TWO independent conditions.
+
+    A licensing-excluded chunk with NO `chunk_embedding` row is invisible to the dense condition and
+    must still fail the lexical one. The gate previously evaluated both over an inner join to
+    `chunk_embedding`, so this corpus — the cheapest one to produce, since not every chunk is
+    embedded — passed with zero findings.
+    """
+
+    def tampered(connection) -> None:  # type: ignore[no-untyped-def]
+        connection.execute(
+            "DELETE FROM chunk_embedding WHERE search_chunk_id IN"
+            " (SELECT id FROM search_chunk WHERE node_version_id = 'nv_case_1')"
+        )
+        connection.execute(
+            "UPDATE search_chunk SET index_tier = 'EXCLUDED_LICENSING'"
+            " WHERE node_version_id = 'nv_case_1'"
+        )
+
+    context = candidate_factory(customise=tampered).phase_a_context()
+    findings = gate_licensing(context)
+    lexical = [finding for finding in findings if finding.code == "LICENSING_EXCLUDED_CHUNK_LEXICAL"]
+    assert lexical, "an unembedded excluded chunk must still fail the lexical condition"
+    assert all(finding.severity == "BLOCKING" for finding in lexical)
+    # And the dense condition is NOT raised for it: there is no embedding row to object to.
+    assert "LICENSING_EXCLUDED_CHUNK_EMBEDDED" not in _codes(findings)
+
+
 def test_an_unassigned_tier_is_never_read_as_permitted(
     candidate_factory: Callable[..., Candidate]
 ) -> None:
