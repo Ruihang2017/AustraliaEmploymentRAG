@@ -414,7 +414,7 @@ let driftedClosed = 0
 
 for (const f of readdirSync(ticketsDir).filter((n) => n.endsWith('.md')).sort()) {
   const path = join(ticketsDir, f).replaceAll('\\', '/')
-  const text = readFileSync(path, 'utf8').replace(/^﻿/, '') // strip BOM (PowerShell 5.1 utf8 writes one)
+  const text = readFileSync(path, 'utf8').replace(/^\uFEFF/, '') // strip BOM (PowerShell 5.1 utf8 writes one)
   const fmMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
   if (!fmMatch) {
     console.log(`  skip (no frontmatter): ${path}`)
