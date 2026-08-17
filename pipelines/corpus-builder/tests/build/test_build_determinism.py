@@ -3,6 +3,12 @@
 `manifest_sha256` is deliberately NOT compared: it covers `build_started_at`, `build_finished_at`
 and `created_at`, so a second build differs there by construction. `artifacts.*` is what determinism
 means for a bundle's CONTENT.
+
+THIS MODULE IS A SELF-CONSISTENCY CHECK AND NOTHING MORE. It compares two freshly generated
+candidates against each other, so a regression in how EVERY manifest is assembled keeps both sides
+equal and passes here. The ticket's `[fixture]` acceptance item — a build over the COMMITTED small
+corpus fixture whose manifest reproduces RECORDED GOLDEN VALUES — is
+`test_golden_small_corpus_build.py`, and that is the one that would catch it.
 """
 
 from __future__ import annotations

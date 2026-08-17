@@ -1,0 +1,16 @@
+{
+  "gates": [
+    {
+      "name": "recall_at_10",
+      "observed": "0.87",
+      "passed": true,
+      "threshold": "0.80"
+    }
+  ],
+  "metrics": {
+    "broken_gold_citations": "0",
+    "recall_at_10": "0.87"
+  },
+  "ran_at": "2026-01-01T00:00:00Z",
+  "report_id": "eval-0001"
+}
