@@ -10,10 +10,11 @@ import json
 from pathlib import Path
 from typing import Callable
 
+import pytest
 from candidate_fixtures import Candidate
 from candidate_paths import SRC  # noqa: F401
 
-from build import NullLexicalIndexBuilder, assemble_bundle
+from build import NullLexicalIndexBuilder, StagingNotEmpty, assemble_bundle
 
 
 def _sha256(path: Path) -> str:
@@ -53,6 +54,29 @@ def test_a_rejected_build_still_writes_its_evidence(
         for finding in entry["findings"]
     )
     assert outcome.release_diff_path.is_file()
+
+
+def test_a_second_build_of_one_release_id_collides_instead_of_interleaving(
+    candidate_factory: Callable[..., Candidate]
+) -> None:
+    """REGRESSION (reviewer, MEDIUM). The staging directory is claimed by an atomic exclusive
+    `mkdir`, so the loser of a same-release-id race fails rather than writing into the winner's
+    bundle. An EMPTY staging bundle directory is exactly the state the winner is in a moment after
+    claiming it, so it must collide too — the old `exists() and any(iterdir())` check let that case
+    through and left a TOCTOU window in which both builds proceeded.
+    """
+    candidate = candidate_factory()
+    request = candidate.request()
+    # Stand in for the racer that won the claim: the directory exists and is still empty.
+    claimed = request.staging_dir / request.bundle_name
+    claimed.mkdir(parents=True)
+
+    with pytest.raises(StagingNotEmpty):
+        assemble_bundle(request, index_builder=candidate.index_builder())
+
+    # Nothing of this build's was written into the other build's staging directory.
+    assert list(claimed.iterdir()) == []
+    assert not request.final_dir.exists()
 
 
 def test_a_candidate_built_with_the_null_index_builder_is_rejected(

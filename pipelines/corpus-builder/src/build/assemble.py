@@ -107,10 +107,13 @@ class FinalPathExists(RuntimeError):
 
 
 class StagingNotEmpty(RuntimeError):
-    """A staging directory for this release id already holds files.
+    """A staging directory for this release id already exists.
 
-    Two builds of the same release id collide loudly rather than interleaving. A leftover file would
-    also be reported as `BUNDLE_FILE_UNLISTED` by the bundle's own verifier.
+    Two builds of the same release id collide loudly rather than interleaving — the directory is
+    claimed by an atomic exclusive `mkdir`, so the loser of a race fails here rather than writing
+    into the winner's bundle. EXISTENCE is the collision, not non-emptiness: an empty directory is
+    exactly what the winner of a race has a moment after claiming it. A leftover file would also be
+    reported as `BUNDLE_FILE_UNLISTED` by the bundle's own verifier.
     """
 
 
@@ -162,12 +165,30 @@ def stage_bundle(request: BuildRequest, *, index_builder: Any) -> tuple[BundlePa
             f"refusing to build: {paths.final_dir} already exists. An existing release is never "
             "overwritten, merged into or deleted by this build (PRD §35.8 invariant 8)"
         )
-    if paths.bundle_dir.exists() and any(paths.bundle_dir.iterdir()):
+    # THE STAGING DIRECTORY IS CLAIMED BY AN ATOMIC EXCLUSIVE CREATE, not by looking first and
+    # creating afterwards. `mkdir(exist_ok=False)` is a single filesystem operation that either
+    # creates the directory or fails with `FileExistsError`, so two builds of the same release id —
+    # a retried CI job racing its predecessor, say — cannot both conclude the path is free and then
+    # interleave their writes into one bundle. That is what "collide loudly" has to mean: an
+    # `exists()` check followed by `exist_ok=True` is a TOCTOU window, and the loser of the race
+    # would silently corrupt the winner's bundle instead of failing.
+    #
+    # The claim is on the BUNDLE directory (`.staging/<release_id>/corpus-release-<release_id>`), so
+    # it doubles as the lock: `.staging/<release_id>/` itself may be created by either racer.
+    paths.staging_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        paths.bundle_dir.mkdir(exist_ok=False)
+    except FileExistsError as error:
         raise StagingNotEmpty(
-            f"refusing to stage into a non-empty directory: {paths.bundle_dir}. Any leftover file "
-            "would be reported as BUNDLE_FILE_UNLISTED by verify_bundle()"
-        )
-    paths.bundle_dir.mkdir(parents=True, exist_ok=True)
+            f"refusing to stage into {paths.bundle_dir}: it already exists. Either another build of "
+            f"release {request.release_id!r} is running, or a previous one left it behind; a "
+            "leftover file would also be reported as BUNDLE_FILE_UNLISTED by verify_bundle(). An "
+            "existing staging directory is never reused, emptied or written into"
+        ) from error
+    except OSError as error:  # pragma: no cover — an unwritable output_dir is the operator's
+        raise StagingNotEmpty(
+            f"the staging directory {paths.bundle_dir} could not be created: {type(error).__name__}"
+        ) from error
 
     # 1. the corpus database — a plain streaming byte copy. The staged copy is NEVER opened
     #    read-write, by anything, at any point (see the module docstring).
