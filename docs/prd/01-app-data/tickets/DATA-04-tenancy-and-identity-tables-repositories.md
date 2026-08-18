@@ -114,6 +114,23 @@ and run the constraint suite.
 - `packages/database/test/tenancy/**` (this ticket's own test area, sub-PRD D8)
 - `packages/database/package.json` — append-only (sub-PRD D9)
 
+**Anticipated forward references (amended 2026-08-18, under the Feedback obligation; sub-PRD v0.5).**
+Two `DATA-01`-owned assertions are written *about this ticket* and go red the moment
+`src/schema/tenancy.ts` exists. They are named here so the edit is declared rather than silent, and
+the change to each is bounded to that one assertion:
+
+- `packages/database/test/migrate/manifest.test.ts` — `expect(discoverTableManifests()).toEqual([])`,
+  in a test titled *"defaults to packages/database/src/schema, which DATA-04 creates"*.
+- `packages/database/test/migrate/conventions-lint.test.ts` — `expect(manifests).toEqual([])`,
+  commented *"Vacuous by construction — `src/schema/` does not exist until DATA-04 lands"*.
+
+Both are the over-broad shape `FND-25` names: a module may assert that its own exception stays
+narrow; it may not assert that another module never creates its own file. Each is updated to expect
+the tenancy manifest — which turns the conventions-lint assertion from vacuous into the real §35.1
+check this ticket's acceptance item 2 asks for. Precedent: sub-PRD changelog v0.4, where `DATA-02`
+amended its own File-scope to cover a one-line update in `DATA-01`'s `q13-conformance.test.ts`.
+Nothing else in either file changes.
+
 - Does not touch: `src/migrate/**` and `migrations/0001_*` (`DATA-01`) · `src/tenant/**`,
   `test/architecture/**` (`DATA-02`) · `src/crypto/**` (`DATA-03`) · `src/schema/execution.ts`,
   `src/repos/execution/**`, `migrations/*_execution.sql`, `packages/jobs/**` (`DATA-05`) ·
