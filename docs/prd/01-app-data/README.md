@@ -235,7 +235,16 @@ Every item is machine-checkable unless tagged otherwise.
   governing principle names (a module may assert its own exception stays narrow; it may not assert
   that another module never creates its own file), and both were updated to expect the tenancy
   manifest — which turns the conventions-lint assertion from vacuous into the real §35.1 check
-  `DATA-04`'s acceptance item 2 asks for. Nothing else in those two files changed. No change to
+  `DATA-04`'s acceptance item 2 asks for. Two further `DATA-01`-owned files are named in the same
+  amendment, found by running the suite rather than by reading it: this ticket ships the
+  repository's **first migration after the baseline**, and `test/migrate/helpers.ts`'s
+  `withTempMigrations` copied the whole shipped `migrations/` directory into every fixture
+  directory (restored to copying `0001_baseline.sql` alone, which is the contract its own comment
+  states — no assertion touched), while three assertions in `test/migrate/runner.test.ts` pinned the
+  shipped sequence to exactly `['0001_baseline.sql']` (narrowed to: the baseline applies first,
+  every file on disk is applied, `head` is the last of them, the baseline's ledger row is
+  byte-exact). `DATA-05`…`DATA-07` would each have hit both identically. Nothing else in those four
+  files changed. No change to
   module scope, ticket set, dependency edges, PRD traceability, the §35.8 invariants or D1–D13.
 
 - **v0.4 — 2026-08-11** — `DATA-02` implementation + review round 1, under the ticket's Feedback

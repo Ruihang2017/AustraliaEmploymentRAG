@@ -72,10 +72,14 @@ function createConformingTable(db: Database.Database): void {
 
 describe('assertSchemaConventions (DATA-01 deliverable 10, PRD §35.1)', () => {
   it('runs green against head with the manifests actually discovered today', async () => {
-    // Vacuous by construction — `src/schema/` does not exist until DATA-04 lands. The fixture
+    // No longer vacuous: DATA-04 landed `src/schema/tenancy.ts`, so this is the real §35.1
+    // check over the shipped schema — every declared column present, TEXT primary keys,
+    // created_at everywhere, updated_at + row_version on the mutable-metadata tables,
+    // organization_id on every TENANT table, and every enum CHECK equal to its
+    // packages/contracts family. The fixture
     // negatives below are what stop this criterion from being a check that cannot go red.
     const manifests = discoverTableManifests();
-    expect(manifests).toEqual([]);
+    expect(manifests.length).toBeGreaterThan(0);
     await atHead((db) => {
       expect(() => assertSchemaConventions(db, manifests)).not.toThrow();
     });
