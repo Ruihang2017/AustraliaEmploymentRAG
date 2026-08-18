@@ -46,6 +46,14 @@ function ledgerNames(databasePath: string): string[] {
   }
 }
 
+/*
+ * DATA-10 — this file asserts the framework's locking behaviour, not the repository's inventory.
+ * Both tests run against the `slow` fixture through `withTempMigrations`, whose corpus is
+ * `0001_baseline.sql` plus `fixtures/slow/` and nothing else — closed by construction since
+ * DATA-10, when the harness stopped copying the whole real `migrations/` directory in. The
+ * four-name ledger and the length-4 assertion below are therefore exact facts about that fixture,
+ * and adding a repository migration cannot move them. Keep them exact.
+ */
 describe('two migrators starting together (PRD §39.1/§39.4)', () => {
   it(
     'produces exactly one ledger row per migration and no unhandled SQLITE_BUSY',

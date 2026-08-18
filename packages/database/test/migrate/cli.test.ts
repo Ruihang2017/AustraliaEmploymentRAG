@@ -15,6 +15,15 @@ function cli(args: readonly string[]): { status: number | null; stdout: string; 
   return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
 
+/*
+ * DATA-10 — this file asserts the CLI's output shape, not the repository's inventory. Every test
+ * below runs against `withTempMigrations`, whose corpus is `0001_baseline.sql` plus
+ * `fixtures/<name>/` and nothing else — closed by construction since DATA-10, when the harness
+ * stopped copying the whole real `migrations/` directory in. The exact counts and filenames here
+ * (`pending:  3`, `head:     20260803130000_beta.sql`) are therefore facts about that fixture, and
+ * adding a migration to the repository cannot move them. They are exact on purpose: do not loosen
+ * them to ranges or substrings.
+ */
 describe('the db:* scripts (DATA-01 deliverable 11, PRD §20.3)', () => {
   it('db:migrate applies the pending migrations and prints the head', async () => {
     await withTempMigrations('good', ({ migrationsDir, databasePath }) => {

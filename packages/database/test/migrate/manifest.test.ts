@@ -1,9 +1,16 @@
-import { cpSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_SCHEMA_DIR, discoverTableManifests } from '../../src/migrate/manifest.js';
 import { fixture, withTempDir } from './helpers.js';
+
+/*
+ * DATA-10 — this suite asserts the framework's properties, not the repository's inventory. The
+ * default-directory test below therefore checks that discovery returns one manifest per `*.ts`
+ * file actually present in `src/schema/`, rather than that the repository contains none; every
+ * other test here builds its own schema directory under a temp dir and is closed by construction.
+ */
 
 /**
  * Builds a stand-in for `packages/database/src/schema/`. The `package.json` carries
@@ -53,9 +60,26 @@ describe('discoverTableManifests (DATA-01 deliverable 9, sub-PRD D4)', () => {
     });
   });
 
-  it('defaults to packages/database/src/schema, which DATA-04 creates', () => {
+  it('defaults to packages/database/src/schema and returns one manifest per file present', () => {
+    // DATA-10: this used to assert `toEqual([])`, i.e. that the repository contains zero schema
+    // modules — which DATA-04…DATA-07 each falsify by adding exactly one file. The permanent
+    // property is one manifest per `*.ts` actually on disk (and none when the directory is absent,
+    // which is what 'returns [] when the directory does not exist' above proves).
     expect(DEFAULT_SCHEMA_DIR.replace(/\\/g, '/')).toMatch(/packages\/database\/src\/schema$/);
-    expect(discoverTableManifests()).toEqual([]);
+
+    // Mirrors src/migrate/manifest.ts's own glob, computed here rather than imported from it.
+    const files = existsSync(DEFAULT_SCHEMA_DIR)
+      ? readdirSync(DEFAULT_SCHEMA_DIR)
+          .filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts'))
+          .sort()
+      : [];
+
+    const manifests = discoverTableManifests();
+    expect(manifests).toHaveLength(files.length);
+    for (const manifest of manifests) {
+      expect(manifest.group).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+      expect(manifest.tables.length).toBeGreaterThan(0);
+    }
   });
 
   it('loads a manifest that imports a sibling module with a `.js` specifier', async () => {
