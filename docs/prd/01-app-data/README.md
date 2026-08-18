@@ -219,6 +219,22 @@ Every item is machine-checkable unless tagged otherwise.
 
 ## Changelog
 
+- **v0.6 — 2026-08-18** — `DATA-04` review round 3, under the ticket's Feedback obligation. The
+  `DATA-04` ticket moved to **v1.1**: acceptance item 6 and its test-plan step now define the
+  **AUTH-002** cross-tenant matrix **per repository, as every operation that repository exposes
+  which resolves a caller-supplied identifier of an existing tenant-owned row**, rather than as a
+  fixed `{get, list, update, delete}` tuple, and enumerate that surface exhaustively. The reasoning
+  is in the ticket's own changelog, which is the source of truth; the consequence recorded here is
+  that `organization`, `service_account` and `sso_connection` expose **no delete-equivalent, by
+  design** — PRD §10.3's closure *blocks writes* rather than deleting rows, so a delete path on
+  those tables would be a write that bypasses `assertOrganizationOpen`. Separately, and unchanged by
+  the amendment: PRD §10.3's organisation **export-then-delete within 30 days** is an **unallocated
+  requirement**. `19-exports` excludes it (D9/QX-6) and `13-identity-surface`'s `IDNT-09` ships the
+  display half only (OQ6), so `CLOSURE_EXEMPT_OPERATIONS`' `export`/`delete` labels remain asserted
+  at the guard-predicate level only — the seam that ticket will use — and whoever closes OQ6/QX-6
+  owns the end-to-end test. Owner: **Founder + plan owner**. No change to module scope, ticket set,
+  dependency edges, PRD traceability, the §35.8 invariants or D1–D14.
+
 - **v0.5 — 2026-08-18** — `DATA-04` implementation, under the ticket's Feedback obligation. Adds
   decision **D14** (a table-group ticket may build and execute its own tenant-scoped statements
   through the same chokepoint the factory uses — the `src/repos/tenancy/internal/statement.ts`
