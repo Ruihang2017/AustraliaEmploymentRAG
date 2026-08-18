@@ -12,7 +12,10 @@
  * # Enforcement
  *
  * `enforce()` refuses unless the connection is in the successful-test state (`ACTIVE`, PRD §38.3)
- * **and** `tested_at` is within {@link SSO_TEST_FRESHNESS_MS}. That window is provisional: PRD §38.3
+ * **and** `tested_at` sits within {@link SSO_TEST_FRESHNESS_MS} *before* the moment enforcement is
+ * evaluated at — the window is closed at **both** ends. A `tested_at` after that moment is not a
+ * fresher test, it is an inconsistent pair, and it is refused: comparing only the far end let a
+ * negative age satisfy any window at all. That window is provisional: PRD §38.3
  * gives no number, and this is the same treatment DATA-02 gave `ELEVATION_MAX_AGE_MS` — named,
  * exported and documented as awaiting a decision (sub-PRD M-Q9), rather than an unexplained literal
  * buried in a comparison.
@@ -163,8 +166,26 @@ export function ssoConnectionsRepository(
           'tested_at',
         );
       }
+      // Fail closed at BOTH ends of the window. `age > SSO_TEST_FRESHNESS_MS` on its own left the
+      // gate open to an inconsistent pair: a `tested_at` later than `when` yields a NEGATIVE age,
+      // which fails `age > window` for every possible window and so let enforcement through no
+      // matter how much time had really elapsed since the last successful test. Both operands are
+      // caller-supplied — `when` through `enforce`'s `at`, `tested_at` through `recordTest`'s
+      // `testedAt` — so neither can be trusted to bound the other. A test dated after the moment
+      // enforcement is being evaluated at is not "a successful current test" (PRD §38.3) but an
+      // unusable measurement, and a security gate handed an unusable measurement must refuse.
+      // `age === 0` stays legitimate: recording a test and enforcing within the same millisecond.
       const age = Date.parse(when) - Date.parse(testedAt);
-      if (!Number.isFinite(age) || age > SSO_TEST_FRESHNESS_MS) {
+      if (!Number.isFinite(age) || age < 0) {
+        throw new TenancyError(
+          'SSO_TEST_REQUIRED',
+          'enforcement requires a successful test whose `tested_at` is not after the moment ' +
+            `enforcement is evaluated at; got tested_at=${JSON.stringify(testedAt)} and ` +
+            `at=${JSON.stringify(when)} (PRD §38.3, §35.4)`,
+          'tested_at',
+        );
+      }
+      if (age > SSO_TEST_FRESHNESS_MS) {
         throw new TenancyError(
           'SSO_TEST_REQUIRED',
           `the last successful test is older than SSO_TEST_FRESHNESS_MS (${SSO_TEST_FRESHNESS_MS}ms) ` +

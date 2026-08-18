@@ -105,6 +105,130 @@ describe('sso connections (PRD §38.3, §35.4, AUTH-005)', () => {
     });
   });
 
+  // Review round 4, minor finding. `enforce()` computed `age = Date.parse(at) - Date.parse(testedAt)`
+  // and refused only when `age > SSO_TEST_FRESHNESS_MS`. An inverted pair — `tested_at` later than
+  // `at` — makes `age` negative, and a negative age is `> window` for no window at all, so the
+  // freshness gate passed unconditionally however much time had really elapsed. Both operands come
+  // from callers (`recordTest`'s `testedAt`, `enforce`'s `at`), so neither bounds the other. These
+  // three cases pin the closed end of the window; the first two go red against the old comparison.
+  it('refuses enforcement when tested_at is after the moment enforced against (negative age)', async () => {
+    await withTenancyDatabase(({ db, registry }) => {
+      const a = seedOrganization(db, ORG_A, registry);
+      const repos = tenancyRepositories(db, a.ctx, { registry });
+      const before = repos.ssoConnections.get(a.ssoConnectionId);
+
+      // A successful test dated far in the future — the state gate (ACTIVE) is satisfied, so the
+      // only thing standing between this row and enforcement is the freshness arithmetic.
+      const tested = withTenantTransaction(db, a.ctx, (tx) =>
+        repos.ssoConnections.recordTest(
+          tx,
+          a.ssoConnectionId,
+          before['row_version'] as number,
+          'ACTIVE',
+          isoAt(SSO_TEST_FRESHNESS_MS * 10),
+        ),
+      );
+      expect(tested['state']).toBe('ACTIVE');
+
+      let thrown: unknown;
+      try {
+        withTenantTransaction(db, a.ctx, (tx) =>
+          repos.ssoConnections.enforce(
+            tx,
+            a.ssoConnectionId,
+            tested['row_version'] as number,
+            isoAt(0),
+          ),
+        );
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(TenancyError);
+      expect((thrown as TenancyError).code).toBe('SSO_TEST_REQUIRED');
+      expect((thrown as TenancyError).detail).toBe('tested_at');
+      // Specifically the inversion refusal, not the staleness one they share a detail with.
+      expect((thrown as TenancyError).message).toContain('not after the moment');
+      expect((thrown as TenancyError).message).not.toContain('SSO_TEST_FRESHNESS_MS');
+      // Fail closed: nothing was written, so a second attempt cannot inherit a half-applied state.
+      expect(repos.ssoConnections.get(a.ssoConnectionId)['enforced_at']).toBeNull();
+    });
+  });
+
+  it('refuses an inverted pair even one millisecond over — the boundary is at zero, not at the window', async () => {
+    await withTenancyDatabase(({ db, registry }) => {
+      const a = seedOrganization(db, ORG_A, registry);
+      const repos = tenancyRepositories(db, a.ctx, { registry });
+      const before = repos.ssoConnections.get(a.ssoConnectionId);
+
+      const tested = withTenantTransaction(db, a.ctx, (tx) =>
+        repos.ssoConnections.recordTest(
+          tx,
+          a.ssoConnectionId,
+          before['row_version'] as number,
+          'ACTIVE',
+          isoAt(1),
+        ),
+      );
+
+      let thrown: unknown;
+      try {
+        withTenantTransaction(db, a.ctx, (tx) =>
+          repos.ssoConnections.enforce(
+            tx,
+            a.ssoConnectionId,
+            tested['row_version'] as number,
+            isoAt(0),
+          ),
+        );
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(TenancyError);
+      expect((thrown as TenancyError).code).toBe('SSO_TEST_REQUIRED');
+      expect((thrown as TenancyError).detail).toBe('tested_at');
+      // Specifically the inversion refusal, not the staleness one they share a detail with.
+      expect((thrown as TenancyError).message).toContain('not after the moment');
+      expect((thrown as TenancyError).message).not.toContain('SSO_TEST_FRESHNESS_MS');
+      expect(repos.ssoConnections.get(a.ssoConnectionId)['enforced_at']).toBeNull();
+    });
+  });
+
+  it('still enforces at both legitimate ends of the window — age 0 and age exactly SSO_TEST_FRESHNESS_MS', async () => {
+    await withTenancyDatabase(({ db, registry }) => {
+      const a = seedOrganization(db, ORG_A, registry);
+      const repos = tenancyRepositories(db, a.ctx, { registry });
+      const before = repos.ssoConnections.get(a.ssoConnectionId);
+
+      const tested = withTenantTransaction(db, a.ctx, (tx) =>
+        repos.ssoConnections.recordTest(
+          tx,
+          a.ssoConnectionId,
+          before['row_version'] as number,
+          'ACTIVE',
+          isoAt(0),
+        ),
+      );
+
+      // age === 0: recorded and enforced within the same millisecond.
+      const same = withTenantTransaction(db, a.ctx, (tx) =>
+        repos.ssoConnections.enforce(
+          tx,
+          a.ssoConnectionId,
+          tested['row_version'] as number,
+          isoAt(0),
+        ),
+      );
+      expect(same['enforced_at']).toBe(isoAt(0));
+
+      // age === SSO_TEST_FRESHNESS_MS exactly: the window is inclusive at its far end.
+      const edge = isoAt(SSO_TEST_FRESHNESS_MS);
+      const still = withTenantTransaction(db, a.ctx, (tx) =>
+        repos.ssoConnections.enforce(tx, a.ssoConnectionId, same['row_version'] as number, edge),
+      );
+      expect(still['enforced_at']).toBe(edge);
+    });
+  });
+
   it('refuses enforcement for a failed test state (AUTH-005: a failed IdP test cannot lock anyone out)', async () => {
     await withTenancyDatabase(({ db, registry }) => {
       const a = seedOrganization(db, ORG_A, registry);
