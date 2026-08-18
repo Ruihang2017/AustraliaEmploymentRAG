@@ -102,7 +102,15 @@ function assertInviterBelongsToOrganization(
   return refuse(`has an unrecognised actor_type ${JSON.stringify(actor.actorType)}`);
 }
 
-export const invitationDefinition = defineTenantRepository({
+/**
+ * Module-private on purpose (sub-PRD **D12**): this group exports concrete, pre-bound,
+ * **guarded** repositories and never the factory definition. `.for(db, ctx)` on a raw definition
+ * yields `defineTenantRepository`'s unguarded CRUD, which skips `assertOrganizationOpen`, the
+ * last-Owner invariant, the value validations and the `row_version` CAS. Keeping the binding inside
+ * this module is what makes those guards unbypassable rather than merely conventional; the
+ * `test/tenancy/surface.test.ts` regression pins it.
+ */
+const invitationDefinition = defineTenantRepository({
   table: 'invitation',
   spec: TENANCY_TABLE_SPECS.invitation,
 });

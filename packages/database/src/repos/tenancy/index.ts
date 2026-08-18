@@ -11,6 +11,15 @@
  * consuming ticket (`AUTC-01`/`IDNT-02`) takes that edge, with a coordinated update to both
  * asserting tests.
  *
+ * # Guarded repositories only — never the factory
+ *
+ * D12 is quoted literally: `DATA-04…DATA-07` export concrete, pre-bound repositories, **never the
+ * factory**. So no `TenantRepositoryDefinition` is re-exported from here, and none is exported from
+ * its own module either. A raw definition's `.for(db, ctx)` returns `defineTenantRepository`'s
+ * unguarded CRUD — `update`/`insert`/`delete` that skip `assertOrganizationOpen`, the last-Owner
+ * invariant, the scope/credential-key validations and the `row_version` CAS — so exposing one would
+ * make every guard in this directory optional. `test/tenancy/surface.test.ts` pins that.
+ *
  * # The two scopes are separate on purpose
  *
  * `user` and `actor` are `GLOBAL` (PRD §35.4/§35.6), so they bind under `systemContext('GLOBAL', …)`
@@ -53,23 +62,21 @@ export type { TenancyErrorCode } from './errors.js';
 export { nowIso } from './internal/support.js';
 export type { RepositoryOptions } from './internal/support.js';
 
-export { actorsRepository, actorDefinition } from './actors.js';
-export { apiCredentialsRepository, apiCredentialDefinition } from './api-credentials.js';
-export { invitationsRepository, invitationDefinition } from './invitations.js';
-export { membershipsRepository, membershipDefinition } from './memberships.js';
-export { organizationsRepository, organizationDefinition } from './organizations.js';
-export {
-  serviceAccountsRepository,
-  serviceAccountDefinition,
-  assertValidScopesJson,
-} from './service-accounts.js';
+// Only the guarded, pre-bound repository builders leave this module. Each table's raw
+// `TenantRepositoryDefinition` is module-private in its own file (sub-PRD D12) — see the note
+// there, and `test/tenancy/surface.test.ts`, which fails if one is ever re-exported again.
+export { actorsRepository } from './actors.js';
+export { apiCredentialsRepository } from './api-credentials.js';
+export { invitationsRepository } from './invitations.js';
+export { membershipsRepository } from './memberships.js';
+export { organizationsRepository } from './organizations.js';
+export { serviceAccountsRepository, assertValidScopesJson } from './service-accounts.js';
 export {
   ssoConnectionsRepository,
-  ssoConnectionDefinition,
   SSO_TEST_FRESHNESS_MS,
   SSO_STATE_TESTED_OK,
 } from './sso-connections.js';
-export { usersRepository, userDefinition } from './users.js';
+export { usersRepository } from './users.js';
 
 export type { ActorsRepository, EnsureActorRequest } from './actors.js';
 export type { ApiCredentialsRepository, CreateCredentialRequest } from './api-credentials.js';

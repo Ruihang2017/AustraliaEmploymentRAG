@@ -35,7 +35,15 @@ import { newId, resolveNow } from './internal/support.js';
 import type { RepositoryOptions } from './internal/support.js';
 import { runScopedSelect, runScopedUpdate } from './internal/statement.js';
 
-export const apiCredentialDefinition = defineTenantRepository({
+/**
+ * Module-private on purpose (sub-PRD **D12**): this group exports concrete, pre-bound,
+ * **guarded** repositories and never the factory definition. `.for(db, ctx)` on a raw definition
+ * yields `defineTenantRepository`'s unguarded CRUD, which skips `assertOrganizationOpen`, the
+ * last-Owner invariant, the value validations and the `row_version` CAS. Keeping the binding inside
+ * this module is what makes those guards unbypassable rather than merely conventional; the
+ * `test/tenancy/surface.test.ts` regression pins it.
+ */
+const apiCredentialDefinition = defineTenantRepository({
   table: 'api_credential',
   spec: TENANCY_TABLE_SPECS.api_credential,
 });

@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 
 import { TenancyError } from '../../src/repos/tenancy/errors.js';
 import {
+  actorsRepository,
   identityRepositories,
-  organizationDefinition,
+  organizationsRepository,
   tenancyRepositories,
-  userDefinition,
-  actorDefinition,
+  usersRepository,
 } from '../../src/repos/tenancy/index.js';
 import { withSystemTransaction, withTenantTransaction } from '../../src/tenant/transaction.js';
 
@@ -79,12 +79,15 @@ describe('DATA-04 uniqueness and scope (PRD §35.4, §15.4)', () => {
       const tenantCtx = contextFor(ORG_A);
       const systemCtx = globalContext();
 
-      for (const definition of [userDefinition, actorDefinition]) {
-        expect(() => definition.for(db, tenantCtx)).toThrowError(
+      // Asserted through the guarded builders, which are the only surface this group exports
+      // (D12) — the raw definitions are module-private, so the scope refusal has to survive on the
+      // path a consumer can actually reach.
+      for (const build of [usersRepository, actorsRepository]) {
+        expect(() => build(db, tenantCtx)).toThrowError(
           expect.objectContaining({ code: 'SCOPE_MISMATCH' }),
         );
       }
-      expect(() => organizationDefinition.for(db, systemCtx)).toThrowError(
+      expect(() => organizationsRepository(db, systemCtx)).toThrowError(
         expect.objectContaining({ code: 'SCOPE_MISMATCH' }),
       );
     });
