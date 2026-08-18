@@ -119,6 +119,7 @@ remains below are this module's own local questions.
 | M-Q8 | **Organisation creation needs a `TenantContext` whose `organizationId` is the not-yet-existing organisation's id.** `organization` is `TENANT`-scoped (both `assertSchemaConventions` and `defineTenantRepository` refuse a `TENANT` table without `organization_id`), so the table carries `organization_id TEXT NOT NULL` with `CHECK (organization_id = id)`; the factory sets `organization_id` from the context, and the CHECK then forces `id` to match. Which ticket owns minting that bootstrap context — and whether `DATA-02` must expose a factory for it — is not `DATA-04`'s to decide; `src/tenant/**` is outside its file-scope. | **Architect**, with `AUTC-01` / `IDNT-02` | `AUTC-01` or `IDNT-02`, or a `DATA-02` ticket edit adding a bootstrap context factory | Organisation self-service signup |
 | M-Q9 | **PRD §38.3 gives no freshness window for "enforcement requires successful current test".** `DATA-04` exports a named, provisional `SSO_TEST_FRESHNESS_MS` constant (24 h) documented as such — the same treatment `DATA-02` gave `ELEVATION_MAX_AGE_MS`. | **Founder / `02-auth-core`** | `AUTC-04` (SSO), or a PRD §38.3 amendment | Nothing — `enforce()` refuses on a stale or unsuccessful test either way |
 | M-Q10 | **How do `AUTC-01` and `IDNT-02` reach the tenancy repositories?** `packages/database/package.json`'s `exports` map is closed at four entries (`.`, `./crypto`, `./migrate`, `./tenant`) and **two** merged tests assert that exact set (`test/architecture/no-unscoped-access.test.ts`, `test/ephemeral/file-scope.test.ts`), so `DATA-04` cannot add a `./repos` subpath without failing another ticket's test. It therefore adds nothing to the map and ships D12's pre-bound bundles in `src/repos/tenancy/index.ts`; the consuming ticket takes the edge. | **Architect**, with the `DATA-02` owner and `02-auth-core` | The first consuming ticket (`AUTC-01`/`IDNT-02`), with a coordinated update to both asserting tests | `AUTC-01`, `IDNT-02` and every later consumer of `DATA-05`…`DATA-07` |
+| M-Q11 | **`DATA-04` cannot go green without changing four `DATA-01`-owned files, and no ticket authorizes that today. BLOCKING.** `DATA-04` ships the repository's **first migration after the baseline** and the **first** `src/schema/` manifest, and four files in `DATA-01`'s test area (sub-PRD **D8**) were written while neither existed: (i) `test/migrate/manifest.test.ts` asserts `discoverTableManifests()` is `[]`, in a test titled *"defaults to packages/database/src/schema, which DATA-04 creates"*; (ii) `test/migrate/conventions-lint.test.ts` asserts the same, commented *"Vacuous by construction — `src/schema/` does not exist until DATA-04 lands"*; (iii) `test/migrate/helpers.ts`'s `withTempMigrations` copies the **whole** shipped `migrations/` directory into every fixture directory, so each fixture-based test silently inherits `*_tenancy.sql` — against its own comment, *"The fixtures deliberately do NOT carry their own copy of the baseline"*; (iv) three assertions in `test/migrate/runner.test.ts` pin the shipped sequence to exactly `['0001_baseline.sql']`. Measured on `ticket/DATA-04`: **17 failures across 5 files**, every one inside `test/migrate/**`, none inside `test/tenancy/**`. (i), (ii) and (iv) are the over-broad shape `FND-25`'s governing principle names — a module may assert its own exception stays narrow, it may not assert that another module never creates its own file — and (iii) is a harness that does not do what its own comment says. `DATA-05`…`DATA-07` each hit all four identically, so this is not `DATA-04`-specific. An earlier `DATA-04` build widened its own File-scope by writing an "Anticipated forward references" block into its ticket **on the implementing branch**; review round 4 bounced that as a blocker (CLAUDE.md's spec-change path is ticket edit → docs PR → merge → `publish-tickets.mjs --sync` → then execute, and the block also carried no version bump or Changelog row), and both the block and the four file edits have been reverted. **The reverted repair is recorded here so it is not re-derived from scratch**, but it is not applied. | **Architect**, with the `DATA-01` owner — the fix is a `DATA-01` repair ticket that de-pins its four forward-looking assertions, or a landed `DATA-04` File-scope amendment (v1.2 + Changelog row) authorizing the edits; either way, on `main` first | A `DATA-01` repair ticket (preferred — every later table group needs it) or a `DATA-04` docs PR, merged and `--sync`ed **before** `DATA-04` can be delivered green | **`DATA-04` delivery is blocked on it today**, and `DATA-05`, `DATA-06` and `DATA-07` are blocked on it in turn |
 
 ## Work breakdown
 
@@ -243,25 +244,11 @@ Every item is machine-checkable unless tagged otherwise.
   for invariant 4; the `membership` synthetic-PK departure from normative §35.4; the seven
   controlled-value columns with no canonical `FND-03` enum; the organisation-creation bootstrap
   context; the provisional `SSO_TEST_FRESHNESS_MS`; and how `AUTC-01`/`IDNT-02` reach repositories
-  behind a closed `exports` map). `DATA-04`'s ticket carries the matching File-scope amendment: two
-  `DATA-01`-owned assertions are named as anticipated forward references — `test/migrate/manifest.test.ts`
-  and `test/migrate/conventions-lint.test.ts` each assert `discoverTableManifests()` is `[]`, in a
-  test literally titled "…which DATA-04 creates" and a comment reading "Vacuous by construction —
-  `src/schema/` does not exist until DATA-04 lands". Both are the over-broad shape `FND-25`'s
-  governing principle names (a module may assert its own exception stays narrow; it may not assert
-  that another module never creates its own file), and both were updated to expect the tenancy
-  manifest — which turns the conventions-lint assertion from vacuous into the real §35.1 check
-  `DATA-04`'s acceptance item 2 asks for. Two further `DATA-01`-owned files are named in the same
-  amendment, found by running the suite rather than by reading it: this ticket ships the
-  repository's **first migration after the baseline**, and `test/migrate/helpers.ts`'s
-  `withTempMigrations` copied the whole shipped `migrations/` directory into every fixture
-  directory (restored to copying `0001_baseline.sql` alone, which is the contract its own comment
-  states — no assertion touched), while three assertions in `test/migrate/runner.test.ts` pinned the
-  shipped sequence to exactly `['0001_baseline.sql']` (narrowed to: the baseline applies first,
-  every file on disk is applied, `head` is the last of them, the baseline's ledger row is
-  byte-exact). `DATA-05`…`DATA-07` would each have hit both identically. Nothing else in those four
-  files changed. No change to
-  module scope, ticket set, dependency edges, PRD traceability, the §35.8 invariants or D1–D13.
+  behind a closed `exports` map). Also adds open question **M-Q11** — the four `DATA-01`-owned
+  `test/migrate/**` files that `DATA-04` cannot land green without, which is a **blocking**,
+  **unresolved** cross-ticket dependency and not something this implementation was entitled to
+  settle for itself. No change to module scope, ticket set, dependency edges, PRD traceability, the
+  §35.8 invariants or D1–D13.
 
 - **v0.4 — 2026-08-11** — `DATA-02` implementation + review round 1, under the ticket's Feedback
   obligation. Adds decisions **D12** (the tenant layer's connection is passed, never ambient:
