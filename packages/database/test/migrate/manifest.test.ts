@@ -55,16 +55,7 @@ describe('discoverTableManifests (DATA-01 deliverable 9, sub-PRD D4)', () => {
 
   it('defaults to packages/database/src/schema, which DATA-04 creates', () => {
     expect(DEFAULT_SCHEMA_DIR.replace(/\\/g, '/')).toMatch(/packages\/database\/src\/schema$/);
-    // DATA-04 has now created it. The assertion was `toEqual([])` while the directory did not
-    // exist; keeping that shape would have made DATA-01 assert that no other module ever creates
-    // its own file, which is exactly the over-broad claim FND-25 rules out. What DATA-01 has
-    // standing to check is that the default directory is discoverable and yields well-formed
-    // manifests.
-    const discovered = discoverTableManifests();
-    expect(discovered.map((manifest) => manifest.group)).toContain('tenancy');
-    for (const manifest of discovered) {
-      expect(manifest.tables.length).toBeGreaterThan(0);
-    }
+    expect(discoverTableManifests()).toEqual([]);
   });
 
   it('loads a manifest that imports a sibling module with a `.js` specifier', async () => {

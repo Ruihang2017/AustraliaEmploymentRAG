@@ -19,8 +19,6 @@ export const PACKAGE_ROOT = join(THIS_DIR, '..', '..');
 export const REPO_MIGRATIONS_DIR = join(PACKAGE_ROOT, 'migrations');
 /** `packages/database/test/migrate/fixtures` */
 export const FIXTURES_DIR = join(THIS_DIR, 'fixtures');
-/** The ledger bootstrap — the one migration every fixture-based test starts from. */
-export const BASELINE_MIGRATION = '0001_baseline.sql';
 /** `packages/database/src/migrate/cli.mjs` */
 export const CLI_PATH = join(PACKAGE_ROOT, 'src', 'migrate', 'cli.mjs');
 
@@ -83,12 +81,7 @@ export async function withTempMigrations<T>(
     const migrationsDir = join(dir, 'migrations');
     mkdirSync(migrationsDir, { recursive: true });
     if (options.withBaseline !== false) {
-      // The BASELINE only — not the whole shipped directory. Copying the directory made every
-      // fixture-based test inherit each table group's migration as it landed (DATA-04's
-      // `*_tenancy.sql` was the first), which turned this harness's "baseline plus these fixtures"
-      // contract into "baseline plus these fixtures plus whatever the product ships today" and made
-      // thirteen DATA-01 assertions fail for a reason that had nothing to do with DATA-01.
-      cpSync(join(REPO_MIGRATIONS_DIR, BASELINE_MIGRATION), join(migrationsDir, BASELINE_MIGRATION));
+      cpSync(REPO_MIGRATIONS_DIR, migrationsDir, { recursive: true });
     }
     cpSync(fixture(name), migrationsDir, { recursive: true });
     return fn({ migrationsDir, databasePath: join(dir, 'app.sqlite'), dir });

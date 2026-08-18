@@ -1,13 +1,5 @@
 import Database from 'better-sqlite3';
-import {
-  appendFileSync,
-  copyFileSync,
-  existsSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -55,13 +47,6 @@ function tableNames(databasePath: string): string[] {
   }
 }
 
-/** Every `.sql` file the package actually ships, in apply order. */
-function shippedMigrations(): string[] {
-  return readdirSync(REPO_MIGRATIONS_DIR)
-    .filter((name) => name.endsWith('.sql'))
-    .sort();
-}
-
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -73,21 +58,14 @@ describe('runMigrations against the shipped migrations directory', () => {
         migrationsDir: REPO_MIGRATIONS_DIR,
       });
 
-      // The baseline applies first and the shipped sequence applies whole. The list is NOT
-      // pinned to `['0001_baseline.sql']` any more: DATA-04 landed the first table-group migration
-      // and DATA-05…DATA-07 each land another, and DATA-01 has no standing to assert that they do
-      // not (FND-25). What it does assert is that its own baseline is first, that every file on
-      // disk was applied, and that the ledger row it writes is exactly right.
-      const shipped = shippedMigrations();
-      expect(report.applied.map((migration) => migration.name)).toEqual(shipped);
-      expect(report.applied[0]?.name).toBe('0001_baseline.sql');
-      expect(report.head).toBe(shipped.at(-1));
+      expect(report.applied.map((migration) => migration.name)).toEqual(['0001_baseline.sql']);
+      expect(report.head).toBe('0001_baseline.sql');
       expect(report.outOfOrder).toEqual([]);
       expect(report.recoveryPoint).toBeNull();
       expect(report.runId).toMatch(UUID);
 
       const rows = ledger(databasePath);
-      expect(rows).toHaveLength(shipped.length);
+      expect(rows).toHaveLength(1);
       const row = rows[0] as LedgerRow;
       expect(row.name).toBe('0001_baseline.sql');
       expect(row.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -120,8 +98,8 @@ describe('runMigrations against the shipped migrations directory', () => {
       const second = await runMigrations({ databasePath, migrationsDir: REPO_MIGRATIONS_DIR });
 
       expect(second.applied).toEqual([]);
-      expect(second.head).toBe(shippedMigrations().at(-1));
-      expect(ledger(databasePath)).toHaveLength(shippedMigrations().length);
+      expect(second.head).toBe('0001_baseline.sql');
+      expect(ledger(databasePath)).toHaveLength(1);
     });
   });
 });
@@ -380,8 +358,7 @@ describe('recovery point (PRD §23.1)', () => {
         recoveryPoint: async () => ({ id: 'rp-42', takenAt: '2026-08-03T12:00:00.000Z' }),
       });
       expect(report.recoveryPoint).toEqual({ id: 'rp-42', takenAt: '2026-08-03T12:00:00.000Z' });
-      // The whole shipped sequence, not just the baseline — see shippedMigrations() above.
-      expect(report.applied).toHaveLength(shippedMigrations().length);
+      expect(report.applied).toHaveLength(1);
     });
   });
 
