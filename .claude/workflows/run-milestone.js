@@ -11,6 +11,12 @@ export const meta = {
 //   tickets: [{ id, path, issue, blockedBy: ['OTHER-ID'] }],  // blockedBy: intra-run deps (optional)
 //   mode: 'supervised' | 'autonomous',
 //   defaultBranch: 'main',        // optional, default 'main'
+//   integrationBranch: '',        // optional (issue #139). When set AND mode is autonomous,
+//                                 // a merge the default branch refuses BECAUSE IT IS
+//                                 // PROTECTED is retargeted here instead of stalling the
+//                                 // run. Never used for an unmet gate (failing pipeline,
+//                                 // missing approval) — that still escalates. Delivery
+//                                 // here closes the issue but does NOT pass the DoD.
 //   maxBounces: 2,                // optional, default 2
 //   continueOnFailure: false,     // optional; default fail-fast (tickets may depend on earlier ones)
 //   platform: 'gh' | 'glab',      // tracker CLI for the deliver step, default 'gh'
@@ -31,7 +37,7 @@ export const meta = {
 // args may arrive as a JSON string depending on the harness (catalog issue #23)
 const parsedArgs = typeof args === 'string' ? JSON.parse(args) : (args || {})
 const cfg = Object.assign(
-  { maxBounces: 2, continueOnFailure: false, defaultBranch: 'main', platform: 'gh', concurrency: 1 },
+  { maxBounces: 2, continueOnFailure: false, defaultBranch: 'main', platform: 'gh', concurrency: 1, integrationBranch: '' },
   parsedArgs
 )
 if (!Array.isArray(cfg.tickets) || cfg.tickets.length === 0) {
@@ -79,28 +85,30 @@ const PLAN = {
 }
 const BUILD = {
   type: 'object',
-  properties: {
-    branch: { type: 'string' },
-    testsPassed: { type: 'boolean' },
-    testOutput: { type: 'string' },
-    deviations: { type: 'string' },
-    // Pipeline-config integrity AFTER the builder put the ticket branch on disk — see the
-    // block above runTicket. Mirrored from start-all.js; the two schedulers stay in step.
-    configIntact: { type: 'boolean' },
-    configDrift: { type: 'string' },
-  },
-  required: ['branch', 'testsPassed', 'testOutput', 'configIntact'],
-}
-const CONFIG = {
-  type: 'object',
-  properties: { ok: { type: 'boolean' }, detail: { type: 'string' } },
-  required: ['ok'],
+  properties: { branch: { type: 'string' }, testsPassed: { type: 'boolean' }, testOutput: { type: 'string' }, deviations: { type: 'string' }, summary: { type: 'string' } },
+  required: ['branch', 'testsPassed', 'testOutput'],
 }
 const VERDICT = {
   type: 'object',
   properties: {
     verdict: { enum: ['CLEAR', 'BOUNCE'] },
     checkedNote: { type: 'string' },
+    // The PATH the Reviewer wrote its own record to — never the record's text.
+    // Carrying the text is what forced a third party to re-type a verdict, which a
+    // safety classifier correctly read as one agent authoring another agent's approval
+    // and blocked, stranding CLEAR tickets (catalog issue #201).
+    recordPath: { type: 'string' },
+    // One entry per [machine]/[fixture] acceptance row (catalog issue #183). A CLEAR
+    // carrying an unmet row is REJECTED below, which is what turns 'did the Reviewer
+    // check acceptance?' from a judgement into a check.
+    machineChecks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { row: { type: 'string' }, met: { type: 'boolean' }, note: { type: 'string' } },
+        required: ['row', 'met'],
+      },
+    },
     findings: {
       type: 'array',
       items: {
@@ -120,42 +128,6 @@ const DELIVERY = {
 
 const normalizePath = function (p) { return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '').trim() }
 
-// ---- pipeline-config integrity (mirrored from start-all.js) --------------------------
-// The pipeline is configured by version-controlled files (.claude/agents, .claude/workflows,
-// .claude/scripts, .claude/hooks, .claude/settings.json). At concurrency 1 the Builder's
-// `git checkout ticket/<id>` lands in the MAIN working tree, so a branch whose base predates
-// a change to .claude/** rolls that change back on disk — silently. Measured on this harness
-// 2026-08-11: agent DEFINITIONS are loaded once per CLI process (a running session keeps the
-// ones it started with), but SCRIPTS and HOOKS are read from disk on every invocation, so
-// those roll back live, mid-run. Either way the run stops being the run that was asked for.
-//
-// The check is deterministic (check-pipeline-config.mjs); only the act of running a command
-// is delegated, because workflow scripts have no shell or filesystem access. The STOP decision
-// stays here, in code, and this file is read into the session when the command is invoked —
-// before any checkout — so a rollback cannot delete the guard that is watching for it.
-//
-// It only reports. It never checks out, resets, merges or stashes: merging the default branch
-// into a ticket branch would change the diff the Reviewer judges, and repairing the tree
-// mid-run would swap one silent surprise for another.
-const CONFIG_CHECK_CMD = 'node .claude/scripts/check-pipeline-config.mjs --default-branch ' + cfg.defaultBranch
-
-const configCheckInstruction =
-  'THEN, as your LAST action before returning (after the branch is checked out and the work is committed), ' +
-  'run `' + CONFIG_CHECK_CMD + '` from the repo root and read its final CONFIG-CHECK-JSON line. ' +
-  'It reports whether the pipeline\'s own configuration on disk (.claude/agents, workflows, scripts, hooks, settings.json) ' +
-  'still matches origin/' + cfg.defaultBranch + '. Return configIntact = its `ok` value, and configDrift = its `detail` when ok is false. ' +
-  'If the command cannot run at all — missing file, module error, non-git — that is itself a negative answer: return configIntact=false with configDrift = the output tail. ' +
-  'Do NOT try to repair any drift it reports: do not checkout, reset, stash, merge or revert anything to make it pass. Just report it. '
-
-const configDriftResult = function (id, stage, detail) {
-  const d = 'PIPELINE CONFIG DRIFT detected after the ' + stage + ' stage: the .claude/** tree on disk no longer matches origin/' +
-    cfg.defaultBranch + ', so this ticket did not necessarily run the agents, scripts and hooks it was supposed to. ' +
-    'A human must restore the main working tree (git checkout ' + cfg.defaultBranch + ') and RESTART the session — agent definitions ' +
-    'are loaded once per CLI process, so refreshing the files is not enough. Details: ' + (detail || '(none reported)')
-  log('[' + id + '] ' + d)
-  return { id: id, status: 'failed', stage: 'config-drift', detail: d }
-}
-
 // deliver serialization: merges to the default branch on the MAIN working tree must never
 // overlap. A tiny promise-chain mutex; sequential runs pass no lock (direct call).
 const makeLock = function () {
@@ -173,10 +145,6 @@ async function runTicket(t, opts) {
   const P = 'T:' + t.id
   const branch = 'ticket/' + t.id
   const planPath = 'docs/plans/' + t.id + '.md'
-  // The Reviewer — not the delivery step — authors the review record at this path.
-  // Delivery only points `deliver-ticket.mjs --verdict-file` at it, so the comment
-  // posted to the PR/MR is the reviewer's own text, never a third party's transcription.
-  const verdictFile = '.claude/tmp/' + t.id + '-verdict.md'
 
   log('[' + t.id + '] architect: planning')
   const plan = await agent(
@@ -198,19 +166,12 @@ async function runTicket(t, opts) {
 
   log('[' + t.id + '] builder: implementing on ' + branch)
   let build = await agent(
-    'Builder stage. Ticket: ' + t.path + '. ' + planForBuilder +
-    'FIRST, before creating any branch: run `git fetch origin` and check whether `origin/' + branch + '` already exists. ' +
-    'If it exists and is NOT already merged into ' + cfg.defaultBranch + ' (`git merge-base --is-ancestor origin/' + branch + ' origin/' + cfg.defaultBranch + '` fails), ' +
-    'STOP: do not build, do not branch over it, do not reset, rebase, force-push or delete it. A previous run already built this ticket and its work is unmerged; ' +
-    'building anyway produces a second implementation that cannot be reconciled with the first. Report the stop by returning testsPassed=false with ' +
-    'testOutput = "STOP: origin/' + branch + ' already exists and is unmerged (sha <short-sha>) — a previous run built this ticket; a human must decide before it is rebuilt." ' +
-    'Otherwise create branch ' + branch +
+    'Builder stage. Ticket: ' + t.path + '. ' + planForBuilder + 'Create branch ' + branch +
     ' from ' + cfg.defaultBranch + ', implement it there, commit, run the tests. Do NOT merge and do NOT touch the tracker. ' +
-    configCheckInstruction +
-    'Return branch (must be ' + branch + '), testsPassed, testOutput (paste real output), deviations, configIntact and configDrift.',
+    'Return branch (must be ' + branch + '), testsPassed, testOutput (paste real output), deviations, ' +
+    'and summary = one paragraph on WHAT you changed and why, written for a human reviewer and describing only what you actually did — it is quoted into the pull request body.',
     Object.assign({ agentType: 'builder', label: 'build:' + t.id, phase: P, schema: BUILD }, buildIsolation)
   )
-  if (build && build.configIntact === false) return configDriftResult(t.id, 'builder', build.configDrift)
   if (buildBad(build)) {
     return { id: t.id, status: 'failed', stage: 'builder', detail: !build ? 'builder agent returned nothing' : (String(build.branch).trim() !== branch ? 'worked on wrong branch: ' + build.branch : build.testOutput) }
   }
@@ -221,17 +182,11 @@ async function runTicket(t, opts) {
       ', diff = branch ' + branch + ' vs ' + cfg.defaultBranch + '. ' +
       (isolate ? 'You are in a fresh isolated worktree: `git fetch` if needed, then `git checkout --detach ' + branch + '` (detached, so a busy branch elsewhere is fine) to get the code, and run the tests there. ' : '') +
       'Review per your role definition; run the tests yourself — no test results are provided on purpose. ' +
-      'Then WRITE YOUR OWN REVIEW RECORD to EXACTLY ' + verdictFile + ' (create the .claude/tmp directory if needed)' +
-      (isolate
-        ? ', resolved against the MAIN repo root, NOT your worktree — the delivery step reads it from there. ' +
-          'Get that root with `git rev-parse --path-format=absolute --git-common-dir` (it prints <main-repo>/.git; drop the trailing /.git) ' +
-          'and write to <main-repo>/' + verdictFile + '. '
-        : '. ') +
-      'That file is yours alone — it is posted verbatim as the PR/MR review comment, so it must be self-contained and factual: ' +
-      'the verdict (CLEAR or BOUNCE), ticket ' + t.id + ', the branch and base commit shas you actually judged, each acceptance item and how you checked it, ' +
-      'the test commands you really ran with their real output tails and exit codes (and node -v), and every finding. ' +
-      'Do not claim a check you did not run; if you skipped or narrowed something, say so. It is the only file you may write. ' +
-      'After writing it, return verdict CLEAR or BOUNCE with findings (a BOUNCE with zero findings is invalid).',
+      'FIRST take every [machine] and [fixture] acceptance row in the ticket, run it, and report it in machineChecks with met true/false -- one entry per row, a reason on any false. An unmet row is disqualifying: BOUNCE, or escalate where the ticket contradicts itself. A Builder-documented blocker is NOT grounds for CLEAR. ' +
+      'THEN WRITE YOUR OWN REVIEW RECORD to EXACTLY .claude/tmp/' + t.id + '-verdict.md — your findings, the commands you ran with their real output, and anything you could not verify. ' +
+      (isolate ? 'That path is relative to the MAIN repository, not your worktree: get the main root with `git rev-parse --path-format=absolute --git-common-dir` and write under <that directory minus the trailing /.git>. A record written inside a throwaway worktree disappears with it. ' : '') +
+      'Nobody else writes this file and nobody re-types it — it is posted on the pull request as YOUR words, and a verdict with no record is refused at delivery. Write it on BOUNCE as well as CLEAR, and return recordPath. ' +
+    'Return verdict CLEAR or BOUNCE with findings (a BOUNCE with zero findings is invalid).',
       Object.assign({ agentType: 'reviewer', label: 'review:' + t.id + '#' + tag, phase: P, schema: VERDICT }, isolate ? { isolation: 'worktree' } : {})
     )
   }
@@ -253,17 +208,32 @@ async function runTicket(t, opts) {
     build = await agent(
       'Builder stage, bounce fix. Ticket: ' + t.path + '. ' + planForBuilder + 'Stay on branch ' + branch +
       ' — do NOT merge and do NOT touch the tracker. Reviewer findings — address ALL of them and add regression tests: ' +
-      JSON.stringify(verdict.findings) + '. Run the tests. ' + configCheckInstruction +
-      'Return branch (must be ' + branch + '), testsPassed, testOutput, deviations, configIntact and configDrift.',
+      JSON.stringify(verdict.findings) + '. Run the tests. Return branch (must be ' + branch + '), testsPassed, testOutput, deviations.',
       Object.assign({ agentType: 'builder', label: 'fix:' + t.id + '#' + bounces, phase: P, schema: BUILD }, buildIsolation)
     )
-    // A bounce fix is exactly where the observed failure happened — a later round on a branch
-    // whose base predated the current .claude/** — so it is checked on every round, not once.
-    if (build && build.configIntact === false) return configDriftResult(t.id, 'bounce fix #' + bounces, build.configDrift)
     if (buildBad(build)) { fixBroken = true; break }
     verdict = await reviewOnce(String(bounces))
     if (!reviewValid(verdict)) { log('[' + t.id + '] reviewer returned no usable verdict — retrying once'); verdict = await reviewOnce(bounces + '-retry') }
     reviewerBroken = !reviewValid(verdict)
+  }
+
+
+  // A CLEAR carrying an UNMET acceptance row is not a CLEAR (catalog issue #183). A ticket
+  // was delivered with three [machine] rows unsatisfiable by inspection: the Builder
+  // refused to implement them and said so, and the Reviewer passed it anyway — a
+  // well-documented blocker reads like diligence, and diligence reads like grounds to
+  // pass. This turns that judgement into a check, and it escalates rather than bounces,
+  // because a ticket that contradicts itself is a human's decision.
+  const unmet = reviewValid(verdict) && verdict.verdict === 'CLEAR'
+    ? (verdict.machineChecks || []).filter(function (c) { return c && c.met === false })
+    : []
+  if (unmet.length) {
+    log('[' + t.id + '] CLEAR REJECTED -- ' + unmet.length + ' acceptance row(s) reported unmet')
+    return {
+      id: t.id, status: 'escalated', stage: 'acceptance-unmet', bounces: bounces,
+      findings: verdict.findings || [],
+      detail: 'reviewer returned CLEAR with unmet acceptance: ' + unmet.map(function (c) { return c.row + (c.note ? ' (' + c.note + ')' : '') }).join('; '),
+    }
   }
 
   if (reviewerBroken || fixBroken || verdict.verdict !== 'CLEAR') {
@@ -277,34 +247,32 @@ async function runTicket(t, opts) {
   }
 
   // Delivery is a deterministic script, not agent judgment (catalog issues #26, #50, #58). The
-  // agent only (1) verifies the reviewer's record is there, (2) composes the PR/MR body from the
-  // repo template, (3) runs the one command. It never merges, pushes, opens PRs, or closes issues.
-  //
-  // The deliver step must NOT write, reword or recreate the review record: it used to be handed
-  // the reviewer's short `checkedNote` through this prompt and told to transcribe it verbatim
-  // into the verdict file, which (a) replaced the reviewer's full authored record with a summary
-  // relayed by a third party, and (b) reads as one agent writing another's approval — a safety
-  // classifier blocked delivery on it three times (FND-28, FND-30 twice). No verdict text passes
-  // through this prompt any more; the reviewer authors the file and delivery only reads it. A
-  // missing or empty record is a hard failure (deliver-ticket.mjs refuses too) — never fabricated.
+  // agent only (1) writes the verdict, (2) composes the PR/MR body from the repo template, (3)
+  // runs the one command. It never merges, pushes, opens PRs, or closes issues.
+  const recordPath = '.claude/tmp/' + t.id + '-verdict.md'
   const bodyFile = '.claude/tmp/' + t.id + '-mrbody.md'
   const deliverCmd = 'node .claude/scripts/deliver-ticket.mjs --id ' + t.id + ' --branch ' + branch +
     ' --default-branch ' + cfg.defaultBranch + ' --platform ' + cfg.platform + (t.issue ? ' --issue ' + t.issue : '') +
-    (cfg.testCmd ? ' --test-cmd "' + cfg.testCmd + '"' : '') + ' --verdict-file ' + verdictFile + ' --body-file ' + bodyFile +
+    (cfg.testCmd ? ' --test-cmd "' + cfg.testCmd + '"' : '') + ' --verdict-file ' + recordPath + ' --body-file ' + bodyFile +
+    // supervised already stops for a human merge, so the fallback is autonomous-only
+    (cfg.mode !== 'supervised' && cfg.integrationBranch ? ' --integration-branch ' + cfg.integrationBranch : '') +
     (cfg.mode === 'supervised' ? ' --no-merge' : '')
+  // The Reviewer wrote its own record. This stage VERIFIES it and points the script at
+  // it; it never writes or summarises a verdict (catalog issues #201, #206). Delivery is
+  // an executor here for a MECHANICAL reason — a workflow script has no filesystem and no
+  // exec, so an agent is the only actor inside a run that can invoke a command — which is
+  // the same reason the Codex pattern keeps its own delivery actuator.
   const deliverPrompt =
-    'Delivery step. Delivery is DETERMINISTIC — you only (1) check the review record exists, (2) compose the PR/MR body, and (3) run one command; never merge, push, open PRs/MRs, or close issues yourself. ' +
-    'The independent Reviewer has ALREADY WRITTEN its own review record to ' + verdictFile + '. That file is the reviewer\'s, not yours: ' +
-    'do NOT author it, edit it, reword it, extend it, or recreate it if it is absent — an approval written by the delivery step is not a review. ' +
-    'First VERIFY that ' + verdictFile + ' exists and is non-empty (e.g. read it / check its size). If it is missing or empty, STOP immediately: ' +
-    'do not run the delivery command and do not create the file — return merged/issueClosed/dodPassed = false with notes = "missing reviewer verdict record at ' + verdictFile + '". ' +
-    'Delivering without a review record is exactly what must not happen. ' +
+    'Delivery step. You are an EXECUTOR, not a judge: you (1) verify the Reviewer wrote its record, (2) compose the PR/MR body from the artifacts below, and (3) run one command. Never merge, push, open PRs/MRs, or close issues yourself. ' +
+    'FIRST verify ' + recordPath + ' exists and is NOT empty. If it is missing or empty, STOP: return merged/issueClosed/dodPassed = false with that as the reason. Do NOT write it, do NOT summarise the verdict, do NOT substitute anything — the Reviewer authors that file and an unevidenced review must not become a merge. ' +
     'Next compose the PR/MR body and write it to ' + bodyFile + ': START from the repo\'s MR/PR template ' +
     '(.gitlab/merge_request_templates/default.md on GitLab, else .github/pull_request_template.md; if neither exists, write nothing and skip this file) and FILL its sections from the ticket ' + t.path +
-    ', the diff (`git diff ' + cfg.defaultBranch + '...' + branch + '` — summarize, do not paste it whole), the reviewer\'s CLEAR record at ' + verdictFile + ' (read it, quote it if useful, never change it), and the repo CLAUDE.md non-negotiables for the **Constraint check** section (tick what the diff touches, mark the rest N/A). Include `Closes #' + (t.issue || '<n>') + '`. Do not invent spec the ticket lacks. ' +
+    ', the diff (`git diff ' + cfg.defaultBranch + '...' + branch + '` — summarize, do not paste it whole), the Reviewer\'s record above (quote it; do not paraphrase it into an approval), and the repo CLAUDE.md non-negotiables for the **Constraint check** section (tick what the diff touches, mark the rest N/A). ' +
+    'These facts are supplied because only this run holds them, and a body that reads complete but is partly invented is worse than one that admits a gap: BOUNCE cycles = ' + bounces + '; Builder-declared deviations = ' + JSON.stringify((build && build.deviations) || 'none declared') + '; Builder summary = ' + JSON.stringify((build && build.summary) || '(none returned)') + '. ' +
+    'Any section you cannot fill from an artifact must say it is unavailable and why — never infer one. Include `Closes #' + (t.issue || '<n>') + '`. Do not invent spec the ticket lacks. ' +
     'Then, from the repo root, run EXACTLY this command and let it do all git and tracker work: ' + deliverCmd +
     ' — this is the only sanctioned delivery path. Parse the DELIVER-SUMMARY-JSON line it prints last and return ' +
-    'merged, issueClosed, dodPassed, awaitingMerge, and prUrl EXACTLY as reported there, with notes = its notes field plus anything unusual. ' +
+    'merged, issueClosed, dodPassed, awaitingMerge, outcome, deliveredTo, and prUrl EXACTLY as reported there, with notes = its notes field plus anything unusual. ' +
     'If the command cannot run or prints no DELIVER-SUMMARY-JSON, return merged/issueClosed/dodPassed = false with the output tail in notes.'
 
   if (cfg.mode === 'supervised') {
@@ -326,40 +294,6 @@ async function runTicket(t, opts) {
   }
   return { id: t.id, status: 'delivered', bounces: bounces, prUrl: delivery.prUrl || '' }
 }
-
-// ---- preflight: are we the pipeline we think we are? (mirrored from start-all.js) ----
-// This one matters most for the AGENT DEFINITIONS, which are loaded once per CLI process:
-// if this session was started over a working tree left sitting on a stale ticket branch,
-// every stage of this entire run is already the wrong agent, and no later check can undo it.
-const preflight = await agent(
-  'Preflight integrity check for a milestone run. You are NOT implementing anything and you must change NOTHING. ' +
-  'Run exactly this from the repo root: `' + CONFIG_CHECK_CMD + '` and read its final CONFIG-CHECK-JSON line. ' +
-  'Return ok = its `ok` value and detail = its `detail` text verbatim. ' +
-  'If the command cannot run at all (missing file, module error, not a git repo), return ok=false with the output tail as detail. ' +
-  'Do not check out, reset, stash, merge or revert anything to make it pass, and do not edit any file.',
-  { label: 'preflight:config', phase: 'Preflight', effort: 'low', schema: CONFIG }
-)
-if (!preflight || preflight.ok !== true) {
-  const why = preflight && preflight.detail ? preflight.detail : 'preflight agent returned no usable answer'
-  log('milestone run STOPPED before any ticket was dispatched — pipeline config integrity check failed.')
-  log(why)
-  return {
-    mode: cfg.mode,
-    concurrency: concurrency,
-    stopped: 'preflight-config-drift',
-    detail:
-      'PREFLIGHT STOP: the pipeline configuration on disk does not match origin/' + cfg.defaultBranch + ', so this session is ' +
-      'not running the agents/scripts/hooks that were chosen. Nothing was dispatched. A human must restore the main working ' +
-      'tree (typically `git checkout ' + cfg.defaultBranch + '`, then decide what to do with any deliberate local change) and ' +
-      'RESTART the session — agent definitions are loaded once per CLI process, so refreshing the files without restarting ' +
-      'leaves the stale agents in place. Details: ' + why,
-    results: cfg.tickets.map(function (t) {
-      return { id: t.id, status: 'not-started', detail: 'run stopped by the preflight pipeline-config integrity check' }
-    }),
-    notStarted: cfg.tickets.length,
-  }
-}
-log('preflight ok — ' + (preflight.detail || 'pipeline config matches origin/' + cfg.defaultBranch))
 
 const results = []
 
