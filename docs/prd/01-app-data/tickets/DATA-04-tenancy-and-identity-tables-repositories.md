@@ -78,6 +78,24 @@ Accepted caveats carried forward:
 - The role vocabulary (`OWNER`, `ADMIN`, `RESEARCHER`, `VIEWER`, `DEVELOPER`, PRD §38.1) is a
   canonical enum owned by `FND-03`; the CHECK constraint is generated from it (PRD §35.1), never
   hand-typed.
+- **The closure allowlist is asserted as a predicate only, not end to end — a recorded known
+  gap.** `CLOSURE_EXEMPT_OPERATIONS` (`packages/database/src/repos/tenancy/closure.ts`) names
+  `export`, `delete` and `close`, but only `close` has a repository operation behind it in this
+  module (`organizations.close`). No repository here implements an organisation export or a bulk
+  row deletion, so `packages/database/test/tenancy/closure.test.ts` can assert only that the guard
+  predicate does not refuse those two labels; there is no end-to-end test that an exempt `export`
+  or `delete` operation runs against a closed organisation, because there is no such operation to
+  run. That is consistent with this ticket's Non-goals (no routes, no jobs) and is **not** a
+  defect to fix here. It is recorded rather than left implicit because **no ticket currently owns**
+  PRD §10.3's *"export followed by deletion within 30 days"* for an organisation:
+  `XPRT-01`…`XPRT-05` (`19-exports`) explicitly exclude it (that sub-PRD's **D9**/**QX-6**:
+  *"the PRD §10.3 organisation-closure export is a `/settings/data` flow owned by
+  `13-identity-surface`"*), while `IDNT-09` (`13-identity-surface`) ships the **display** half only
+  and states *"organisation closure has no API"* (that sub-PRD's **OQ6**, owner: Founder + plan
+  owner). `DATA-08` is the ephemeral store (PRD §10.4/§35.7) and is unrelated. The
+  export-then-delete path is therefore an **unallocated requirement**, surfaced here under the
+  Feedback obligation: the allowlist's two unexercised labels stay in place as the seam that
+  ticket will use, and whoever closes **OQ6**/**QX-6** owns the end-to-end test.
 
 ## Goal
 
@@ -208,9 +226,39 @@ barrel (sub-PRD D4), so adding `tenancy.ts` touches no other ticket's file.
       raw driver error (PRD §35.4)
 - [ ] `[machine]` `user.email_normalized` is globally unique and `user`/`actor` are `GLOBAL`-scoped:
       a tenant repository cannot be constructed for them (PRD §15.4, `DATA-02`)
-- [ ] `[machine]` **AUTH-002**: the cross-tenant matrix (read/write/delete/list) over all six
-      tenant-owned tables returns the indistinguishable `ResourceNotFound` for another tenant's id
-      and for an absent id (PRD §16.5, §30.2 AUTH-002)
+- [ ] `[machine]` **AUTH-002**: the cross-tenant matrix over all six tenant-owned tables
+      (`organization`, `membership`, `invitation`, `service_account`, `api_credential`,
+      `sso_connection`) returns the indistinguishable `ResourceNotFound` for another tenant's id
+      and for an absent id. The matrix is defined **per repository, as every operation that
+      repository exposes which resolves a caller-supplied identifier of an existing tenant-owned
+      row** — not a fixed `{get, list, update, delete}` tuple — so that no exposed operation
+      escapes the property and none is demanded that the design does not have. Exhaustively:
+      `organizations.{find, get, updateWithVersion, close}` ·
+      `memberships.{find, get, findByUser, updateWithVersion, demote, suspend, remove}` ·
+      `invitations.{find, get, accept}` · `serviceAccounts.{find, get, updateWithVersion}` ·
+      `apiCredentials.{find, get, findVerifiable, revoke, rotate, touchLastUsed}` ·
+      `ssoConnections.{find, get, readConfiguration, recordTest, enforce}`. Where the operation
+      throws, the assertion is `deepStrictEqual` on the two errors' wire form, after asserting
+      each call raised at all. Where it reports a miss without throwing it MUST return the
+      **identical** miss value for both identifiers: `find`, `findByUser` and
+      `apiCredentials.findVerifiable` → `undefined`. `list()` carries the same property in its own
+      form — on all six repositories it returns only the calling tenant's rows, asserted over a
+      seeded non-empty result so the check cannot pass vacuously.
+      **`organization`, `service_account` and `sso_connection` expose no delete-equivalent
+      operation at all, by design, so the matrix has no `delete` leg for them** — this ticket's
+      own Background gives the reason: *"**PRD §10.3**: 'Organisation closure: export followed by
+      deletion within 30 days' — which is why `organization.status` closure 'blocks writes'
+      rather than deleting rows."* Row deletion is not part of this ticket's surface, and this
+      narrowing removes no coverage of any operation that exists. The two tables that **do** have
+      a delete-equivalent keep it and must not lose it: `memberships.remove` (row removal) and
+      `apiCredentials.revoke` (the `revoked_at` stamp, which is deletion's equivalent on an
+      `APPEND_ONLY` table). **`invitation`'s mutating path sits outside the uniform id-addressed
+      matrix and is not thereby exempt**: its `find`/`get`/`list` legs are in the matrix as above,
+      and `accept(tokenHash)` — keyed by token hash rather than row id, returning a discriminated
+      result instead of throwing — MUST return exactly `{ status: 'NOT_FOUND' }` for another
+      tenant's token hash and for a token hash that never existed, asserted equal to each other,
+      so the token path cannot be used to probe another tenant's invitations
+      (PRD §16.5, §30.2 AUTH-002)
 - [ ] `[machine]` Composite tenant FKs reject a cross-tenant child insert at the database level with
       `foreign_keys = ON` (PRD §35.8 invariant 4)
 - [ ] `[machine]` Last-Owner invariant: removing/demoting/suspending the last `ACTIVE` `OWNER` fails;
@@ -254,9 +302,20 @@ Offline; no network, no auth provider, no real credentials.
    of the eight tables and compare against a literal expectation table transcribed from PRD §35.4 in
    the test file — the transcription is the point; do not derive the expectation from the schema
    module under test.
-4. Cross-tenant matrix: seed organisations `A` and `B` with a full set of rows each; iterate the six
-   tenant-owned repositories × {get, list, update, delete}; assert `deepStrictEqual` between the
-   other-tenant error and the absent-id error.
+4. Cross-tenant matrix: seed organisations `A` and `B` with a full set of rows each; from `A`'s
+   context, iterate **each of the six tenant-owned repositories against the operations that
+   repository actually exposes**, exactly as enumerated in the `AUTH-002` acceptance item — not a
+   fixed `{get, list, update, delete}` tuple, which would demand a `delete` this ticket's
+   Background rules out for `organization`, `service_account` and `sso_connection` (PRD §10.3
+   closure keeps the rows and blocks the writes). For every throwing operation, call it twice —
+   once with `B`'s row id, once with an id that never existed — assert each call raised at all,
+   then `deepStrictEqual` between the two errors' wire forms. For the non-throwing lookups assert
+   the identical miss value from both inputs: `find`, `findByUser` and
+   `apiCredentials.findVerifiable` → `undefined`, and `invitations.accept` →
+   `{ status: 'NOT_FOUND' }` for `B`'s token hash and for a token hash that never existed.
+   Separately assert `list()` on all six repositories returns only `A`'s rows, over a seeded
+   non-empty result. The delete-equivalents that do exist — `memberships.remove` and
+   `apiCredentials.revoke` — are part of the throwing set and must not be dropped.
 5. Last-Owner concurrency: two connections, two Owners, both transactions attempting to demote "the
    other" Owner; assert exactly one succeeds and a query afterwards still returns at least one active
    Owner.
@@ -295,3 +354,10 @@ Offline; no network, no auth provider, no real credentials.
 3. **Falsified decision.** If it turns out a product module genuinely must own its own identity
    tables, that overturns plan §2.1 **A3** and re-creates the module cycle A3 removes. Stop,
    escalate for re-review, and update `docs/prd/breakdown-plan.md` §2.1/§4.2 before any code moves.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-18 | **Self-contradiction between the `AUTH-002` acceptance item and this ticket's own Background removed.** The acceptance item and test-plan step 4 both specified the cross-tenant matrix as `{get, list, update, delete}` over **all six** tenant-owned tables, while the Background states *"**PRD §10.3**: 'Organisation closure: export followed by deletion within 30 days' — which is why `organization.status` closure 'blocks writes' rather than deleting rows."* `organizations.ts`, `service-accounts.ts` and `sso-connections.ts` therefore expose no delete method **by design, not by omission**, and `invitation`'s mutating path (`accept(tokenHash)`) is token-keyed rather than id-keyed, so it never fitted a uniform id-addressed tuple: the ticket demanded an operation its own design rules out. Both places are now scoped to **each repository's real operation surface**, enumerated explicitly, **without weakening the AUTH-002 indistinguishability property on any operation that exists** — the two delete-equivalents that do exist (`memberships.remove`, `apiCredentials.revoke`) stay in the matrix, the non-throwing lookups (`find`, `findByUser`, `findVerifiable`) gain an explicit identical-miss requirement, `invitations.accept` gains an explicit `{ status: 'NOT_FOUND' }` requirement, and `list()` keeps its no-leak assertion on all six. Acceptance item and test plan are now stated in terms of one another so they cannot drift apart again — that drift is what produced the escalation. Separately recorded under Accepted caveats: `CLOSURE_EXEMPT_OPERATIONS` (`closure.ts`) names `export` and `delete`, but no repository in this module implements either, so `closure.test.ts` can assert only that the guard predicate does not refuse those labels — a known end-to-end gap, consistent with the Non-goals, now written down rather than implicit, together with the finding that **no ticket owns** PRD §10.3's organisation export-then-delete path (`19-exports` **D9**/**QX-6** excludes it; `13-identity-surface` `IDNT-09` **OQ6** ships the display half only), making it an unallocated requirement. Made after a Reviewer escalation at the 2-bounce cap on 2026-08-18 and authorized by the repo owner. No id, title, frontmatter, dependency edge, file-scope entry, Non-goal or other acceptance item changed. |
