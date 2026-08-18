@@ -43,10 +43,10 @@ export interface TenancyHarness {
 }
 
 /** A deterministic 32-byte key. Test material only; never a production secret shape. */
-const TEST_KEY_MATERIAL = Buffer.alloc(32, 7).toString('base64');
+const TEST_DETERMINISTIC_MATERIAL = Buffer.alloc(32, 7).toString('base64');
 
 export function testKeyRegistry(): KeyRegistry {
-  return loadKeyRegistry({ keys: [{ keyId: 'k1', material: TEST_KEY_MATERIAL, state: 'ACTIVE' }] });
+  return loadKeyRegistry({ keys: [{ keyId: 'k1', material: TEST_DETERMINISTIC_MATERIAL, state: 'ACTIVE' }] });
 }
 
 /**
