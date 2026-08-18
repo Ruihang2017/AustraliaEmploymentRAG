@@ -4,13 +4,56 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { MigrationError } from '../../src/migrate/errors.js';
+import { parseMigrationHeader } from '../../src/migrate/policy.js';
 import {
   assertSchemaUpToDate,
   migrationChecksum,
   migrationStatus,
   runMigrations,
 } from '../../src/migrate/runner.js';
-import { REPO_MIGRATIONS_DIR, fixture, withTempDatabase, withTempMigrations } from './helpers.js';
+import {
+  REPO_MIGRATIONS_DIR,
+  fixture,
+  repoMigrationNames,
+  withTempDatabase,
+  withTempMigrations,
+} from './helpers.js';
+
+/*
+ * DATA-10 — this suite asserts the migration framework's properties, not the repository's
+ * inventory. Two rules, and they are the whole of it:
+ *
+ *   1. A test that runs against REPO_MIGRATIONS_DIR derives its expectation from the directory
+ *      listing at run time (`repoMigrationNames()`), so it holds for one migration and for fifty.
+ *   2. Every other test runs against `withTempMigrations`, whose corpus is `0001_baseline.sql`
+ *      plus `fixtures/<name>/` and nothing else — closed by construction since DATA-10. Its
+ *      filename literals are therefore exact by construction and must NOT be loosened.
+ *
+ * Properties this file proves, and the `it(` that proves each (ticket deliverable 5):
+ *
+ *   | Property                                                   | Test                          |
+ *   |------------------------------------------------------------|-------------------------------|
+ *   | Shipped corpus applied in order; head is the last entry     | 'migrates a clean temp …'     |
+ *   | Ledger: one row per migration, checksum of that file's      | 'migrates a clean temp …'     |
+ *   |   bytes, ISO applied_at, integer duration, run_id, phase    |                               |
+ *   | WAL journal mode                                            | 'applies the WAL journal …'   |
+ *   | Idempotence: second run applies nothing, head+ledger stand  | 'is idempotent …'             |
+ *   | Tamper detection (CHECKSUM_MISMATCH) before applying        | 'aborts with CHECKSUM_… '     |
+ *   | CRLF/LF and BOM insensitivity of the checksum               | 'ignores a CRLF/LF …'         |
+ *   | Missing already-applied migration refused                   | 'refuses to run when …'       |
+ *   | Out-of-order arrival applied and flagged                    | 'applies a late-arriving …'   |
+ *   | Bad filename rejected, not skipped                          | 'rejects a directory entry …' |
+ *   | Duplicate ordering prefix rejected                          | 'rejects two migrations …'    |
+ *   | Expand/contract same-run refusal; mixed batch; later run;    | the four 'refuses/applies …'  |
+ *   |   expand-never-applied                                      |   tests in that describe      |
+ *   | `deferred` empty when nothing is refused                    | 'leaves `deferred` empty …'   |
+ *   | Destructive construct rejected in an expand migration       | 'refuses an expand migration…'|
+ *   | Recovery point required / recorded / provider failure       | the three 'recovery point'    |
+ *   | migrationStatus pending list; partial-run head;              | the three 'migrationStatus'   |
+ *   |   assertSchemaUpToDate names the pending file                |   tests                       |
+ *   | DROP INDEX uniqueness read from the live database (4 cases) | the 'DROP INDEX' describe     |
+ *   | Fixtures kept out of the shipped migrations directory       | 'leaves fixtures/ out …'      |
+ */
 
 interface LedgerRow {
   name: string;
@@ -51,32 +94,42 @@ const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 describe('runMigrations against the shipped migrations directory', () => {
-  it('migrates a clean temp database from empty to head and records the ledger row', async () => {
+  it('migrates a clean temp database from empty to head and records a ledger row per migration', async () => {
     await withTempDatabase(async (databasePath) => {
+      // The expectation is the directory listing, computed independently of the runner (see
+      // `repoMigrationNames`). Ordered equality: order IS the property here.
+      const names = repoMigrationNames();
       const report = await runMigrations({
         databasePath,
         migrationsDir: REPO_MIGRATIONS_DIR,
       });
 
-      expect(report.applied.map((migration) => migration.name)).toEqual(['0001_baseline.sql']);
-      expect(report.head).toBe('0001_baseline.sql');
+      expect(report.applied.map((migration) => migration.name)).toEqual(names);
+      expect(report.head).toBe(names.at(-1));
       expect(report.outOfOrder).toEqual([]);
+      // Nothing is deferred on a fresh database today. A repository contract migration whose expand
+      // landed in this SAME run would legitimately defer and make `applied` a strict prefix of the
+      // listing; none exists, and the `contract` / `contract-mixed` fixtures are what prove the
+      // deferral behaviour. If that day comes, derive this from the phases — do not loosen it now.
+      expect(report.deferred).toEqual([]);
       expect(report.recoveryPoint).toBeNull();
       expect(report.runId).toMatch(UUID);
 
       const rows = ledger(databasePath);
-      expect(rows).toHaveLength(1);
-      const row = rows[0] as LedgerRow;
-      expect(row.name).toBe('0001_baseline.sql');
-      expect(row.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
-      expect(row.checksum).toBe(
-        migrationChecksum(readFileSync(join(REPO_MIGRATIONS_DIR, '0001_baseline.sql'), 'utf8')),
-      );
-      expect(row.applied_at).toMatch(ISO_UTC);
-      expect(Number.isInteger(row.duration_ms)).toBe(true);
-      expect(row.duration_ms).toBeGreaterThanOrEqual(0);
-      expect(row.run_id).toBe(report.runId);
-      expect(row.phase).toBe('expand');
+      // One row per file, in order — strictly stronger than the row count this used to assert.
+      expect(rows.map((row) => row.name)).toEqual(names);
+      for (const row of rows) {
+        const sql = readFileSync(join(REPO_MIGRATIONS_DIR, row.name), 'utf8');
+        expect(row.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
+        expect(row.checksum).toBe(migrationChecksum(sql));
+        expect(row.applied_at).toMatch(ISO_UTC);
+        expect(Number.isInteger(row.duration_ms)).toBe(true);
+        expect(row.duration_ms).toBeGreaterThanOrEqual(0);
+        expect(row.run_id).toBe(report.runId);
+        // Derived from the file's own header, not the literal 'expand' — which would re-pin the
+        // repository to containing no contract migration.
+        expect(row.phase).toBe(parseMigrationHeader(sql, row.name).phase);
+      }
     });
   });
 
@@ -97,9 +150,12 @@ describe('runMigrations against the shipped migrations directory', () => {
       await runMigrations({ databasePath, migrationsDir: REPO_MIGRATIONS_DIR });
       const second = await runMigrations({ databasePath, migrationsDir: REPO_MIGRATIONS_DIR });
 
+      const names = repoMigrationNames();
       expect(second.applied).toEqual([]);
-      expect(second.head).toBe('0001_baseline.sql');
-      expect(ledger(databasePath)).toHaveLength(1);
+      expect(second.head).toBe(names.at(-1));
+      // The second run changed neither the head nor the ledger — compared by the whole ordered
+      // name list, not by a row count.
+      expect(ledger(databasePath).map((row) => row.name)).toEqual(names);
     });
   });
 });
@@ -358,7 +414,7 @@ describe('recovery point (PRD §23.1)', () => {
         recoveryPoint: async () => ({ id: 'rp-42', takenAt: '2026-08-03T12:00:00.000Z' }),
       });
       expect(report.recoveryPoint).toEqual({ id: 'rp-42', takenAt: '2026-08-03T12:00:00.000Z' });
-      expect(report.applied).toHaveLength(1);
+      expect(report.applied.map((migration) => migration.name)).toEqual(repoMigrationNames());
     });
   });
 
