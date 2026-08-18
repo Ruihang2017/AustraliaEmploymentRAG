@@ -72,10 +72,13 @@ function createConformingTable(db: Database.Database): void {
 
 describe('assertSchemaConventions (DATA-01 deliverable 10, PRD §35.1)', () => {
   it('runs green against head with the manifests actually discovered today', async () => {
-    // Vacuous by construction — `src/schema/` does not exist until DATA-04 lands. The fixture
-    // negatives below are what stop this criterion from being a check that cannot go red.
+    // DATA-10: this used to assert `manifests` is empty first, i.e. that the repository contains
+    // zero schema modules — a premise DATA-04…DATA-07 each falsify. What is permanent, and what
+    // this test is for, is the coherence property: the real migrations at head and the real schema
+    // modules must agree, however many of each there are. It is vacuous only while `src/schema/` is
+    // empty, and becomes a genuine check the moment DATA-04 lands. The fixture-driven negatives
+    // below are what keep this criterion able to go red in the meantime.
     const manifests = discoverTableManifests();
-    expect(manifests).toEqual([]);
     await atHead((db) => {
       expect(() => assertSchemaConventions(db, manifests)).not.toThrow();
     });
