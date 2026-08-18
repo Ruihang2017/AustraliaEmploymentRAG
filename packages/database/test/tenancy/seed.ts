@@ -62,10 +62,7 @@ export function seedOrganization(
   });
 
   const ctx = contextFor(organizationId, `req-seed-${organizationId}`);
-  const repos = tenancyRepositories(db, ctx, {
-    registry,
-    resolveActorOrganization: () => undefined,
-  });
+  const repos = tenancyRepositories(db, ctx, { registry });
 
   const serviceAccount = makeServiceAccount();
   const credential = makeApiCredential(serviceAccount['id'] as string);
@@ -77,6 +74,10 @@ export function seedOrganization(
     const membership = repos.memberships.create(tx, makeMembership(owner.userId));
     repos.serviceAccounts.create(tx, serviceAccount);
     repos.apiCredentials.create(tx, credential);
+    // Order matters: `invitations.create` verifies unconditionally that the inviting actor belongs
+    // to this organisation, and for a USER actor that means the membership above must already exist
+    // in this transaction. That is the compensating control for the composite FK `actor` cannot
+    // have — seeding through the repositories is what keeps the seed honest about it.
     repos.invitations.create(tx, invitation);
     repos.ssoConnections.create(tx, sso);
     return { membershipId: membership['id'] as string };

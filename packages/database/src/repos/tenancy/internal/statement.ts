@@ -194,6 +194,53 @@ function assertGlobalContext(ctx: TenantContext): void {
   }
 }
 
+/** The three `actor` columns that say which principal an actor row stands for, and nothing else. */
+export interface ActorLinkage {
+  readonly id: string;
+  readonly actorType: string;
+  readonly userId: string | null;
+  readonly serviceAccountId: string | null;
+}
+
+/**
+ * Reads one `actor` row's linkage columns from a **tenant** context.
+ *
+ * This is the deliberate, narrow exception to {@link assertGlobalContext}, and it exists for exactly
+ * one reason: `actor` is `GLOBAL`, so `invitation.(organization_id, invited_by_actor_id)` has no
+ * composite parent key to reference (sub-PRD M-Q5, recorded under D1). PRD §35.8 invariant 4 then
+ * has to be kept by an application check, and that check has to start by asking *which* principal
+ * the actor is — a question only this table can answer.
+ *
+ * Why it is safe to answer it from a tenant context:
+ *
+ *  - the projection is closed to `id`, `actor_type`, `user_id`, `service_account_id`. An `actor` row
+ *    carries no organisation-owned content; those columns are opaque ids;
+ *  - the ids it returns are never returned to the caller — they are fed straight back into a
+ *    **scoped** read (`membership` / `service_account`) whose answer is what decides the refusal. So
+ *    this widens nothing: the only observable outcome is "belongs to this organisation" or
+ *    `INVALID_ACTOR_LINKAGE`;
+ *  - it cannot write. {@link runGlobalUpdate} still refuses a tenant context.
+ *
+ * Keep the projection closed. Selecting `*` here would turn a scope-decision input into a
+ * cross-tenant read of whatever a later ticket adds to `actor`.
+ */
+export function readActorLinkage(db: AppDatabaseHandle, actorId: string): ActorLinkage | undefined {
+  const query = db.qb
+    .selectFrom('actor')
+    .select(['id', 'actor_type', 'user_id', 'service_account_id'])
+    .where('id', '=', actorId)
+    .limit(1) as unknown as Compiled;
+  const { sql, parameters } = query.compile();
+  const row = db.sqlite.prepare(sql).get(...(parameters as unknown[])) as Row | undefined;
+  if (row === undefined) return undefined;
+  return {
+    id: row['id'] as string,
+    actorType: row['actor_type'] as string,
+    userId: (row['user_id'] ?? null) as string | null,
+    serviceAccountId: (row['service_account_id'] ?? null) as string | null,
+  };
+}
+
 function assertPatch(table: string, set: Row): Row {
   const patch: Row = {};
   for (const [column, value] of Object.entries(set)) {

@@ -181,8 +181,12 @@ export function apiCredentialsRepository(
     },
 
     revoke(tx, id) {
-      // Deliberately NOT closure-guarded: revoking a credential of a closed organisation is a
-      // safety operation, and PRD §10.3's closure sequence must be able to shut access down.
+      // Revoking a credential of a closed organisation is a safety operation and PRD §10.3's closure
+      // sequence must be able to shut access down — so it is exempt. The guard is still *called*,
+      // with the operation name that appears in CLOSURE_EXEMPT_OPERATIONS: an exemption granted by
+      // omitting the call is invisible at the allowlist, which is the one place the code's own docs
+      // say the answer should be readable.
+      assertOrganizationOpen(db, ctx, tx, 'api_credential.revoke');
       stamp(tx, id, 'revoked_at', now());
     },
 
@@ -194,6 +198,10 @@ export function apiCredentialsRepository(
     },
 
     touchLastUsed(tx, id, at) {
+      // A usage stamp is an ordinary write, and a closed organisation's credentials must not be
+      // usable at all (PRD §10.3, acceptance item 9). Not exempt, and therefore guarded — the
+      // asymmetry with revoke() above is decided in CLOSURE_EXEMPT_OPERATIONS, not here.
+      assertOrganizationOpen(db, ctx, tx, 'api_credential.touchLastUsed');
       stamp(tx, id, 'last_used_at', at ?? now());
     },
   };

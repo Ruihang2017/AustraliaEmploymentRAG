@@ -38,7 +38,37 @@ describe('organisation closure blocks writes (PRD §10.3, §35.4)', () => {
       );
       expect(repos.organizations.get(ORG_A)['status']).toBe('CLOSED');
 
+      const closed = repos.organizations.get(ORG_A);
+
       const writes: Array<[string, () => unknown]> = [
+        [
+          // Regression — bounce finding 1. This path used to skip the guard entirely, which left the
+          // organisation's own name/slug/plan/default_legal_date_policy/retention_policy_json
+          // rewritable after closure: the one table where that matters most, because the closed
+          // status itself lives on it.
+          'organization.updateWithVersion',
+          () =>
+            withTenantTransaction(db, a.ctx, (tx) =>
+              repos.organizations.updateWithVersion(tx, ORG_A, closed['row_version'] as number, {
+                name: 'renamed after closure',
+              }),
+            ),
+        ],
+        [
+          // Regression — bounce finding 2. A usage stamp is still a write.
+          'apiCredential.touchLastUsed',
+          () =>
+            withTenantTransaction(db, a.ctx, (tx) =>
+              repos.apiCredentials.touchLastUsed(tx, a.credentialId),
+            ),
+        ],
+        [
+          'apiCredential.rotate',
+          () =>
+            withTenantTransaction(db, a.ctx, (tx) =>
+              repos.apiCredentials.rotate(tx, a.credentialId, makeApiCredential(a.serviceAccountId)),
+            ),
+        ],
         [
           'membership.create',
           () =>
@@ -102,6 +132,14 @@ describe('organisation closure blocks writes (PRD §10.3, §35.4)', () => {
         );
         expect((thrown as TenancyError).code, label).toBe('ORGANIZATION_CLOSED');
       }
+
+      // …and nothing landed. A refusal that still wrote would satisfy the loop above and fail the
+      // requirement.
+      const after = repos.organizations.get(ORG_A);
+      expect(after['name']).toBe(closed['name']);
+      expect(after['row_version']).toBe(closed['row_version']);
+      expect(repos.apiCredentials.get(a.credentialId)['last_used_at']).toBeNull();
+      expect(repos.apiCredentials.get(a.credentialId)['revoked_at']).toBeNull();
     });
   });
 
@@ -118,15 +156,32 @@ describe('organisation closure blocks writes (PRD §10.3, §35.4)', () => {
       expect(repos.organizations.get(ORG_A)['id']).toBe(ORG_A);
       expect(repos.memberships.list().length).toBeGreaterThan(0);
 
-      // The allowlist is what the guard consults, so assert it directly too.
-      expect([...CLOSURE_EXEMPT_OPERATIONS]).toEqual(['export', 'delete', 'close']);
+      // The allowlist is what the guard consults, so assert it directly too — and pin the exact set,
+      // because "which writes survive closure" is a product decision from §10.3 and an entry added
+      // without a ticket is a silent widening of it.
+      expect([...CLOSURE_EXEMPT_OPERATIONS]).toEqual([
+        'export',
+        'delete',
+        'close',
+        'api_credential.revoke',
+      ]);
       for (const operation of CLOSURE_EXEMPT_OPERATIONS) {
         expect(isClosureExempt(operation)).toBe(true);
         withTenantTransaction(db, a.ctx, (tx) => {
           expect(() => assertOrganizationOpen(db, a.ctx, tx, operation)).not.toThrow();
         });
       }
-      expect(isClosureExempt('membership.create')).toBe(false);
+      // The two paths the bounce found unguarded are named here so a future "just add it to the
+      // allowlist" fix has to argue with a test rather than with a comment.
+      for (const operation of [
+        'membership.create',
+        'organization.updateWithVersion',
+        'api_credential.touchLastUsed',
+        'api_credential.create',
+        'api_credential.rotate',
+      ]) {
+        expect(isClosureExempt(operation), operation).toBe(false);
+      }
 
       // Deletion: removing rows must remain possible for the 30-day deletion half of §10.3.
       withTenantTransaction(db, a.ctx, (tx) => {

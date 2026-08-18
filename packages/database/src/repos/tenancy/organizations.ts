@@ -25,6 +25,7 @@ import {
   TENANCY_TABLE_SPECS,
 } from '../../schema/tenancy.js';
 
+import { assertOrganizationOpen } from './closure.js';
 import { TenancyError } from './errors.js';
 import { compareAndSwap, isUniqueViolation, resolveNow } from './internal/support.js';
 import type { RepositoryOptions } from './internal/support.js';
@@ -44,7 +45,16 @@ export interface OrganizationsRepository {
    * error (PRD §35.4, acceptance item 4).
    */
   create(tx: Tx, values: Row): Row;
-  /** The documented write path: `row_version` compare-and-swap (PRD §34.1). */
+  /**
+   * The documented write path: `row_version` compare-and-swap (PRD §34.1).
+   *
+   * Closure-guarded like every other tenancy write (PRD §10.3, acceptance item 9). `organization` is
+   * the table the closed status itself lives on, so an unguarded path here would have left the
+   * organisation's own `name`/`slug`/`plan`/`default_legal_date_policy`/`retention_policy_json` as
+   * the one thing a closed organisation could still rewrite. The single status transition that must
+   * still run after closure is {@link close}, which is exempt **by name** in
+   * `CLOSURE_EXEMPT_OPERATIONS` rather than by skipping the guard.
+   */
   updateWithVersion(tx: Tx, id: string, expectedRowVersion: number, patch: Row): Row;
   /**
    * Moves the organisation to the closed state. Allowlisted under PRD §10.3 — otherwise closure
@@ -90,6 +100,11 @@ export function organizationsRepository(
     },
 
     updateWithVersion(tx, id, expectedRowVersion, patch) {
+      // PRD §10.3, acceptance item 9: a closed organisation accepts no writes — including writes to
+      // its *own* row. 'organization.updateWithVersion' is deliberately NOT in
+      // CLOSURE_EXEMPT_OPERATIONS, so the refusal is decided by the named allowlist rather than by a
+      // call site that happens not to call the guard.
+      assertOrganizationOpen(db, ctx, tx, 'organization.updateWithVersion');
       try {
         return compareAndSwap(db, ctx, tx, now(), {
           table: 'organization',
@@ -112,6 +127,11 @@ export function organizationsRepository(
     },
 
     close(tx, id, expectedRowVersion) {
+      // Exempt through the named mechanism rather than by omission: 'close' is listed in
+      // CLOSURE_EXEMPT_OPERATIONS, so "which writes survive closure" stays readable in one place
+      // (PRD §10.3). Calling the guard also keeps requireOpenTx on this path, and re-closing an
+      // already-closed organisation stays possible (idempotent shutdown).
+      assertOrganizationOpen(db, ctx, tx, 'close');
       return compareAndSwap(db, ctx, tx, now(), {
         table: 'organization',
         id,

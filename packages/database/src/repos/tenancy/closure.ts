@@ -36,6 +36,13 @@ export const CLOSURE_EXEMPT_OPERATIONS = Object.freeze([
   'delete',
   /** Moving the organisation through CLOSING/CLOSED itself; otherwise closure could not complete. */
   'close',
+  /**
+   * Revoking an API credential (PRD §10.3 + AUTH-006). Shutting access down is a *safety* write and
+   * must stay available after closure — but it is exempt **here, by name**, not by a call site
+   * quietly not calling the guard. Every other credential write (`create`, `rotate`,
+   * `touchLastUsed`) is refused on a closed organisation.
+   */
+  'api_credential.revoke',
 ] as const);
 
 export type ClosureExemptOperation = (typeof CLOSURE_EXEMPT_OPERATIONS)[number];

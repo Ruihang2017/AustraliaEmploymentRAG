@@ -4,11 +4,15 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { TenancyError, tenancyRepositories } from '../../src/repos/tenancy/index.js';
-import { withTenantTransaction } from '../../src/tenant/transaction.js';
+import {
+  TenancyError,
+  identityRepositories,
+  tenancyRepositories,
+} from '../../src/repos/tenancy/index.js';
+import { withSystemTransaction, withTenantTransaction } from '../../src/tenant/transaction.js';
 
 import { isoAt, makeInvitation } from './factories.js';
-import { ORG_A, withTenancyDatabase } from './helpers.js';
+import { ORG_A, ORG_B, globalContext, withTenancyDatabase } from './helpers.js';
 import { seedOrganization } from './seed.js';
 
 interface ColumnInfo {
@@ -76,25 +80,104 @@ describe('invitations — single use (PRD §35.4, AUTH-001)', () => {
     });
   });
 
-  it('refuses an inviting actor that belongs to another organisation', async () => {
-    await withTenancyDatabase(({ db, registry }) => {
-      const a = seedOrganization(db, ORG_A, registry);
-      // The compensating check for the composite FK that cannot exist — `actor` is GLOBAL, so
-      // `invitation.(organization_id, invited_by_actor_id)` has no parent key (sub-PRD M-Q5).
-      const repos = tenancyRepositories(db, a.ctx, {
-        registry,
-        resolveActorOrganization: () => 'org-bbbbbbbbbbbbbbbbbbbb',
-      });
+  /**
+   * Regression — bounce finding 3.
+   *
+   * The inviter check used to hang off an optional `resolveActorOrganization` constructor option, so
+   * the default (and the shipped seed) was "no check at all". These four cases exercise the real,
+   * unconditional path: no option is passed anywhere below, the actors are genuine rows, and the
+   * verdict comes from a scoped read of `membership` / `service_account`.
+   */
+  describe('the inviting actor is verified unconditionally (PRD §35.8 invariant 4, sub-PRD M-Q5)', () => {
+    const expectInvalidLinkage = (run: () => unknown): void => {
       let thrown: unknown;
       try {
-        withTenantTransaction(db, a.ctx, (tx) =>
-          repos.invitations.create(tx, makeInvitation(a.ownerActorId)),
-        );
+        run();
       } catch (error) {
         thrown = error;
       }
       expect(thrown).toBeInstanceOf(TenancyError);
       expect((thrown as TenancyError).code).toBe('INVALID_ACTOR_LINKAGE');
+    };
+
+    it("refuses another organisation's USER actor, with no option passed", async () => {
+      await withTenancyDatabase(({ db, registry }) => {
+        const a = seedOrganization(db, ORG_A, registry);
+        const b = seedOrganization(db, ORG_B, registry);
+        // B's owner actor is a perfectly real, existing actor — it simply is not A's. Nothing in
+        // SQLite can refuse this row, which is the whole reason the check exists.
+        const repos = tenancyRepositories(db, a.ctx, { registry });
+        expectInvalidLinkage(() =>
+          withTenantTransaction(db, a.ctx, (tx) =>
+            repos.invitations.create(tx, makeInvitation(b.ownerActorId)),
+          ),
+        );
+        // And nothing was written.
+        expect(repos.invitations.list().every((row) => row['id'] !== undefined)).toBe(true);
+        expect(
+          repos.invitations.list().filter((row) => row['invited_by_actor_id'] === b.ownerActorId),
+        ).toEqual([]);
+      });
+    });
+
+    it("refuses another organisation's SERVICE_ACCOUNT actor", async () => {
+      await withTenancyDatabase(({ db, registry }) => {
+        const a = seedOrganization(db, ORG_A, registry);
+        const b = seedOrganization(db, ORG_B, registry);
+        const identity = identityRepositories(db, globalContext('req-sa-actor'));
+        const foreign = withSystemTransaction(db, globalContext('req-sa-actor'), (tx) =>
+          identity.actors.ensureActor(tx, {
+            type: 'SERVICE_ACCOUNT',
+            serviceAccountId: b.serviceAccountId,
+          }),
+        );
+        const repos = tenancyRepositories(db, a.ctx, { registry });
+        expectInvalidLinkage(() =>
+          withTenantTransaction(db, a.ctx, (tx) =>
+            repos.invitations.create(tx, makeInvitation(foreign['id'] as string)),
+          ),
+        );
+      });
+    });
+
+    it('refuses an actor id that does not exist at all', async () => {
+      await withTenancyDatabase(({ db, registry }) => {
+        const a = seedOrganization(db, ORG_A, registry);
+        const repos = tenancyRepositories(db, a.ctx, { registry });
+        expectInvalidLinkage(() =>
+          withTenantTransaction(db, a.ctx, (tx) =>
+            repos.invitations.create(tx, makeInvitation('act_missing')),
+          ),
+        );
+      });
+    });
+
+    it("accepts this organisation's own member and the SYSTEM actor", async () => {
+      await withTenancyDatabase(({ db, registry }) => {
+        const a = seedOrganization(db, ORG_A, registry);
+        const repos = tenancyRepositories(db, a.ctx, { registry });
+
+        const mine = makeInvitation(a.ownerActorId);
+        expect(
+          withTenantTransaction(db, a.ctx, (tx) => repos.invitations.create(tx, mine))[
+            'invited_by_actor_id'
+          ],
+        ).toBe(a.ownerActorId);
+
+        // SYSTEM has no linkage by construction (`actor`'s CHECK forces both columns NULL), so it
+        // belongs to no organisation — the bootstrap inviter AUTC-01/IDNT-02 need.
+        const systemActor = withSystemTransaction(db, globalContext('req-system-actor'), (tx) =>
+          identityRepositories(db, globalContext('req-system-actor')).actors.ensureActor(tx, {
+            type: 'SYSTEM',
+          }),
+        );
+        const bootstrap = makeInvitation(systemActor['id'] as string);
+        expect(
+          withTenantTransaction(db, a.ctx, (tx) => repos.invitations.create(tx, bootstrap))[
+            'invited_by_actor_id'
+          ],
+        ).toBe(systemActor['id']);
+      });
     });
   });
 

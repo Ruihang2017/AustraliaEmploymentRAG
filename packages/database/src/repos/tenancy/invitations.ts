@@ -30,7 +30,77 @@ import { assertOrganizationOpen } from './closure.js';
 import { TenancyError } from './errors.js';
 import { newId, resolveNow } from './internal/support.js';
 import type { RepositoryOptions } from './internal/support.js';
-import { runScopedSelect, runScopedUpdate } from './internal/statement.js';
+import { readActorLinkage, runScopedSelect, runScopedUpdate } from './internal/statement.js';
+
+/**
+ * The compensating control for a composite tenant FK that **cannot exist**.
+ *
+ * `actor` is `GLOBAL`, so `invitation.(organization_id, invited_by_actor_id)` has no parent key to
+ * reference (sub-PRD M-Q5, recorded under D1 and flagged to `DATA-09` for PRD §35.8 invariant 4).
+ * SQLite therefore cannot refuse an invitation attributed to another organisation's actor, and this
+ * function is what does instead. It is called unconditionally from `create` — there is no option,
+ * no injected resolver and no way for a caller to skip it, because a tenant-isolation control that
+ * is off by default is not a control.
+ *
+ * How each actor kind is resolved, always through a **scoped** read so the answer is decided by the
+ * tenant chokepoint rather than by this function:
+ *
+ *  - `SERVICE_ACCOUNT` — the linked `service_account` must be visible in the caller's organisation;
+ *  - `USER` — the linked user must hold a `membership` in the caller's organisation. (Any
+ *    membership, not only an ACTIVE one: whether a suspended member may still invite is
+ *    `02-auth-core`'s permission question, not this layer's tenancy question.)
+ *  - `SYSTEM` — has no linkage by construction (`actor`'s CHECK enforces both columns NULL), so it
+ *    belongs to no organisation and is accepted. It is the bootstrap inviter `AUTC-01`/`IDNT-02`
+ *    need before any membership exists.
+ *
+ * An unknown actor id is refused here rather than being left to the plain FK: the FK would fire at
+ * insert with a driver error, and this ticket's contract is a typed `INVALID_ACTOR_LINKAGE`.
+ */
+function assertInviterBelongsToOrganization(
+  db: AppDatabaseHandle,
+  ctx: TenantContext,
+  actorId: string,
+): void {
+  if (typeof actorId !== 'string' || actorId.length === 0) {
+    throw new TenancyError('INVALID_ARGUMENT', 'invitation.create needs an invitedByActorId');
+  }
+  const refuse = (reason: string): never => {
+    throw new TenancyError(
+      'INVALID_ACTOR_LINKAGE',
+      `the inviting actor ${reason} (PRD §35.8 invariant 4)`,
+      'invited_by_actor_id',
+    );
+  };
+
+  const actor = readActorLinkage(db, actorId);
+  if (actor === undefined) return refuse('does not exist');
+
+  if (actor.actorType === 'SYSTEM') return;
+
+  if (actor.actorType === 'SERVICE_ACCOUNT') {
+    const owned = runScopedSelect(db, ctx, {
+      table: 'service_account',
+      where: [{ column: 'id', op: '=', value: actor.serviceAccountId }],
+      limit: 1,
+    });
+    if (owned[0] === undefined) return refuse('is a service account of another organisation');
+    return;
+  }
+
+  if (actor.actorType === 'USER') {
+    const memberships = runScopedSelect(db, ctx, {
+      table: 'membership',
+      where: [{ column: 'user_id', op: '=', value: actor.userId }],
+      limit: 1,
+    });
+    if (memberships[0] === undefined) return refuse('is not a member of this organisation');
+    return;
+  }
+
+  // A value the `actor_type` CHECK does not allow today. Fail closed rather than fall through: a
+  // later ticket adding a kind must decide its tenancy rule here, not inherit "allowed".
+  return refuse(`has an unrecognised actor_type ${JSON.stringify(actor.actorType)}`);
+}
 
 export const invitationDefinition = defineTenantRepository({
   table: 'invitation',
@@ -65,19 +135,15 @@ export interface InvitationsRepository {
   accept(tx: Tx, tokenHash: string): AcceptResult;
 }
 
-export interface InvitationsRepositoryOptions extends RepositoryOptions {
-  /**
-   * Resolves `invited_by_actor_id` to its `actor` row.
-   *
-   * The compensating check for a composite tenant FK that **cannot exist**: `actor` is GLOBAL, so
-   * `invitation.(organization_id, invited_by_actor_id)` has no parent key to reference (sub-PRD
-   * M-Q5, recorded under D1 and flagged to `DATA-09` for invariant 4). Supplying this resolver is
-   * what turns the missing database constraint into an application one; omitting it means the
-   * inviter is not verified, so it is required at the call sites that have an actor to check
-   * (`tenancyRepositories` wires it).
-   */
-  readonly resolveActorOrganization?: (actorId: string) => string | null | undefined;
-}
+/**
+ * Options. Deliberately carries **no** hook for the inviter check.
+ *
+ * An earlier revision took an optional `resolveActorOrganization` resolver, and omitting it meant no
+ * check at all — a compensating control that a caller could switch off by simply not passing it, and
+ * which the shipped seed did switch off. The check below is now unconditional and resolves the actor
+ * from the database itself, so "is this inviter mine?" has exactly one answer and no off switch.
+ */
+export type InvitationsRepositoryOptions = RepositoryOptions;
 
 export function invitationsRepository(
   db: AppDatabaseHandle,
@@ -97,19 +163,10 @@ export function invitationsRepository(
       if (typeof request?.tokenHash !== 'string' || request.tokenHash.length === 0) {
         throw new TenancyError('INVALID_ARGUMENT', 'invitation.create needs a tokenHash');
       }
-      const resolver = options?.resolveActorOrganization;
-      if (resolver !== undefined) {
-        const owner = resolver(request.invitedByActorId);
-        if (owner !== undefined && owner !== null && owner !== ctx.organizationId) {
-          // The compensating check described in the options doc comment. Refusing here keeps
-          // PRD §35.8 invariant 4 true for this edge even though SQLite cannot express it.
-          throw new TenancyError(
-            'INVALID_ACTOR_LINKAGE',
-            'the inviting actor does not belong to this organisation (PRD §35.8 invariant 4)',
-            'invited_by_actor_id',
-          );
-        }
-      }
+      // Unconditional — see assertInviterBelongsToOrganization. It runs inside the caller's
+      // transaction, so an inviter whose membership is being removed concurrently cannot slip
+      // through between the check and the insert.
+      assertInviterBelongsToOrganization(db, ctx, request.invitedByActorId);
       return repository.insert(tx, {
         id: request.id ?? newId('inv'),
         email_normalized: request.emailNormalized,
