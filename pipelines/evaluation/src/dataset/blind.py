@@ -54,6 +54,7 @@ __all__ = [
     "BlindKeyUnavailable",
     "BlindLeakDetected",
     "BlindMaterialNotRenderable",
+    "BlindRecipientKeyUnavailable",
     "RECIPIENT_FILENAME",
     "SHINGLE_LENGTH",
     "SealedCase",
@@ -73,7 +74,9 @@ BLIND_PRIVATE_PATH_ENV = "_".join(("EVAL", "BLIND", "KEY", "FILE"))
 RECIPIENT_FILENAME = "blind-recipient.pub"
 SHINGLE_LENGTH = 12
 _ALGORITHM = "crypto_box_seal"
-_DEV_PREFIX = "dev-"
+#: The committed `blind-recipient.pub` carries this `kind` until the Founder replaces it. Its private
+#: half is publicly derivable on purpose, so sealing real material to it would protect nothing.
+_PLACEHOLDER_KIND = "DEVELOPMENT_PLACEHOLDER"
 
 _SIDECAR_SUFFIX = ".sidecar.yaml"
 _ENVELOPE_SUFFIX = ".envelope.json"
@@ -99,6 +102,17 @@ class BlindMaterialNotRenderable(RuntimeError):
     """Something tried to turn opened blind material into text. It was refused."""
 
 
+class BlindRecipientKeyUnavailable(RuntimeError):
+    """The committed recipient file is still the development placeholder, so nothing may be sealed.
+
+    `GOLD-01`'s single `[human]` acceptance item reserves generating the real pair to the Founder;
+    until they replace `evals/splits/blind-recipient.pub`, the value on disk has a publicly derivable
+    private half. Refusing here is what stops real blind material being sealed to a key that protects
+    nothing. There is deliberately no `--force`, `--allow` or environment override: the fix is the
+    custodial act, not a flag.
+    """
+
+
 class BlindLeakDetected(RuntimeError):
     """A produced artifact contained blind plaintext. The artifact has already been deleted."""
 
@@ -106,11 +120,17 @@ class BlindLeakDetected(RuntimeError):
 # -- the recipient public key ------------------------------------------------------------------
 
 
-def load_recipient(path: Path | str | None = None) -> tuple[str, bytes, int]:
+def load_recipient(
+    path: Path | str | None = None, *, allow_placeholder: bool = False
+) -> tuple[str, bytes, int]:
     """Read `blind-recipient.pub`. Returns `(key_id, public_bytes, blind_dataset_major_version)`.
 
     JSON on disk, never PEM — the convention CRPS-02 fixed for release signing. A PEM-shaped file
     would also sit one edit away from tripping the repository secret scanner's value-shaped pattern.
+
+    A document marked `kind: DEVELOPMENT_PLACEHOLDER` raises `BlindRecipientKeyUnavailable` unless
+    `allow_placeholder` is set, which only the tests that inspect the placeholder itself do. Every
+    sealing path leaves it unset, so `seal` cannot run against the placeholder at all.
     """
     location = Path(path) if path is not None else SPLITS_DIR / RECIPIENT_FILENAME
     document = json.loads(location.read_text(encoding="utf-8"))
@@ -119,6 +139,12 @@ def load_recipient(path: Path | str | None = None) -> tuple[str, bytes, int]:
             f"{location}: algorithm is {document.get('algorithm')!r}, expected {_ALGORITHM!r}. "
             "The primitive belongs to a CONFIRMED decision (breakdown plan §8 Q6, sub-PRD D22); "
             "changing it is a writeback first, never a local edit."
+        )
+    if document.get("kind") == _PLACEHOLDER_KIND and not allow_placeholder:
+        raise BlindRecipientKeyUnavailable(
+            f"{location}: kind is {_PLACEHOLDER_KIND}. Its private half is publicly derivable, so "
+            "nothing may be sealed to it. The Founder replaces this file (GOLD-01's [human] "
+            "acceptance item; sub-PRD D22) before any blind material is sealed."
         )
     public = base64.b64decode(document["public_key_base64"], validate=True)
     if len(public) != sealedbox.PUBLIC_BYTES:

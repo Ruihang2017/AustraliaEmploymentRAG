@@ -21,6 +21,10 @@ The committed value is a **development placeholder** whose private half is publi
 file says exactly how. It protects nothing, by design, so it can never be mistaken for a key that
 does. It exists only so the sealing mechanism is complete and reviewable.
 
+That is enforced rather than announced: the file carries `kind: DEVELOPMENT_PLACEHOLDER`, and the
+sealing path refuses to load it (`BlindRecipientKeyUnavailable`; the CLI exits non-zero). No flag
+overrides the refusal — replacing the file is the only way past it.
+
 Replacing it is the Founder's custodial act (GOLD-01's single `[human]` acceptance item; breakdown
 plan §8 **Q6**; sub-PRD **D22**): generate an X25519 pair offline, publish only the public half here
 with a `key_id` that does **not** start with `dev-`, and re-seal every blind envelope through a new

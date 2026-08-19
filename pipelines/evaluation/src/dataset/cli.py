@@ -222,6 +222,16 @@ def _seal(args, root: Path, out, err) -> int:
     recipient_path = args.recipient if args.recipient is not None else root / "splits" / blind.RECIPIENT_FILENAME
     try:
         key_id, public, major = blind.load_recipient(recipient_path)
+    except blind.BlindRecipientKeyUnavailable:
+        # Not an error in the recipient file — the recipient file is still the development
+        # placeholder whose private half is publicly derivable. Refusing is the point; there is
+        # no flag that overrides it.
+        print(
+            "refusing to seal: the recipient public key is still the development placeholder. "
+            "Only the Founder replaces it (GOLD-01 [human] acceptance item; sub-PRD D22).",
+            file=err,
+        )
+        return 2
     except (OSError, ValueError) as error:
         print(f"cannot read the recipient public key: {type(error).__name__}", file=err)
         return 2

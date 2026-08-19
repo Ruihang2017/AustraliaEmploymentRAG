@@ -24,7 +24,10 @@ credential-shaped *names* everywhere outside `docs/**`. That is deliberate; do n
 
 **`evals/splits/blind-recipient.pub` is a placeholder today.** Its private half is publicly
 derivable and its own comment says how. Replacing it is the Founder's custodial act (`GOLD-01`'s one
-`[human]` acceptance item); `GOLD-15` and `GOLD-17` must not run a blind stage until then.
+`[human]` acceptance item); `GOLD-15` and `GOLD-17` must not run a blind stage until then. Until it
+is replaced, `seal` **refuses it**: the file is marked `kind: DEVELOPMENT_PLACEHOLDER`,
+`load_recipient()` raises `BlindRecipientKeyUnavailable`, and the CLI exits non-zero. There is no
+flag that overrides that.
 
 ## Running it
 

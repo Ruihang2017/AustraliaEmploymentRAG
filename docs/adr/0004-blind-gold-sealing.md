@@ -141,6 +141,14 @@ whose private half merely *looked* absent would be exactly the ambiguity to avoi
 `GOLD-01`'s single `[human]` acceptance item; `GOLD-15` and `GOLD-17` must not run a blind stage
 before it is done.
 
+The placeholder is **enforced, not merely announced**: the file carries `kind:
+DEVELOPMENT_PLACEHOLDER`, and `load_recipient()` raises `BlindRecipientKeyUnavailable` on it, so
+`seal` cannot run against it at all and the CLI exits non-zero with a content-free message. There is
+no `--force`, `--allow` or environment override — the fix is the custodial act, not a flag. Only a
+test that inspects the placeholder itself passes `allow_placeholder=True`. Without this refusal the
+"it protects nothing" property above would depend on somebody reading a comment, which is the class
+of control this ADR exists to reject.
+
 ## Review trigger
 
 Any change to **who may hold the private key**, **who may start a blind stage**, or **the sealing
