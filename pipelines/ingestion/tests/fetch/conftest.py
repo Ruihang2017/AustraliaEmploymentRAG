@@ -76,8 +76,15 @@ def no_outbound_network() -> object:
     real_create_connection = socket.create_connection
 
     def guarded_getaddrinfo(*args: object, **kwargs: object) -> object:
+        # A loopback IP LITERAL is not a DNS lookup — `socket.create_connection` normalises every
+        # address through getaddrinfo, including the pinned `127.0.0.1` the fixture server listens
+        # on. Everything else is refused: no name is ever resolved in this suite.
+        host = args[0] if args else None
+        if _is_loopback((host, 0)):
+            return real_getaddrinfo(*args, **kwargs)  # type: ignore[arg-type]
         raise OutboundNetworkDenied(
-            "socket.getaddrinfo is disabled in the INGF-02 suite; use ScriptedResolver"
+            f"socket.getaddrinfo is disabled in the INGF-02 suite (asked for {host!r}); "
+            "use ScriptedResolver"
         )
 
     def guarded_connect(self: socket.socket, address: object) -> object:
@@ -99,3 +106,39 @@ def no_outbound_network() -> object:
         socket.getaddrinfo = real_getaddrinfo  # type: ignore[assignment]
         socket.socket.connect = real_connect  # type: ignore[method-assign]
         socket.create_connection = real_create_connection  # type: ignore[assignment]
+
+
+@pytest.fixture
+def fixture_server():
+    """A scripted loopback HTTP server, shut down at the end of the test."""
+    from fetch_server import FixtureServer
+
+    server = FixtureServer()
+    try:
+        yield server
+    finally:
+        server.close()
+
+
+@pytest.fixture
+def fake_resolver():
+    """A `ScriptedResolver` with no answers yet — every test scripts its own."""
+    from fetch_resolver import ScriptedResolver
+
+    return ScriptedResolver()
+
+
+@pytest.fixture
+def fake_clock():
+    """A `FakeClock` whose `sleep` advances the monotonic clock instead of really sleeping."""
+    from fetch_clock import FakeClock
+
+    return FakeClock()
+
+
+@pytest.fixture
+def policy_loader():
+    """A `DirectoryPolicyLoader` over this suite's synthetic allowlist fixtures."""
+    from taxrag_pipeline_ingestion.fetch.policy import DirectoryPolicyLoader
+
+    return DirectoryPolicyLoader(ALLOWLIST_FIXTURES)
