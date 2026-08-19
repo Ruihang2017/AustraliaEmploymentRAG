@@ -270,6 +270,59 @@ def test_no_private_key_fails_on_a_committed_private_key(dataset_tree) -> None:
     assert any("private-key header" in f.message for f in findings)
 
 
+@pytest.mark.parametrize("suffix", [".yaml", ".yml", ".json", ".pub"])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "{member}: c29tZS1tYXRlcmlhbA==",  # idiomatic YAML: unquoted key
+        "'{member}': c29tZS1tYXRlcmlhbA==",  # single-quoted YAML key
+        '"{member}": "c29tZS1tYXRlcmlhbA=="',  # JSON
+        '  "{member}" : "c29tZS1tYXRlcmlhbA=="',  # JSON with incidental whitespace
+    ],
+)
+@pytest.mark.parametrize(
+    "member",
+    ["private" + "_scalar_base64", "private" + "_key_b64", "seed" + "_b64", "secret" + "_key_b64"],
+)
+def test_a_private_member_is_caught_quoted_or_not(tmp_path, suffix, line, member) -> None:
+    """Review finding: the member pattern required JSON-style double quotes.
+
+    An idiomatic YAML mapping key — the form an accidental paste into a case or sidecar file takes —
+    was therefore not caught, in exactly the file types this check scans BECAUSE such a key would
+    land there by accident. Every shape below must fail; a guard that catches only the tidy shape
+    catches only the careful mistake.
+    """
+    from dataset.checks import no_private_key
+
+    target = tmp_path / f"material{suffix}"
+    target.write_text(line.format(member=member) + "\n", encoding="utf-8")
+    findings = no_private_key.guard_private_material([target])
+    assert any("private key material" in f.message for f in findings), (target.name, line)
+
+
+def test_prose_that_merely_names_a_member_is_not_a_finding(tmp_path) -> None:
+    """The rule is a KEY, not the word: a schema description or comment naming the field must not
+    fail the build, or the check becomes noise that gets suppressed."""
+    from dataset.checks import no_private_key
+
+    target = tmp_path / "notes.yaml"
+    target.write_text(
+        "description: a file carrying " + "private" + "_scalar_base64 would fail the guard\n",
+        encoding="utf-8",
+    )
+    assert no_private_key.guard_private_material([target]) == []
+
+
+def test_the_committed_recipient_key_file_passes_the_member_guard() -> None:
+    """The real `blind-recipient.pub`, which carries a PUBLIC key, must not trip the private rule."""
+    from dataset.checks import no_private_key
+    from dataset.paths import SPLITS_DIR
+
+    recipient = SPLITS_DIR / "blind-recipient.pub"
+    assert recipient.is_file()
+    assert no_private_key.guard_private_material([recipient]) == []
+
+
 # -- COMPLETE_DATASET -----------------------------------------------------------------------------
 
 

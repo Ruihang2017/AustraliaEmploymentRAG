@@ -12,7 +12,10 @@ whatever anyone intends, a committed private key fails the build.
 
 Three shapes are refused:
   * a PEM private-key header — the shape the repository secret scanner also matches;
-  * a JSON member that carries private scalar material by name;
+  * a mapping member that carries private scalar material by name, QUOTED OR NOT: JSON writes
+    `"private_scalar_base64":` and YAML writes `private_scalar_base64:`, and this module scans
+    `.yaml`/`.yml` as well as `.json`, so requiring the quotes would have left the guard blind in
+    exactly the file types where such a key lands by accident;
   * a `blind-recipient.pub` that has been given a private member.
 
 The header literal is ASSEMBLED FROM PARTS. `.github/workflows/checks/secret-scan.mjs` scans every
@@ -36,8 +39,26 @@ from . import CheckContext
 _ID = PRIVATE_MATERIAL_CHECK_ID
 
 _HEADER = re.compile("-{5}" + "BEGIN" + r"[A-Z ]*" + "PRIVATE" + " " + "KEY" + "-{5}")
+#: The member NAMES that carry private scalar material, assembled from parts for the same reason
+#: the header literal is (see this module's docstring).
+_MEMBER_NAMES = (
+    "private" + "_scalar_base64",
+    "private" + "_key_b64",
+    "seed" + "_b64",
+    "secret" + "_key_b64",
+)
+#: Matched whether or not the name is quoted.
+#:
+#: The earlier pattern required JSON-style double quotes, which meant an ordinary YAML mapping key
+#: — `private_scalar_base64: <value>`, the idiomatic form, and the form an accidental paste takes —
+#: was not caught in a `.yaml`/`.yml` file. That is the wrong way round: the scanned suffix list
+#: includes YAML precisely because a case or sidecar file is where such a key would land by
+#: accident, and the guard was blind to the file types most likely to carry one. A trailing `:` or
+#: `"` is required so this matches a KEY rather than any prose that happens to name one, and the
+#: name may be quoted with either kind of quote.
 _MEMBER = re.compile(
-    '"(?:' + "private" + "_scalar_base64|" + "private" + "_key_b64|" + "seed" + "_b64|" + "secret" + '_key_b64)"'
+    r"""(?:^|[\s{,\[])['"]?(?:""" + "|".join(_MEMBER_NAMES) + r""")['"]?\s*:""",
+    re.MULTILINE,
 )
 _SKIP_DIRS = frozenset({"__pycache__", ".pytest_cache", "node_modules", ".venv", "target", ".git"})
 _MAX_BYTES = 4 * 1024 * 1024
@@ -90,7 +111,7 @@ def guard_private_material(files: Iterable[Path]) -> list[Finding]:
                     "FAIL",
                     "<repository>",
                     None,
-                    "the file carries a JSON member that names private key material",
+                    "the file carries a mapping member that names private key material",
                     str(path),
                 )
             )
