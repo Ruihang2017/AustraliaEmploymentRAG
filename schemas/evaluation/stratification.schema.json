@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/stratification.schema.json",
+  "title": "Category stratification contract",
+  "description": "A category's declared, machine-checkable coverage contract. Each authoring ticket (GOLD-05 … GOLD-14) ships one `stratification.yaml` in its own category directory; this schema is what makes their claims verifiable without reading their content — which is the only way a BLIND category can be checked at all.",
+  "$comment": "VOCABULARY. Inside the subset `contracts.jsonschema_min` (CRPS-01) implements — no minItems, uniqueItems, format, propertyNames or patternProperties. Floors are expressed as explicit {key, minimum} rows rather than as an open object, precisely because propertyNames/patternProperties are unavailable and an unchecked open map would be data no check ever validated. Q-GOLD-C: PRD §43.1's 'at least eight primary cases in each applicable nationwide category must cover each state/territory' is not satisfiable for adjacent-regimes (8 × 8 = 64 > 60 primary cases), so the per-jurisdiction floor is DECLARED per category here rather than derived, and the Founder owns the value. STRATIFICATION_MET never relaxes ALLOCATION_EXACT, which is requirement EVAL-001 itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["category", "code", "counts", "jurisdiction_floors", "product_surface_floors", "answer_status_floors", "required_trap_types"],
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "federal-core",
+        "awards-coverage",
+        "agreements",
+        "payroll",
+        "state-employment",
+        "whs-compensation",
+        "adjacent-regimes",
+        "case-treatment",
+        "temporal-traps",
+        "safety-refusal"
+      ],
+      "description": "The category directory slug this contract governs."
+    },
+    "code": {
+      "type": "string",
+      "enum": ["FED", "AWD", "AGR", "PAY", "STE", "WHS", "ADJ", "CAS", "TMP", "SAF"],
+      "description": "The three-letter case-id code (sub-PRD D5), which must agree with evals/splits/allocation.yaml."
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["development", "validation", "blind", "total"],
+      "description": "The category's PRD §43.1 row, restated so a category is self-describing. ALLOCATION_EXACT asserts it equals evals/splits/allocation.yaml exactly — not 'at least'.",
+      "properties": {
+        "development": { "type": "integer", "minimum": 0 },
+        "validation": { "type": "integer", "minimum": 0 },
+        "blind": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "jurisdiction_floors": {
+      "type": "array",
+      "description": "PRD §43.1 per-jurisdiction coverage. Declared, not derived — see the Q-GOLD-C note in $comment.",
+      "items": { "$ref": "#/$defs/floor" }
+    },
+    "product_surface_floors": {
+      "type": "array",
+      "description": "PRD §43.1 'cross-tags ensure every product surface … is represented'. The allocation is in the sub-PRD's cross-cutting floor table.",
+      "items": { "$ref": "#/$defs/floor" }
+    },
+    "answer_status_floors": {
+      "type": "array",
+      "description": "PRD §43.1 '… and answer status is represented'. Keys are canonical AnswerStatus members, enforced from the packages/contracts export by STRATIFICATION_MET rather than restated here.",
+      "items": { "$ref": "#/$defs/floor" }
+    },
+    "required_trap_types": {
+      "type": "array",
+      "description": "Trap types that must appear at least once in this category (PRD §14.1's time traps, conflicts, PII, malicious avoidance).",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional prose. Never a place to weaken a floor — a floor change is a docs PR against this ticket and the authoring ticket."
+    }
+  },
+  "$defs": {
+    "floor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "minimum"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "minimum": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

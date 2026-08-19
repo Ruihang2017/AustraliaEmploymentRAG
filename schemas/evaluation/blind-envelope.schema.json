@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/blind-envelope.schema.json",
+  "title": "Sealed blind envelope",
+  "description": "The on-disk descriptor of one sealed BLIND case. The ciphertext is libsodium crypto_box_seal (X25519 + XSalsa20-Poly1305), sealed to the committed public recipient key; the private half is held solely by the Founder and is never in this repository, in CI, in ordinary environment configuration or in any agent environment (breakdown plan §8 Q6; sub-PRD D2, D22).",
+  "$comment": "JSON ON DISK, NEVER PEM — the same convention CRPS-02 fixed for release signing (docs/adr/0002-corpus-release-signing.md). A PEM-shaped file would also be one edit away from tripping the repository secret scanner's private-key-block pattern. VOCABULARY: inside the subset contracts.jsonschema_min implements. The digest/length agreement between this descriptor and the ciphertext it describes is BLIND_SEALED's rule, not the schema's.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "algorithm",
+    "recipient_key_id",
+    "blind_dataset_major_version",
+    "case_id",
+    "ciphertext_b64",
+    "ciphertext_sha256",
+    "byte_length",
+    "sealed_at",
+    "sealer"
+  ],
+  "properties": {
+    "algorithm": {
+      "type": "string",
+      "const": "crypto_box_seal",
+      "description": "libsodium crypto_box_seal — X25519 + XSalsa20-Poly1305. Breakdown plan §8 Q6 is CONFIRMED on this primitive; substituting another one is a writeback against Q6 and sub-PRD D22 first, never a local implementation choice."
+    },
+    "recipient_key_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "Identifies the recipient public key in evals/splits/blind-recipient.pub. A dev- prefix marks development material that production tooling must never accept (CRPS-02's rule)."
+    },
+    "blind_dataset_major_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Each blind-dataset major version uses its own key pair (plan §8 Q6), so an envelope records which one it belongs to rather than assuming one permanent key. Rotation replaces the .pub through a new dataset version (sub-PRD D8)."
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$",
+      "description": "The case this envelope seals. An id is not content (plan §8 Q6 item 15 permits case ids in blind output)."
+    },
+    "ciphertext_b64": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+      "description": "Standard base64 of ephemeral_public(32) || crypto_box(nonce = blake2b(ephemeral_public || recipient_public, 24))."
+    },
+    "ciphertext_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the decoded ciphertext bytes. The dataset-version registry pins the same digest, and BLIND_SEALED fails on any disagreement."
+    },
+    "byte_length": {
+      "type": "integer",
+      "minimum": 49,
+      "description": "Length of the decoded ciphertext. The floor is the smallest possible sealed box: 32 ephemeral public key + 16 Poly1305 tag + 1 byte of plaintext."
+    },
+    "sealed_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$",
+      "description": "UTC instant of sealing, to the second."
+    },
+    "sealer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The evaluation-author agent or operator that sealed the material. Sealing needs only the public key, so this is never the key custodian."
+    }
+  }
+}

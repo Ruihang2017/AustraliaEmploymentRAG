@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/case.schema.json",
+  "title": "Evaluation case",
+  "description": "One of the PRD §14.1 600 stratified synthetic cases. Every field name in the PRD §43.2 block appears here spelled identically — a rename is a silent contract break for GOLD-02 … GOLD-17.",
+  "$comment": "VOCABULARY. Authored strictly inside the subset `contracts.jsonschema_min` (CRPS-01) implements: no minItems, maxItems, uniqueItems, format, propertyNames or patternProperties. That engine raises UnsupportedKeywordError on an unknown keyword, and a schema it cannot fully enforce must never be reported as satisfied. Constraints those keywords would express — a non-empty gold_authorities, unique required_claims, legal_as_at being a real calendar date — live in pipelines/evaluation/src/dataset/checks/**, each with its own finding id and its own negative fixture, which is where the rules are readable beside the PRD anyway. CANONICAL ENUMS. expected_answer_status, acceptable_statuses and gold_authorities[].citation_role carry NO member literal: packages/contracts (FND-03) publishes AnswerStatus (PRD §8.4) and CitationRole (PRD §15.5), PRD §45.2 forbids a second copy, and SCHEMA_VALID/GOLD_SHAPE enforce membership from that export at check time. jurisdictions is shape-validated only, because packages/contracts publishes no Jurisdiction family yet — SCHEMA_VALID emits the UNRESOLVED finding JURISDICTION_VOCABULARY_UNRESOLVED, owner FND-03. DATASET-OWN VOCABULARY. split, product_surface, mode, and the id/version patterns are this dataset's own and are therefore spelled out here: split is fixed by GOLD-01 deliverable 1; product_surface and mode are transcribed from PRD §14.1 ('Search, Compare, Coverage and Monitor behaviour') and PRD §2 ('Search, Quick, Deep, Coverage, Compare … Monitor'), and the sub-PRD 21-evaluation-600 cross-cutting floor table. latency_class and cost_class are shape-only: PRD §43.3 reports by them but fixes no values.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "dataset_version",
+    "split",
+    "primary_category",
+    "tags",
+    "product_surface",
+    "mode",
+    "anonymous_scenario",
+    "question",
+    "legal_as_at",
+    "jurisdictions",
+    "expected_answer_status",
+    "acceptable_statuses",
+    "required_facts",
+    "prohibited_assumptions",
+    "trap_types",
+    "gold_authorities",
+    "required_claims",
+    "optional_claims",
+    "prohibited_claims",
+    "latency_class",
+    "cost_class",
+    "author",
+    "reviewer",
+    "change_reason"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$",
+      "description": "EVAL-<CAT>-<NNN> (sub-PRD D5). The letter segment is what stops a case id being read as a PRD §30.1 requirement id such as EVAL-001. Full rules: evals/splits/id-rules.yaml."
+    },
+    "dataset_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$",
+      "description": "The dataset version this case's content belongs to (sub-PRD D8). A correction creates a new version, never an invisible edit (PRD §14.3, §43.4)."
+    },
+    "split": {
+      "type": "string",
+      "enum": ["DEVELOPMENT", "VALIDATION", "BLIND"],
+      "description": "PRD §14.1's three splits. Not a canonical FND-03 family — this vocabulary belongs to the dataset and GOLD-01 deliverable 1 fixes it."
+    },
+    "primary_category": {
+      "type": "string",
+      "enum": [
+        "federal-core",
+        "awards-coverage",
+        "agreements",
+        "payroll",
+        "state-employment",
+        "whs-compensation",
+        "adjacent-regimes",
+        "case-treatment",
+        "temporal-traps",
+        "safety-refusal"
+      ],
+      "description": "The category directory slug. PRD §43.1: each case has ONE primary allocation so totals cannot drift. Must equal the directory the case file lives in (ID_RULES) and match evals/splits/allocation.yaml."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Cross-tags (PRD §43.1). Free vocabulary; STRATIFICATION_MET checks a category's declared floors over them.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "product_surface": {
+      "type": "string",
+      "enum": ["ASK", "SEARCH", "COMPARE", "COVERAGE", "MONITOR"],
+      "description": "PRD §14.1 requires the 600 to cover Search, Compare, Coverage and Monitor behaviour; ASK is the answer surface GOLD-02 runs. COMPLETE_DATASET asserts every member is represented."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["QUICK", "DEEP"],
+      "description": "PRD §2 answer modes. Declared for every case, including non-ASK surfaces, so cost/latency reporting by mode (PRD §43.3) is total."
+    },
+    "anonymous_scenario": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The synthetic, de-identified employer/employee scenario (sub-PRD D18: synthetic only, never customer content)."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The question put to the product. For a BLIND case this never exists in the repository as plaintext — only inside a sealed envelope (sub-PRD D1)."
+    },
+    "legal_as_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+      "description": "PRD §35.1 legal date, YYYY-MM-DD, as a string. Real-calendar-date validity (no 2026-02-30) is SCHEMA_VALID's job: `format` is outside the available engine's vocabulary."
+    },
+    "jurisdictions": {
+      "type": "array",
+      "description": "PRD §6.3 jurisdiction codes. NOT constrained to an enum here: packages/contracts publishes no Jurisdiction family (Q-CRPS-4 / FND-03), and defining a second copy is forbidden by PRD §45.2. SCHEMA_VALID validates shape and reports JURISDICTION_VOCABULARY_UNRESOLVED. When FND-03 publishes the family this member becomes a generated enum with no other change.",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,15}$" }
+    },
+    "input_structured_fields": {
+      "type": "object",
+      "description": "Optional structured inputs the surface receives alongside the question (PRD §43.2). Free-form by design; values are strings, numbers, booleans or null."
+    },
+    "expected_answer_status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A member of the canonical AnswerStatus family (PRD §8.4, §36.8), enforced by SCHEMA_VALID from the packages/contracts export. Never restated here."
+    },
+    "acceptable_statuses": {
+      "type": "array",
+      "description": "Statuses that also count as a correct outcome (PRD §43.3 'correct refusal'). Members of the canonical AnswerStatus family, enforced at check time.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "required_facts": {
+      "type": "array",
+      "description": "Facts the answer must establish or ask for.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "prohibited_assumptions": {
+      "type": "array",
+      "description": "Assumptions the answer must not make (PRD §43.3 'unsupported definitive claim' is scored against these).",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "trap_types": {
+      "type": "array",
+      "description": "The traps this case sets — temporal, jurisdictional, coverage, evidence, evasion, PII. Free vocabulary; a category's stratification.yaml declares which it must contain.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gold_authorities": {
+      "type": "array",
+      "description": "The immutable corpus citations a correct answer rests on (PRD §43.2). Non-emptiness is GOLD_SHAPE's rule, not the schema's: minItems is outside the available engine's vocabulary.",
+      "items": { "$ref": "gold-authority.schema.json" }
+    },
+    "required_claims": {
+      "type": "array",
+      "description": "Claims the answer must make.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "optional_claims": {
+      "type": "array",
+      "description": "Claims the answer may make without penalty.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "prohibited_claims": {
+      "type": "array",
+      "description": "Claims the answer must not make.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "expected_clarifications": {
+      "type": "array",
+      "description": "Clarifying questions the product should ask when evidence is insufficient (PRD §8.4 CONDITIONAL / INSUFFICIENT_EVIDENCE).",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "expected_refusal_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why the product must refuse, for a refusal/out-of-scope/PII case (PRD §36.8)."
+    },
+    "preconditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "PRD §43.2's 'licensing/freshness/source preconditions' — what must hold of the corpus for this case to be answerable.",
+      "properties": {
+        "licensing": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The licence posture the gold sources must have (PRD §21.2)."
+        },
+        "freshness": {
+          "type": "string",
+          "minLength": 1,
+          "description": "How current the pinned sources must be (PRD §40.9)."
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The official source family the gold must come from (PRD §6.1)."
+        }
+      }
+    },
+    "latency_class": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "description": "PRD §43.3 reports latency by class but fixes no values, so this is shape-only rather than a locally invented enum."
+    },
+    "cost_class": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "description": "PRD §43.3 reports cost by class but fixes no values, so this is shape-only rather than a locally invented enum."
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §43.2 'author/reviewer'. The authoring agent or person; for a BLIND case, an evaluation-author agent working outside this repository (sub-PRD D21)."
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §43.2 'author/reviewer'. The independent reviewer; for a BLIND case, the evaluation-reviewer agent that checked it against official sources before encryption (sub-PRD D21)."
+    },
+    "change_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this case exists in this dataset_version. PRD §43.4: agents may not 'fix' a failing gold case by changing expected output without a versioned founder-approved reason."
+    },
+    "approved_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who approved the correction that produced this dataset_version (PRD §43.4). Required by VERSIONED_CORRECTIONS whenever a case's content changes."
+    }
+  }
+}

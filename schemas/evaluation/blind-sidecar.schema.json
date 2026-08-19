@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/blind-sidecar.schema.json",
+  "title": "Blind case sidecar",
+  "description": "The ONLY visible metadata a BLIND case exposes. This is an allowlist, not a convenience: `additionalProperties: false` at every level means a field carrying case content cannot be added by accident, and a downstream ticket may never widen it by writing schemas/evaluation/** — that is a docs PR amending GOLD-01 and the requesting ticket (sub-PRD D3).",
+  "$comment": "WHAT IS DELIBERATELY ABSENT: question, anonymous_scenario, required_facts, prohibited_assumptions, expected_answer_status, acceptable_statuses, gold_authorities, required/optional/prohibited_claims, expected_clarifications, expected_refusal_reason, preconditions, input_structured_fields. Every one of those either IS the blind question or reveals the expected answer, and PRD §14.3 requires blind gold to remain outside ordinary coding-agent context. The fields that remain are exactly what stratification and allocation checking need — counts, categories and ids — which is why GOLD-05 … GOLD-14 can verify blind SLOTS without ever seeing content. VOCABULARY: inside the subset contracts.jsonschema_min implements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "split",
+    "primary_category",
+    "tags",
+    "trap_types",
+    "jurisdictions",
+    "product_surface",
+    "latency_class",
+    "cost_class",
+    "author",
+    "reviewer",
+    "change_reason",
+    "envelope_digest"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$"
+    },
+    "split": {
+      "type": "string",
+      "const": "BLIND",
+      "description": "A sidecar exists only for a BLIND case; a DEVELOPMENT or VALIDATION case is a plaintext case file."
+    },
+    "primary_category": {
+      "type": "string",
+      "enum": [
+        "federal-core",
+        "awards-coverage",
+        "agreements",
+        "payroll",
+        "state-employment",
+        "whs-compensation",
+        "adjacent-regimes",
+        "case-treatment",
+        "temporal-traps",
+        "safety-refusal"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "trap_types": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "jurisdictions": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,15}$" }
+    },
+    "product_surface": {
+      "type": "string",
+      "enum": ["ASK", "SEARCH", "COMPARE", "COVERAGE", "MONITOR"]
+    },
+    "latency_class": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "cost_class": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "author": { "type": "string", "minLength": 1 },
+    "reviewer": { "type": "string", "minLength": 1 },
+    "change_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this blind slot exists in this dataset version. Content-free by discipline: it describes the correction, never the question."
+    },
+    "envelope_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the sealed ciphertext this sidecar accompanies. BLIND_SEALED fails when it disagrees with the envelope or with the dataset-version registry."
+    }
+  }
+}
