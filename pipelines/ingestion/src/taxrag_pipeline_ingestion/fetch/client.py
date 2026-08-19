@@ -163,11 +163,11 @@ class SafeFetcher:
                     raise
                 delay = self._retry_delay(attempt, failure, deadline)
                 if delay is None:
-                    raise FetchFailure(
-                        FailureCode("FETCH_TRANSIENT_FAILURE"),
-                        "no time budget remains for another attempt",
-                        details=dict(failure.details),
-                    ) from failure
+                    # No budget remains for another attempt (or `Retry-After` asked for more time
+                    # than the budget has). Re-raise the failure that actually happened rather than
+                    # inventing a new code: a timeout must still be reported as FETCH_TIMEOUT, and a
+                    # 429/502/503/504 already carries FETCH_TRANSIENT_FAILURE.
+                    raise
                 self._clock.sleep(delay)
                 continue
             duration_ms = int((self._clock.monotonic() - attempt_started) * 1000)

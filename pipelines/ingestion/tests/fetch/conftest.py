@@ -1,86 +1,61 @@
-"""Import paths, the no-outbound-network guard, and the offline fixtures for the INGF-02 suite.
+"""Fixtures for the INGF-02 suite, and the no-outbound-network guard.
 
-Mirrors `tests/adapter/conftest.py` (INGF-01): nothing is installed (`[tool.uv] package = false` in
-every member manifest) and the member directory names contain hyphens, so `pipelines/ingestion/src`
-and `pipelines/corpus-builder/src` have to be prepended to `sys.path` here. The repository root is
-located by walking up for BOTH root manifests, which works unchanged inside a `/start-all` git
-worktree. `pipelines/ingestion/tests/adapter` is prepended too, so INGF-01's `adapter_archscan`
-scanner can be IMPORTED by `test_architecture.py` rather than copied.
-
-There is deliberately NO `__init__.py` in this directory: `tools/workspace-assertions.mjs`
-requires each uv member to hold exactly ONE direct child directory containing an `__init__.py`.
+Paths and `sys.path` set-up live in `fetch_paths.py`, not here, because the module name `conftest`
+is not unique across this repository — see that module's docstring for the failure it prevents.
 
 THE NETWORK GUARD (deliverable 10, acceptance "the whole tests/fetch suite runs with outbound
-network disabled"). A session-scoped autouse fixture makes `socket.getaddrinfo` raise and makes any
-connect to a non-loopback address fail loudly. A suite that silently reached the internet would
-prove nothing about the SSRF controls, and would be flaky in CI.
+network disabled"). A session-scoped autouse fixture makes `socket.getaddrinfo` refuse every name,
+and makes any connect to a non-loopback address fail loudly. A suite that silently reached the
+internet would prove nothing about the SSRF controls and would be flaky in CI. A loopback IP
+LITERAL is still allowed through `getaddrinfo`, because `socket.create_connection` normalises even a
+pinned `127.0.0.1` through it; no NAME is ever resolved.
+
+WHY THE GUARD BINDS TO `_socket`, NOT TO WHATEVER IS CURRENTLY ON `socket`. `pipelines/embeddings`
+installs its own network block (`tests/embedding_fixtures.py::block_all_network`) as a
+SESSION-scoped autouse fixture that replaces `socket.socket.connect`, `socket.connect_ex`,
+`socket.create_connection` and `socket.getaddrinfo` with a function that always raises. A
+session-scoped fixture is only torn down at the END of the session, so from the first embeddings
+test onwards those replacements stay in place for every module that runs afterwards — and
+`pipelines/ingestion` sorts after `pipelines/embeddings`. Capturing "the current implementation"
+here would capture that raising stub and every loopback connection in this suite would fail, which
+is exactly what a whole-repository `uv run pytest` produced before this was traced. Binding to the
+C-level `_socket` primitives, which nothing patches, makes this suite independent of any other
+module's monkeypatching AND leaves the embeddings guard untouched — it is another ticket's control
+and not this ticket's to weaken. The leak itself is reported as a cross-ticket defect.
 """
 
 from __future__ import annotations
 
-import ipaddress
+import _socket
 import socket
-import sys
-from pathlib import Path
 
 import pytest
-
-
-def _repo_root() -> Path:
-    here = Path(__file__).resolve()
-    for candidate in [here, *here.parents]:
-        if (candidate / "pyproject.toml").is_file() and (candidate / "pnpm-workspace.yaml").is_file():
-            return candidate
-    raise RuntimeError(f"cannot locate the repository root from {here}")
-
-
-REPO_ROOT = _repo_root()
-INGESTION_MEMBER = REPO_ROOT / "pipelines" / "ingestion"
-FETCH_SRC = INGESTION_MEMBER / "src" / "taxrag_pipeline_ingestion" / "fetch"
-CONTRACTS_SRC = REPO_ROOT / "pipelines" / "corpus-builder" / "src"
-ADAPTER_TESTS = INGESTION_MEMBER / "tests" / "adapter"
-ADAPTERS_TREE = REPO_ROOT / "pipelines" / "adapters"
-
-for _path in (ADAPTER_TESTS, CONTRACTS_SRC, INGESTION_MEMBER / "src"):
-    if str(_path) not in sys.path:
-        sys.path.insert(0, str(_path))
-
-FETCH_FIXTURES = Path(__file__).resolve().parent / "fixtures"
-ALLOWLIST_FIXTURES = FETCH_FIXTURES / "adapters"
-BOMB_FIXTURES = FETCH_FIXTURES / "bombs"
-DIRTY_FIXTURES = FETCH_FIXTURES / "dirty"
-
-
-class OutboundNetworkDenied(RuntimeError):
-    """The suite attempted to leave the machine — always a test bug, never an expected outcome."""
-
-
-def _is_loopback(address: object) -> bool:
-    if not isinstance(address, tuple) or not address:
-        return False
-    host = address[0]
-    if not isinstance(host, str):
-        return False
-    try:
-        parsed = ipaddress.ip_address(host)
-    except ValueError:
-        return False
-    return parsed.is_loopback
+from fetch_paths import (  # noqa: F401 — re-exported for the test modules
+    ALLOWLIST_FIXTURES,
+    BOMB_FIXTURES,
+    OutboundNetworkDenied,
+    is_loopback_address,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def no_outbound_network() -> object:
-    """Disable DNS entirely and refuse any connect to a non-loopback address."""
-    real_getaddrinfo = socket.getaddrinfo
-    real_connect = socket.socket.connect
-    real_create_connection = socket.create_connection
+    """Disable name resolution entirely and refuse any connect to a non-loopback address."""
+    # The C primitives: never patched by anything, so this guard is self-contained.
+    real_getaddrinfo = _socket.getaddrinfo
+    real_connect = _socket.socket.connect
+
+    # Whatever is installed right now, restored verbatim on teardown — including another module's
+    # session-scoped patch, which must not be silently dropped.
+    saved = {
+        "getaddrinfo": socket.getaddrinfo,
+        "connect": socket.socket.connect,
+        "create_connection": socket.create_connection,
+    }
 
     def guarded_getaddrinfo(*args: object, **kwargs: object) -> object:
-        # A loopback IP LITERAL is not a DNS lookup — `socket.create_connection` normalises every
-        # address through getaddrinfo, including the pinned `127.0.0.1` the fixture server listens
-        # on. Everything else is refused: no name is ever resolved in this suite.
         host = args[0] if args else None
-        if _is_loopback((host, 0)):
+        if is_loopback_address((host, 0)):
             return real_getaddrinfo(*args, **kwargs)  # type: ignore[arg-type]
         raise OutboundNetworkDenied(
             f"socket.getaddrinfo is disabled in the INGF-02 suite (asked for {host!r}); "
@@ -88,14 +63,37 @@ def no_outbound_network() -> object:
         )
 
     def guarded_connect(self: socket.socket, address: object) -> object:
-        if not _is_loopback(address):
+        if not is_loopback_address(address):
             raise OutboundNetworkDenied(f"refusing a non-loopback connect to {address!r}")
         return real_connect(self, address)
 
-    def guarded_create_connection(address: object, *args: object, **kwargs: object) -> object:
-        if not _is_loopback(address):
+    def guarded_create_connection(
+        address: object,
+        timeout: object = socket._GLOBAL_DEFAULT_TIMEOUT,  # type: ignore[attr-defined]
+        source_address: object = None,
+        *args: object,
+        **kwargs: object,
+    ) -> socket.socket:
+        """A loopback-only `create_connection`, rebuilt from primitives.
+
+        Written out rather than delegated for the reason in the module docstring: the installed
+        `socket.create_connection` may be another module's raising stub.
+        """
+        if not is_loopback_address(address):
             raise OutboundNetworkDenied(f"refusing a non-loopback connect to {address!r}")
-        return real_create_connection(address, *args, **kwargs)  # type: ignore[arg-type]
+        host, port = address[0], address[1]  # type: ignore[index]
+        family = socket.AF_INET6 if ":" in str(host) else socket.AF_INET
+        sock = socket.socket(family, socket.SOCK_STREAM)
+        try:
+            if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # type: ignore[attr-defined]
+                sock.settimeout(timeout)  # type: ignore[arg-type]
+            if source_address:
+                sock.bind(source_address)  # type: ignore[arg-type]
+            sock.connect((host, port))
+        except BaseException:
+            sock.close()
+            raise
+        return sock
 
     socket.getaddrinfo = guarded_getaddrinfo  # type: ignore[assignment]
     socket.socket.connect = guarded_connect  # type: ignore[method-assign]
@@ -103,9 +101,9 @@ def no_outbound_network() -> object:
     try:
         yield None
     finally:
-        socket.getaddrinfo = real_getaddrinfo  # type: ignore[assignment]
-        socket.socket.connect = real_connect  # type: ignore[method-assign]
-        socket.create_connection = real_create_connection  # type: ignore[assignment]
+        socket.getaddrinfo = saved["getaddrinfo"]  # type: ignore[assignment]
+        socket.socket.connect = saved["connect"]  # type: ignore[method-assign]
+        socket.create_connection = saved["create_connection"]  # type: ignore[assignment]
 
 
 @pytest.fixture

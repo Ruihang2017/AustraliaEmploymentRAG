@@ -10,7 +10,7 @@ double slash, explicit port, IP literal).
 from __future__ import annotations
 
 import pytest
-from conftest import ALLOWLIST_FIXTURES
+from fetch_paths import ALLOWLIST_FIXTURES
 
 from taxrag_pipeline_ingestion.fetch import limits as limits_module
 from taxrag_pipeline_ingestion.fetch.limits import FetchLimits

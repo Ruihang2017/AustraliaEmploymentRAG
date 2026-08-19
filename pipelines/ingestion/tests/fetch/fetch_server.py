@@ -122,6 +122,18 @@ class _Handler(BaseHTTPRequestHandler):
                 time.sleep(scripted.stall_between_chunks)
 
 
+class _QuietThreadingHTTPServer(ThreadingHTTPServer):
+    """A client that aborts mid-body is the POINT of several tests, not an error to print.
+
+    `ThreadingHTTPServer` writes a traceback to stderr for any exception escaping a handler; the
+    abort cases would fill the pytest output with expected connection errors. The request log
+    already records the abort, so this only suppresses the noise.
+    """
+
+    def handle_error(self, request: object, client_address: object) -> None:
+        return
+
+
 class FixtureServer:
     """A scripted, threaded loopback server with a locked request log."""
 
@@ -129,7 +141,7 @@ class FixtureServer:
         self._routes: dict[str, list[ScriptedResponse]] = {}
         self._log: list[RecordedRequest] = []
         self._lock = threading.Lock()
-        self._server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
+        self._server = _QuietThreadingHTTPServer(("127.0.0.1", 0), _Handler)
         self._server.daemon_threads = True
         self._server.fixture = self  # type: ignore[attr-defined]
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)

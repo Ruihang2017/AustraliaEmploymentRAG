@@ -54,6 +54,7 @@ class BoundedDecoder:
         "_decompressor",
         "_raw_retry_pending",
         "_ratio_warmup",
+        "_output_step",
         "compressed_total",
         "decompressed_total",
     )
@@ -69,13 +70,16 @@ class BoundedDecoder:
         self._max_bytes = int(max_decompressed_bytes)
         self._max_ratio = int(max_ratio)
         # The ratio only becomes meaningful once enough compressed input has been consumed that a
-        # bomb could plausibly be under way. Derived from the cap rather than fixed, so a test that
-        # lowers `max_decompressed_bytes` to KiB still exercises the guard on a KiB-sized fixture
-        # (R14) while the production warm-up stays at the full 64 KiB.
+        # bomb could plausibly be under way, and it must become meaningful COMFORTABLY BEFORE the
+        # absolute cap, or the cap always fires first and the ratio guard is decorative. Both
+        # thresholds are therefore derived from the cap and clamped by the production constant, so
+        # a test that shrinks `max_decompressed_bytes` still exercises the guard on a KiB-sized
+        # fixture (R14) while production keeps the full 64 KiB warm-up.
         self._ratio_warmup = min(
             RATIO_GUARD_MIN_COMPRESSED_BYTES,
-            max(1024, self._max_bytes // max(self._max_ratio, 1)),
+            max(256, self._max_bytes // max(self._max_ratio * 8, 1)),
         )
+        self._output_step = max(64 * 1024, self._max_bytes // 16)
         self.compressed_total = 0
         self.decompressed_total = 0
         self._raw_retry_pending = self.encoding == "deflate"
@@ -93,11 +97,12 @@ class BoundedDecoder:
     def _allowance(self) -> int:
         return self._max_bytes - self.decompressed_total
 
-    def _abort(self, why: str) -> FetchFailure:
+    def _abort(self, why: str, guard: str) -> FetchFailure:
         return FetchFailure(
             FailureCode("FETCH_DECOMPRESSION_LIMIT"),
             why,
             details={
+                "guard": guard,
                 "compressed_bytes": self.compressed_total,
                 "decompressed_bytes": self.decompressed_total,
             },
@@ -111,7 +116,7 @@ class BoundedDecoder:
         if self._decompressor is None:
             self.decompressed_total += len(chunk)
             if self.decompressed_total > self._max_bytes:
-                raise self._abort("the response exceeded the decompressed byte ceiling")
+                raise self._abort("the response exceeded the decompressed byte ceiling", "absolute")
             return chunk
 
         produced = bytearray()
@@ -119,10 +124,15 @@ class BoundedDecoder:
         while True:
             allowance = self._allowance()
             if allowance <= 0:
-                raise self._abort("the decompressed stream exceeded the decompressed byte ceiling")
+                raise self._abort(
+                    "the decompressed stream exceeded the decompressed byte ceiling", "absolute"
+                )
+            # One compressed chunk can expand to the whole allowance, so output is produced in
+            # STEPS and the ratio is re-checked after each one. Without that, a bomb whose ratio is
+            # extreme would hit the absolute cap first and the ratio guard would never fire.
+            step = min(allowance + 1, self._output_step)
             try:
-                # +1 so that a stream sitting exactly on the cap is DETECTED rather than truncated.
-                out = self._decompressor.decompress(pending, max_length=allowance + 1)
+                out = self._decompressor.decompress(pending, max_length=step)
             except zlib.error as exc:
                 if self._raw_retry_pending and self.decompressed_total == 0:
                     # Some servers send raw deflate for `Content-Encoding: deflate`.
@@ -137,12 +147,14 @@ class BoundedDecoder:
             produced.extend(out)
             self.decompressed_total += len(out)
             if self.decompressed_total > self._max_bytes:
-                raise self._abort("the decompressed stream exceeded the decompressed byte ceiling")
+                raise self._abort(
+                    "the decompressed stream exceeded the decompressed byte ceiling", "absolute"
+                )
+            self._check_ratio()
             pending = self._decompressor.unconsumed_tail
             if not pending:
                 break
 
-        self._check_ratio()
         return bytes(produced)
 
     def finish(self) -> bytes:
@@ -155,7 +167,9 @@ class BoundedDecoder:
         tail = self._decompressor.flush(allowance + 1)
         self.decompressed_total += len(tail)
         if self.decompressed_total > self._max_bytes:
-            raise self._abort("the decompressed stream exceeded the decompressed byte ceiling")
+            raise self._abort(
+                "the decompressed stream exceeded the decompressed byte ceiling", "absolute"
+            )
         self._check_ratio()
         return tail
 
@@ -165,5 +179,6 @@ class BoundedDecoder:
         ratio = self.decompressed_total / max(self.compressed_total, 1)
         if ratio > self._max_ratio:
             raise self._abort(
-                f"the compression ratio {ratio:.1f} exceeds the guard of {self._max_ratio}"
+                f"the compression ratio {ratio:.1f} exceeds the guard of {self._max_ratio}",
+                "ratio",
             )
