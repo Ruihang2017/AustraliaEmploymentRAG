@@ -1,0 +1,102 @@
+# PRD §43.1 — the exact primary allocation of the 600 evaluation cases, as frozen data.
+#
+# This file is the machine-readable form of the PRD table and nothing else. It is asserted row for
+# row against `pipelines/evaluation/tests/dataset/data/prd-43-1-allocation.json`, which is an
+# independent transcription of the same PRD table, so a one-sided edit is a test failure rather
+# than a silent redefinition of `EVAL-001`.
+#
+# `ALLOCATION_EXACT` compares the composed dataset against these counts EXACTLY — not "at least".
+# PRD §43.1: "Cases may carry multiple tags, but each has one primary allocation so totals cannot
+# drift." Never relax this check to make an incomplete dataset pass; the counts ARE requirement
+# `EVAL-001` (PRD §30.2).
+#
+# `evals/splits/**` deliberately contains NO list of case ids (sub-PRD D4): splits are composed
+# from `evals/cases/<slug>/`, so ten authoring tickets never contend on one file.
+prd_section: "43.1"
+dataset_major_version: 1
+categories:
+  - slug: federal-core
+    code: FED
+    ticket: GOLD-05
+    title: "Federal Fair Work/NES/core employment law"
+    development: 48
+    validation: 16
+    blind: 16
+    total: 80
+  - slug: awards-coverage
+    code: AWD
+    ticket: GOLD-06
+    title: "Modern awards, coverage and classification"
+    development: 54
+    validation: 18
+    blind: 18
+    total: 90
+  - slug: agreements
+    code: AGR
+    ticket: GOLD-07
+    title: "Enterprise agreements and lifecycle"
+    development: 42
+    validation: 14
+    blind: 14
+    total: 70
+  - slug: payroll
+    code: PAY
+    ticket: GOLD-08
+    title: "PAYG/STP/super/FBT and eight payroll-tax regimes"
+    development: 42
+    validation: 14
+    blind: 14
+    total: 70
+  - slug: state-employment
+    code: STE
+    ticket: GOLD-09
+    title: "State/territory employment and industrial law (eight jurisdictions)"
+    development: 38
+    validation: 13
+    blind: 13
+    total: 64
+  - slug: whs-compensation
+    code: WHS
+    ticket: GOLD-10
+    title: "WHS/OHS and workers compensation (eight jurisdictions)"
+    development: 38
+    validation: 13
+    blind: 13
+    total: 64
+  - slug: adjacent-regimes
+    code: ADJ
+    ticket: GOLD-11
+    title: "Discrimination, privacy/surveillance, labour hire, LSL, migration, child/public-sector/whistleblowing"
+    development: 36
+    validation: 12
+    blind: 12
+    total: 60
+  - slug: case-treatment
+    code: CAS
+    ticket: GOLD-12
+    title: "Case authority, appeal and treatment"
+    development: 24
+    validation: 8
+    blind: 8
+    total: 40
+  - slug: temporal-traps
+    code: TMP
+    ticket: GOLD-13
+    title: "Historical, future, commencement and transitional traps"
+    development: 18
+    validation: 6
+    blind: 6
+    total: 30
+  - slug: safety-refusal
+    code: SAF
+    ticket: GOLD-14
+    title: "Insufficient/conflicting evidence, PII, evasion and out-of-scope"
+    development: 20
+    validation: 6
+    blind: 6
+    total: 32
+totals:
+  development: 360
+  validation: 120
+  blind: 120
+  total: 600

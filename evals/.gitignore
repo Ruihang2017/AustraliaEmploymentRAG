@@ -1,0 +1,14 @@
+# GOLD-01 deliverable 15 — a convenience, NOT the control.
+#
+# Blind case plaintext is authored in an isolated private directory OUTSIDE this repository (sub-PRD
+# D21, breakdown plan §8 Q6 item 4). If an authoring session nonetheless points its working directory
+# inside the tree, these patterns stop the plaintext being committed by accident.
+#
+# The CONTROL is the guard: `BLIND_SEALED` treats a *tracked* file at a `blind/unsealed/**` path, or
+# any plaintext under a `blind/` path, as a FAIL and fails the build. An ignore file can be edited,
+# bypassed with `git add -f`, or simply not consulted; the guard cannot. Never weaken the guard on
+# the grounds that this file exists.
+**/blind/unsealed/**
+**/*.plaintext.yaml
+**/*.plaintext.yml
+**/*.plaintext.json

@@ -1,0 +1,36 @@
+# Case identifier rules (sub-PRD D5; PRD §30.1; breakdown plan §1.1).
+#
+# THE POINT OF THE LETTER SEGMENT. PRD §30.1 requirement ids are `EVAL-001`, `EVAL-002`, … A case id
+# always carries a three-letter category code between the prefix and the number, so a case id can
+# never be read as a requirement id and a requirement id can never be read as a case id. `ID_RULES`
+# rejects `EVAL-001` and accepts `EVAL-FED-001`; `INGF-07`'s `evaluation_subset_ref: [EVAL-FED-001]`
+# stays valid under these rules.
+#
+# `EvaluationCase: 'evc'` in `packages/contracts/src/ids/resource-prefixes.ts` is the RUNTIME record
+# prefix for a stored evaluation-case row. It is a different thing from this file-level dataset id
+# and neither replaces the other.
+prefix: EVAL
+pattern: "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$"
+number_width: 3
+number_minimum: 1
+number_maximum: 999
+codes:
+  - FED
+  - AWD
+  - AGR
+  - PAY
+  - STE
+  - WHS
+  - ADJ
+  - CAS
+  - TMP
+  - SAF
+rules:
+  - id: LETTER_SEGMENT_REQUIRED
+    statement: "Every case id carries a three-letter category code, so it can never be read as a PRD §30.1 requirement id such as EVAL-001."
+  - id: CODE_MATCHES_DIRECTORY
+    statement: "The code segment must equal the code that allocation.yaml assigns to the category directory the case file lives in."
+  - id: GLOBALLY_UNIQUE
+    statement: "A case id appears exactly once across every category and every split."
+  - id: NEVER_REUSED
+    statement: "A case id retired in any dataset version is never reassigned to different content; the checker compares against every prior dataset-version registry."

@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "An INDEPENDENT transcription of the PRD §43.1 table and the sub-PRD 21-evaluation-600 slug/code",
+    "column, kept apart from evals/splits/allocation.yaml on purpose: the test asserts the two agree",
+    "row for row, so a one-sided edit to the frozen data fails rather than silently redefining",
+    "requirement EVAL-001. If the PRD table ever changes, BOTH files change, in a docs PR first."
+  ],
+  "prdSection": "43.1",
+  "rows": [
+    { "ticket": "GOLD-05", "slug": "federal-core", "code": "FED", "development": 48, "validation": 16, "blind": 16, "total": 80 },
+    { "ticket": "GOLD-06", "slug": "awards-coverage", "code": "AWD", "development": 54, "validation": 18, "blind": 18, "total": 90 },
+    { "ticket": "GOLD-07", "slug": "agreements", "code": "AGR", "development": 42, "validation": 14, "blind": 14, "total": 70 },
+    { "ticket": "GOLD-08", "slug": "payroll", "code": "PAY", "development": 42, "validation": 14, "blind": 14, "total": 70 },
+    { "ticket": "GOLD-09", "slug": "state-employment", "code": "STE", "development": 38, "validation": 13, "blind": 13, "total": 64 },
+    { "ticket": "GOLD-10", "slug": "whs-compensation", "code": "WHS", "development": 38, "validation": 13, "blind": 13, "total": 64 },
+    { "ticket": "GOLD-11", "slug": "adjacent-regimes", "code": "ADJ", "development": 36, "validation": 12, "blind": 12, "total": 60 },
+    { "ticket": "GOLD-12", "slug": "case-treatment", "code": "CAS", "development": 24, "validation": 8, "blind": 8, "total": 40 },
+    { "ticket": "GOLD-13", "slug": "temporal-traps", "code": "TMP", "development": 18, "validation": 6, "blind": 6, "total": 30 },
+    { "ticket": "GOLD-14", "slug": "safety-refusal", "code": "SAF", "development": 20, "validation": 6, "blind": 6, "total": 32 }
+  ],
+  "totals": { "development": 360, "validation": 120, "blind": 120, "total": 600 }
+}
