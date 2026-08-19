@@ -26,6 +26,17 @@ REJECTED, EXPLICITLY
   document; tabs in indentation; a document larger than `MAX_BYTES`; nesting deeper than
   `MAX_DEPTH`. A `YYYY-MM-DD` scalar stays a **string** and is never coerced to `datetime.date`,
   so a YAML -> JSON round trip is lossless (PRD §35.1 dates travel as strings).
+
+ERROR MESSAGES ARE CONTENT-FREE, AND THAT IS A SECURITY PROPERTY, NOT A STYLE RULE. A parse failure
+of a file under a `blind/` path is reported by `SCHEMA_VALID` through `compose`, and a finding is
+rendered to stdout, to a JSON report and into CI logs. A message that quoted the offending source
+fragment would therefore publish a fragment of blind plaintext through the ordinary failure path —
+the exact leak sub-PRD D1/D2 exist to prevent. So every `YamlError` message names the LINE NUMBER
+and the CONSTRUCT, never the text that failed: no `{content!r}`, no `{key!r}`, no `{remainder!r}`,
+no source excerpt of any kind. `tests/dataset/test_yaml_min.py` greps this module for that shape,
+and `tests/dataset/test_findings_content_free.py` proves the property end to end. Callers that put
+a parse failure into a user-visible message use `YamlError.reason`, which is content-free by this
+invariant.
 """
 
 from __future__ import annotations
@@ -50,7 +61,20 @@ MAX_DEPTH = 32
 
 
 class YamlError(ValueError):
-    """The document is not well formed in this subset."""
+    """The document is not well formed in this subset.
+
+    The message names the line number and the construct only — see the module header for why that
+    is a hard invariant rather than a preference.
+    """
+
+    @property
+    def reason(self) -> str:
+        """A content-free reason string, safe to render in a `Finding` message.
+
+        Callers use THIS rather than `str(error)` so that the safe form is the obvious form, and so
+        a single grep finds every place a parse failure becomes user-visible text.
+        """
+        return f"{type(self).__name__}: {self.args[0] if self.args else 'parse failed'}"
 
 
 class UnsupportedYamlError(YamlError):
@@ -65,7 +89,7 @@ def load_path(path: Path | str) -> Any:
     """Read *path* as UTF-8 and load it. Byte size is checked before any parsing happens."""
     raw = Path(path).read_bytes()
     if len(raw) > MAX_BYTES:
-        raise UnsupportedYamlError(f"{path}: {len(raw)} bytes exceeds the {MAX_BYTES}-byte limit")
+        raise UnsupportedYamlError(f"{len(raw)} bytes exceeds the {MAX_BYTES}-byte limit")
     return load(raw.decode("utf-8"))
 
 
@@ -152,11 +176,11 @@ class _Parser:
                 raise YamlError(f"line {line_index + 1}: unexpected indentation inside a mapping")
             split = _split_mapping_entry(content)
             if split is None:
-                raise YamlError(f"line {line_index + 1}: not a mapping entry: {content!r}")
+                raise YamlError(f"line {line_index + 1}: not a mapping entry")
             key_text, value_text = split
             key = _parse_key(key_text, line_index)
             if key in result:
-                raise YamlError(f"line {line_index + 1}: duplicate mapping key {key!r}")
+                raise YamlError(f"line {line_index + 1}: duplicate mapping key")
             self.index = line_index + 1
             result[key] = self._parse_value(value_text, indent, line_index, depth=depth)
         return result
@@ -223,7 +247,7 @@ class _Parser:
         chomp = header[1:].strip()
         if chomp not in ("", "-", "+"):
             raise UnsupportedYamlError(
-                f"line {line_index + 1}: block scalar header {header!r} — only `|`, `>` and the "
+                f"line {line_index + 1}: unsupported block scalar header — only `|`, `>` and the "
                 "`-`/`+` chomping indicators are supported (no explicit indentation indicator)"
             )
         body: list[str] = []
@@ -346,7 +370,7 @@ def _quoted(text: str, line_index: int) -> str:
                 continue
             remainder = text[index + 1 :].strip()
             if remainder and not remainder.startswith("#"):
-                raise YamlError(f"line {line_index + 1}: content after a quoted scalar: {remainder!r}")
+                raise YamlError(f"line {line_index + 1}: content after a quoted scalar")
             return "".join(out)
         out.append(char)
         index += 1

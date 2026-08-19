@@ -221,7 +221,12 @@ def _read_yaml(path: Path) -> tuple[object | None, str | None]:
     try:
         return yaml_min.load_path(path), None
     except yaml_min.YamlError as error:
-        return None, str(error)
+        # `reason`, never `str(error)`: this string reaches a `SCHEMA_VALID` finding, which is
+        # printed to stdout, written into the JSON report and archived in CI logs. The parsed file
+        # may be a BLIND sidecar, so a message quoting the offending source fragment would publish
+        # blind content through the ordinary failure path. `yaml_min` guarantees `reason` names the
+        # line number and the construct only; see that module's header.
+        return None, error.reason
     except OSError as error:
         return None, type(error).__name__
 

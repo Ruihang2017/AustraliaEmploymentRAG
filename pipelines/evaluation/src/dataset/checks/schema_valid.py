@@ -42,6 +42,11 @@ def check(dataset: Dataset, context: CheckContext) -> list[Finding]:
 
     for entry in categories(dataset, context.category):
         for path, reason in entry.unparseable:
+            # `reason` is content-free by construction: `compose` builds it from
+            # `YamlError.reason` (line number + construct) or an exception class name, never from
+            # the file's text. The file may be a BLIND sidecar, so a message quoting the offending
+            # fragment would leak blind content through the ordinary failure path — see the
+            # `yaml_min` module header and `test_findings_content_free.py`.
             findings.append(
                 Finding(_ID, "FAIL", entry.slug, None, f"file is unreadable or unparseable: {reason}", str(path))
             )
