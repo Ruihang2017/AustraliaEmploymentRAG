@@ -7,7 +7,7 @@ size: L
 agent: builder
 status: draft
 date: 2026-08-03
-blocked_by: [CRPS-08]
+blocked_by: [CRPS-08, FND-32]
 blocks: [RETR-02, RETR-05, RETR-09, RLSE-01]
 ---
 
@@ -452,3 +452,10 @@ All steps run offline against the committed fixture bundle; no network, no crede
    re-review, and write back to `docs/prd/breakdown-plan.md` §2.1 and §4 plus this sub-PRD before
    improvising. Never ship a search process that can reach tenant data, on any code path, behind any
    flag.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-20 | **This ticket's own crate root breaks a guard it does not own; the repair is `FND-32`, which is added to `blocked_by`.** Writing `services/search-rs/src/lib.rs` — *"the crate root's module list containing only `pub mod service;`"* this ticket's own File-scope authorises, delivered on `ticket/RETR-01` @ `766ad18` as exactly that one line — turns one assertion red: `tools/tests/skeleton.test.mjs` *"keeps every entry file empty"*, via `tools/workspace-assertions.mjs#assertEntryFilesEmpty`, reporting **`services/search-rs/src/lib.rs is not empty`**. `tools/vitest.config.mjs` runs that suite on every branch, so the failure arrives without this branch touching the file that asserts it — and for a Rust crate the guard is categorically unsatisfiable, since a crate root that is the empty string has no modules, no items and no public surface at all. **It is not this ticket's to repair:** `tools/**` is `FND-01`'s area in `00-foundation`'s row (breakdown plan §4; phase-2 plan §3), and this ticket's File-scope declares `services/search-rs/**` and nothing under `tools/`. The repair is **`FND-32`**, and it is **general rather than a carve-out for this branch**: the guard asserts that *every* workspace member's entry file is still the byte-exact bootstrap stub, and on `main` @ `e1e08e4` all **18** entry files under `apps/`, `packages/` and `services/` — 28 counting `tests/`, `pipelines/` and `sdk/` — are still that stub, so it stands in front of every member-implementing ticket in the PRD and not only this one. `AUTC-01` hit the same assertion on the same run for `packages/auth/src/index.ts`. **This ticket's own work is otherwise green:** **142 Rust tests across 11 suites** passing, with the PRD §39.2 budgets measured and met — cold start **36 ms** against a 10 s budget, resident set **14 MiB** against 256 MiB, node read p95 **1 ms** against 1 s — and `pnpm ci:local` **17 of 18** with this guard as the single failing command. Nothing in this ticket's spec, scope, deliverables or acceptance changes — the only edit is the `blocked_by` edge, so `RETR-01` merges after `FND-32` and lands green. |

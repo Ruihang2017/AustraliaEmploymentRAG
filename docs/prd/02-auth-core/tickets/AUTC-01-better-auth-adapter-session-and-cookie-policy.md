@@ -7,7 +7,7 @@ size: L
 agent: builder
 status: draft
 date: 2026-08-03
-blocked_by: [DATA-04]
+blocked_by: [DATA-04, FND-32]
 blocks: [AUTC-02, AUTC-03, AUTC-04, RUNT-02]
 ---
 
@@ -430,3 +430,10 @@ offline — no network, no real SQLite file except the schema fixture below.
    used (PRD §18.2), or `packages/database` cannot remain the sole schema owner (plan **A3**) — that
    overturns a team decision. Stop, write the ADR + the plan/sub-PRD writeback, and escalate for
    re-review. Never swap the approach silently inside this ticket.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-20 | **This ticket's own entry file breaks a guard it does not own; the repair is `FND-32`, which is added to `blocked_by`.** Writing `packages/auth/src/index.ts` — the *"root barrel, core exports only"* this ticket's own File-scope authorises, delivered on `ticket/AUTC-01` @ `4a8dff8` as a doc comment plus `export * from './core/index.js';` — turns one assertion red: `tools/tests/skeleton.test.mjs` *"keeps every entry file empty"*, via `tools/workspace-assertions.mjs#assertEntryFilesEmpty`, reporting **`packages/auth/src/index.ts is not empty`**. `tools/vitest.config.mjs` runs that suite on every branch, so the failure arrives without this branch touching the file that asserts it. **It is not this ticket's to repair:** `tools/**` is `FND-01`'s area in `00-foundation`'s row (breakdown plan §4; phase-2 plan §3 makes product trees this phase's Non-goal and `tools/**` `00-foundation`'s), and this ticket's File-scope declares `packages/auth/**` and nothing under `tools/`. The repair is **`FND-32`**, and it is **general rather than a carve-out for this branch**: the guard asserts that *every* workspace member's entry file is still the byte-exact bootstrap stub, and on `main` @ `e1e08e4` all **18** entry files under `apps/`, `packages/` and `services/` — 28 counting `tests/`, `pipelines/` and `sdk/` — are still that stub, so it stands in front of every member-implementing ticket in the PRD and not only this one. `RETR-01` hit the same assertion on the same run for `services/search-rs/src/lib.rs`. **This ticket's own work is otherwise green:** 12 test files / **273 tests** passing, and `pnpm ci:local` **17 of 18** with this guard as the single failing command. Nothing in this ticket's spec, scope, deliverables or acceptance changes — the only edit is the `blocked_by` edge, so `AUTC-01` merges after `FND-32` and lands green. |
