@@ -34,6 +34,26 @@ def run(argv: list[str]) -> tuple[int, str, str]:
     return code, out.getvalue(), err.getvalue()
 
 
+def test_complete_over_the_real_evals_tree_fails_today() -> None:
+    """The empty real dataset must never be green, and nobody may "fix" the checker so it is.
+
+    `evals/cases/**` stays empty until `GOLD-05` … `GOLD-14` author it, so `verify --complete` over
+    the repository's own tree must report `COMPLETE_DATASET` (and `ALLOCATION_EXACT`) and exit
+    non-zero. A change that let 0 cases satisfy the 360/120/120/600 contract would be a change to
+    `EVAL-001` itself, so this asserts the failure explicitly rather than leaving it to the fixture
+    tree — which necessarily uses a miniature allocation of its own.
+    """
+    code, out, _err = run(
+        ["--root", str(REPO_ROOT / "evals"), "--format", "json", "verify", "--complete"]
+    )
+    payload = json.loads(out)
+    ids = {finding["check_id"] for finding in payload["findings"]}
+    assert code != 0
+    assert payload["ok"] is False
+    assert "COMPLETE_DATASET" in ids
+    assert "ALLOCATION_EXACT" in ids
+
+
 def test_verify_exits_non_zero_on_the_declared_unresolved_findings(dataset_tree) -> None:
     code, out, _err = run(["--root", str(dataset_tree()), "--format", "json", "verify"])
     payload = json.loads(out)
