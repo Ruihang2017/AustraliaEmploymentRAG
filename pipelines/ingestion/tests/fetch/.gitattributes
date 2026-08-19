@@ -1,0 +1,8 @@
+# INGF-02, mirroring INGF-01 / CRPS-01 / CRPS-03. Keep LF in the working tree (core.autocrlf=true
+# would otherwise rewrite these on a Windows checkout).
+* text eol=lf
+# ...but the decompression-bomb fixtures are gzip streams whose SHA-256 the suite pins. A text
+# rewrite would corrupt them on a Windows checkout, so mark them binary AFTER the text rule — the
+# last matching rule wins (the CRPS-08 lesson).
+fixtures/bombs/*.gz binary
+fixtures/bombs/*.bin binary
