@@ -7,3 +7,17 @@ dependencies = []
 
 [tool.uv]
 package = false
+
+# GOLD-01 (append-only, per the module's standing shared-file exception).
+#
+# NO DEPENDENCY IS ADDED, deliberately. `src/dataset/**` is stdlib-only, because a workspace member
+# that is `package = false` contributes nothing to the environment `uv sync --frozen` builds at the
+# repository root: a dependency declared here would land in the serial-owned root `uv.lock` and
+# still not be importable. That is the recorded gap in `pipelines/embeddings/pyproject.toml`, owned
+# by FND-01/FND-02. `yaml_min.py` exists instead of PyYAML and `sealedbox.py` instead of PyNaCl for
+# exactly that reason; each says so in its own header.
+#
+# NO `[project.scripts]` ENTRY POINT EITHER, for the same reason — a console script from a
+# `package = false` member is never installed. The two working invocation forms are documented in
+# `pipelines/evaluation/README.md`, and the ticket amendment for the spelling `evaluation.dataset`
+# is sub-PRD open question Q-GOLD-I.
