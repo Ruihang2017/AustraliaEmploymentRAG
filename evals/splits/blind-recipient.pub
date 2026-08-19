@@ -1,0 +1,30 @@
+{
+  "$comment": [
+    "PLACEHOLDER — NOT THE BLIND-DATASET RECIPIENT. This file exists so the sealing mechanism is",
+    "complete, testable and reviewable before the Founder performs the custodial act GOLD-01's one",
+    "[human] acceptance item reserves to them. Nothing real may be sealed to it.",
+    "",
+    "Its scalar is PUBLICLY DERIVABLE ON PURPOSE, and that is the safety property: the value below is",
+    "curve25519 scalarmult_base of SHA-256 of the ASCII string",
+    "'taxrag GOLD-01 development placeholder blind recipient v1'. Anyone can recompute both halves in",
+    "one line, so this key pair protects nothing and cannot be mistaken for one that does. A Builder",
+    "must never generate a real pair inside an agent session (GOLD-01 Non-goals; sub-PRD D22), and a",
+    "pair whose private half only LOOKED absent would be exactly the ambiguity to avoid.",
+    "",
+    "REPLACEMENT, by the Founder only: generate an X25519 pair offline, replace public_key_base64 and",
+    "set key_id to a non-dev- value, then re-seal every blind envelope through a new dataset version",
+    "(sub-PRD D8). The private half lives in the Founder's password manager or equivalent offline",
+    "encrypted storage with one encrypted recovery copy, and never in git, CI, ordinary environment",
+    "configuration or any agent environment (breakdown plan section 8 Q6; sub-PRD D2, D22). Each blind",
+    "dataset major version gets its own pair, which is why blind_dataset_major_version is recorded",
+    "here rather than assumed.",
+    "",
+    "The dev- key_id prefix is CRPS-02's convention: production tooling must never accept it."
+  ],
+  "key_id": "dev-blind-recipient-placeholder-001",
+  "algorithm": "crypto_box_seal",
+  "kind": "DEVELOPMENT_PLACEHOLDER",
+  "blind_dataset_major_version": 1,
+  "public_key_base64": "ytWz5/cgRZ2WKvwH5YNCIbzqvEyb6wryLVIcRi450Tk=",
+  "warning": "Sealing real blind material to this value would protect nothing: its private half is derivable from the string quoted above. GOLD-15 and GOLD-17 must not run a blind stage until the Founder has replaced it."
+}

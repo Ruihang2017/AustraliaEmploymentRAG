@@ -7,4 +7,4 @@ puts `pipelines/evaluation/src` on `sys.path` before any test module is collecte
 
 from __future__ import annotations
 
-import dataset_fixtures  # noqa: F401
+from dataset_fixtures import dataset_tree, ephemeral_recipient  # noqa: F401

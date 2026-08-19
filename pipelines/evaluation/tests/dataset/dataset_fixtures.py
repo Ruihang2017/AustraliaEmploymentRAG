@@ -34,3 +34,48 @@ if _SRC not in sys.path:
 
 #: Transcriptions of the PRD tables this suite asserts the frozen data against.
 DATA_DIR = Path(__file__).resolve().parent / "data"
+
+#: The CRPS-08-shaped fixture release `GOLD_RESOLVES --release` resolves gold ids against.
+FIXTURE_RELEASE = (
+    REPO_ROOT / "pipelines" / "corpus-builder" / "fixtures" / "releases" / "corpus-release-fixture-v1"
+)
+FIXTURE_RELEASE_TRUSTED_KEY = (
+    REPO_ROOT
+    / "pipelines"
+    / "corpus-builder"
+    / "tests"
+    / "manifest"
+    / "fixtures"
+    / "keys"
+    / "dev-corpus-signing-001.public.json"
+)
+
+import pytest  # noqa: E402
+
+from dataset.sealedbox import generate_keypair  # noqa: E402
+from fixture_tree import build_fixture_tree  # noqa: E402
+
+
+@pytest.fixture()
+def ephemeral_recipient() -> tuple[bytes, bytes]:
+    """A seal key pair generated IN THIS PROCESS and never written to the repository.
+
+    The private half exists for the duration of one test. No file this ticket commits, at any point,
+    holds a private key (sub-PRD D2; deliverable 8's assertion).
+    """
+    return generate_keypair()
+
+
+@pytest.fixture()
+def dataset_tree(tmp_path, ephemeral_recipient):
+    """Build a synthetic three-category tree under `tmp_path`.
+
+    Every deviation a negative fixture needs is a keyword argument, so a test varies exactly one
+    thing and its failure names exactly one rule.
+    """
+    public_key, _private_key = ephemeral_recipient
+
+    def factory(**overrides):
+        return build_fixture_tree(tmp_path, recipient_public=public_key, **overrides)
+
+    return factory
