@@ -1,0 +1,21 @@
+# Synthetic fixture for the INGF-02 suite. NOT a real source group: modules 06-10 own those
+# (this ticket ships the schema and the loader only).
+group_id: DEMO-OK
+schemes: [https]
+hosts:
+  - host: docs.example.test
+    include_subdomains: false
+    path_prefixes: ["/latest/", "/series/"]
+    min_request_interval_ms: 1000
+    max_concurrent_requests: 2
+    approved_max_bytes: null
+    approved_max_bytes_reason: null
+  - host: mirror.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]
+    min_request_interval_ms: 1000
+    max_concurrent_requests: 1
+    approved_max_bytes: null
+    approved_max_bytes_reason: null
+deny_paths: []
+notes: "the well-formed control fixture"

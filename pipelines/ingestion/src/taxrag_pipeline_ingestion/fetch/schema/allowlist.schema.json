@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/fetch/allowlist.schema.json",
+  "title": "Per-source URL allowlist (INGF-02 deliverable 1; PRD §37.4, §35.2, plan §2.1 A2)",
+  "description": "The schema of pipelines/adapters/<group-id>/allowlist.yaml. This ticket owns the schema and the loader; modules 06-10 own the instances. Constraints this vocabulary cannot express (schemes == [https], a non-empty hosts list, an IP-literal host, approved_max_bytes requiring its reason, path prefixes starting with /) are enforced in policy.py and separately tested; the validator this repository ships (contracts.jsonschema_min) rejects an unknown keyword rather than passing a schema it cannot enforce, so minItems/uniqueItems/format are deliberately absent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["group_id", "schemes", "hosts"],
+  "properties": {
+    "group_id": {
+      "description": "The uppercase PRD §40.2-40.6 Group ID; must equal the directory name uppercased.",
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$"
+    },
+    "schemes": {
+      "description": "HTTPS only (PRD §21.1). Any other value is a load error.",
+      "type": "array",
+      "items": {"type": "string", "enum": ["https"]}
+    },
+    "hosts": {
+      "description": "At least one host rule; enforced in policy.py.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["host", "include_subdomains", "path_prefixes"],
+        "properties": {
+          "host": {"type": "string", "minLength": 1},
+          "include_subdomains": {"type": "boolean"},
+          "path_prefixes": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "pattern": "^/"}
+          },
+          "min_request_interval_ms": {
+            "description": "Politeness only; carried here and consumed by INGF-08, not enforced by INGF-02.",
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "max_concurrent_requests": {
+            "description": "Politeness only; carried here and consumed by INGF-08, not enforced by INGF-02.",
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "approved_max_bytes": {
+            "description": "null = MAX_DOCUMENT_BYTES. A number is the PRD §37.4 source-specific approved limit and REQUIRES approved_max_bytes_reason.",
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "approved_max_bytes_reason": {
+            "type": ["string", "null"],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "deny_paths": {
+      "description": "Explicit denials, evaluated after path_prefixes and winning over them.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "pattern": "^/"}
+    },
+    "notes": {
+      "description": "Free text, not load-bearing.",
+      "type": "string"
+    }
+  }
+}

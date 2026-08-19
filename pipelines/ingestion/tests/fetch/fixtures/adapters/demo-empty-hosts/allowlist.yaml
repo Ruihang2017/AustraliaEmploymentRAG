@@ -1,0 +1,4 @@
+# Negative control: an allowlist with no hosts allows nothing and is a configuration mistake.
+group_id: DEMO-EMPTY-HOSTS
+schemes: [https]
+hosts: []

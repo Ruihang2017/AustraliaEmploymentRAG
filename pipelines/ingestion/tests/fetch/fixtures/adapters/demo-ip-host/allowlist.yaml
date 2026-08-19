@@ -1,0 +1,7 @@
+# Negative control: an IP-literal host would bypass the DNS screen this module exists to enforce.
+group_id: DEMO-IP-HOST
+schemes: [https]
+hosts:
+  - host: 169.254.169.254
+    include_subdomains: false
+    path_prefixes: ["/"]

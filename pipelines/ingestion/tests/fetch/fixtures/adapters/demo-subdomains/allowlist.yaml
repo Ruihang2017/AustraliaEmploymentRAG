@@ -1,0 +1,7 @@
+# include_subdomains: true must match on a LABEL boundary, never as a suffix string.
+group_id: DEMO-SUBDOMAINS
+schemes: [https]
+hosts:
+  - host: example.test
+    include_subdomains: true
+    path_prefixes: ["/"]

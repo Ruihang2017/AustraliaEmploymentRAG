@@ -1,0 +1,7 @@
+# Negative control: PRD 21.1 permits https only, so this must fail to LOAD, not merely to match.
+group_id: DEMO-BAD-SCHEME
+schemes: [http]
+hosts:
+  - host: docs.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]

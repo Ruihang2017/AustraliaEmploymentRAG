@@ -1,0 +1,9 @@
+# Negative control: PRD 37.4 requires a recorded reason for a source-specific approved limit.
+group_id: DEMO-APPROVED-NO-REASON
+schemes: [https]
+hosts:
+  - host: bulk.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]
+    approved_max_bytes: 104857600
+    approved_max_bytes_reason: null
