@@ -1,0 +1,66 @@
+{
+  "builder_version": "0.0.0",
+  "built_at": "2026-01-01T00:00:00Z",
+  "determinism": {
+    "deterministic": true,
+    "seed": 7
+  },
+  "dimensions": 8,
+  "distance_metric": "COSINE",
+  "input_contract_version": "1.0.0",
+  "licence": {
+    "attribution_required": true,
+    "identifier": "FIXTURE-MODEL-LICENCE",
+    "notes": null,
+    "redistribution_permitted": false,
+    "url": "https://example.invalid/licence"
+  },
+  "manifest_version": "1.0.0",
+  "model_artifact": {
+    "byte_size": 4096,
+    "format": "onnx",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "model_id": "fixture/document-embedding",
+  "model_revision": "rev-000000000000000000000001",
+  "normalisation": "L2",
+  "profile_id": "fixture-embedding-profile",
+  "quantisation": "FLOAT32",
+  "runtime": {
+    "execution_providers": [
+      "CPU"
+    ],
+    "family": "onnxruntime",
+    "integration": {
+      "crate": "ort",
+      "version": "2.0.0-rc.9"
+    },
+    "pinned_by": "RETR-07-compatibility-verification-fixture",
+    "tokenizer_library": {
+      "crate": "tokenizers",
+      "version": "0.20.3"
+    },
+    "version": "1.20.0"
+  },
+  "source_release_id": "rel-golden-0001",
+  "tier_selection": {
+    "chunk_count": 3,
+    "embedded_count": 3,
+    "skipped_count": 0,
+    "tiers": [
+      "TIER_1_FULL_SEMANTIC"
+    ]
+  },
+  "tokenizer": {
+    "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "id": "fixture/tokenizer",
+    "max_tokens": 512,
+    "truncation": "RIGHT"
+  },
+  "vector_file": {
+    "byte_size": 47,
+    "count": 3,
+    "path": "vectors.usearch",
+    "sha256": "8f3e5d6cab87997b23b766252de86947d3beaedc36f21645d1f5b6f6d6ff4983"
+  }
+}

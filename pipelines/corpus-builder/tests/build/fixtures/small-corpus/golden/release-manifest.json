@@ -1,0 +1,654 @@
+{
+  "artifacts": {
+    "corpus_sqlite_sha256": "0da82ccb7c7c0c2ea31d322aa4eeae274c99e20c35fe10fa43e1509cab0bc83b",
+    "embedding_manifest_sha256": "465a9fc0bb6b4bcfcb97d692b7920898dec83de63d53ac9c761ab87ecd740180",
+    "lexical_index_sha256": "c5e6c572ef5029aa8f6e4857a81625651afaba8551d2907ae4e78a4fee6c4212",
+    "vector_index_sha256": "8f3e5d6cab87997b23b766252de86947d3beaedc36f21645d1f5b6f6d6ff4983"
+  },
+  "build_finished_at": "2026-08-17T18:43:22Z",
+  "build_started_at": "2026-08-17T18:43:22Z",
+  "compatibility": {
+    "app": {
+      "max": null,
+      "min": "0.1.0"
+    },
+    "corpus_schema": "1.0.0",
+    "search": {
+      "max": null,
+      "min": "0.1.0"
+    }
+  },
+  "counts": {
+    "chunks": 3,
+    "document_versions": 3,
+    "documents": 2,
+    "embeddings": 3,
+    "events": 2,
+    "node_versions": 3,
+    "nodes": 2,
+    "relations": 1,
+    "sources": 52
+  },
+  "coverage": [
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-ACT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-CTH"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-NSW"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-NT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-QLD"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-SA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-TAS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-VIC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ADJ-WA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "ATO-EMPLOYMENT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-ACT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-FCA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-FCFCOA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-FWC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-HCA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-NSW"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-NT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-QLD"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-SA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-TAS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-VIC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "CASE-WA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-ACT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-CTH"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-NSW"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-NT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-QLD"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-SA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-TAS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-VIC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FUTURE-WA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FWC-AGREEMENTS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FWC-AWARDS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FWC-DOCS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "FWO-GUIDANCE"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-ACT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 1,
+      "earliest_effective_from": "2019-07-01",
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": "2022-07-01",
+      "source_group_id": "LEG-CTH"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 1,
+      "earliest_effective_from": "2024-01-01",
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": "2024-01-01",
+      "source_group_id": "LEG-NSW"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-NT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-QLD"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-SA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-TAS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-VIC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "LEG-WA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-ACT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-NSW"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-NT"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-QLD"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-SA"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-TAS"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-VIC"
+    },
+    {
+      "coverage_status": "METADATA_AND_LINK_ACTIVE",
+      "document_count": 0,
+      "earliest_effective_from": null,
+      "freshness_status": "CURRENT",
+      "last_ingestion_at": "2026-01-01T00:00:00Z",
+      "latest_effective_from": null,
+      "source_group_id": "PT-WA"
+    }
+  ],
+  "created_at": "2026-08-17T18:43:22Z",
+  "embedding_profile": {
+    "dimensions": 8,
+    "model_id": "fixture/document-embedding",
+    "profile_id": "fixture-embedding-profile",
+    "quantisation": "FLOAT32"
+  },
+  "evaluation": {
+    "gates": [
+      {
+        "name": "recall_at_10",
+        "observed": "0.87",
+        "passed": true,
+        "threshold": "0.80"
+      }
+    ],
+    "metrics": {
+      "broken_gold_citations": "0",
+      "recall_at_10": "0.87"
+    },
+    "ran_at": "2026-01-01T00:00:00Z",
+    "report_id": "eval-0001",
+    "status": "PASSED"
+  },
+  "files": [
+    {
+      "byte_size": 319488,
+      "path": "corpus.sqlite",
+      "sha256": "0da82ccb7c7c0c2ea31d322aa4eeae274c99e20c35fe10fa43e1509cab0bc83b"
+    },
+    {
+      "byte_size": 1711,
+      "path": "embedding-manifest.json",
+      "sha256": "465a9fc0bb6b4bcfcb97d692b7920898dec83de63d53ac9c761ab87ecd740180"
+    },
+    {
+      "byte_size": 63,
+      "path": "tantivy/meta.json",
+      "sha256": "e2f64f5e8e071f6ffd008317b7889a9c9867209b39212b84db90bf76e1e084f6"
+    },
+    {
+      "byte_size": 24,
+      "path": "tantivy/segment.bin",
+      "sha256": "29b7af5916d991de9933732cdc9548a6d00e85bfc58445f9b50a03bda29c6033"
+    },
+    {
+      "byte_size": 47,
+      "path": "vectors.usearch",
+      "sha256": "8f3e5d6cab87997b23b766252de86947d3beaedc36f21645d1f5b6f6d6ff4983"
+    }
+  ],
+  "local_models": [
+    {
+      "bundle_path": null,
+      "dimensions": 8,
+      "licence": {
+        "attribution_required": true,
+        "identifier": "FIXTURE-MODEL-LICENCE",
+        "notes": null,
+        "redistribution_permitted": false,
+        "url": "https://example.invalid/licence"
+      },
+      "max_tokens": 512,
+      "model_artifact": {
+        "byte_size": 4096,
+        "format": "onnx",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "model_id": "fixture/document-embedding",
+      "model_revision": "rev-000000000000000000000001",
+      "normalisation": "L2",
+      "role": "DOCUMENT_EMBEDDING",
+      "tokenizer": {
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "id": "fixture/tokenizer",
+        "max_tokens": 512,
+        "truncation": "RIGHT"
+      },
+      "truncation": "RIGHT"
+    },
+    {
+      "bundle_path": null,
+      "dimensions": 8,
+      "licence": {
+        "attribution_required": true,
+        "identifier": "FIXTURE-MODEL-LICENCE",
+        "notes": null,
+        "redistribution_permitted": false,
+        "url": "https://example.invalid/licence"
+      },
+      "max_tokens": 512,
+      "model_artifact": {
+        "byte_size": 4096,
+        "format": "onnx",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "model_id": "fixture/document-embedding",
+      "model_revision": "rev-000000000000000000000001",
+      "normalisation": "L2",
+      "role": "QUERY_EMBEDDING",
+      "tokenizer": {
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "id": "fixture/tokenizer",
+        "max_tokens": 512,
+        "truncation": "RIGHT"
+      },
+      "truncation": "RIGHT"
+    }
+  ],
+  "manifest_sha256": "6e8f4c4519d6e5dcee70d3dc202b5b82ac7830d5ce145517d9122dab98acf23b",
+  "manifest_version": "1.0.0",
+  "parent_release_id": null,
+  "quarantine": {
+    "by_reason_code": {
+      "PARSE_DEFECT": 1
+    },
+    "open_count": 0,
+    "resolved_count": 1
+  },
+  "release_id": "rel-golden-0001",
+  "release_kind": "CANDIDATE",
+  "runtime": {
+    "execution_providers": [
+      "CPU"
+    ],
+    "family": "onnxruntime",
+    "integration": {
+      "crate": "ort",
+      "version": "2.0.0-rc.9"
+    },
+    "pinned_by": "RETR-07-compatibility-verification-fixture",
+    "tokenizer_library": {
+      "crate": "tokenizers",
+      "version": "0.20.3"
+    },
+    "version": "1.20.0"
+  },
+  "signature": {
+    "algorithm": "ED25519",
+    "key_id": "dev-corpus-signing-001",
+    "signed_at": "2026-08-17T18:43:22Z",
+    "value": "5Sg4zzeiXPWGZ8RumpXh+FmQaRX6+XodWsCsd+xzbhgPEWU5ApmdiZv25bW924wzQPHHcPh/3VBU4cDrBQq2Ag=="
+  },
+  "versions": {
+    "builder": "0.0.0",
+    "chunker": "1.0.0",
+    "contract": "1.0.0",
+    "embedding": "1.0.0",
+    "index": "fixture-index-1.0.0",
+    "parser": "1.0.0",
+    "schema": "1.0.0"
+  }
+}
