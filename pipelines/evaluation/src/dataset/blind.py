@@ -2,7 +2,7 @@
 
 PRD §14.3 requires blind gold to remain OUTSIDE ordinary coding-agent context and PRD §43.1 requires
 it to be INACCESSIBLE, not merely discouraged. This module is what makes that a mechanism rather
-than a policy. Read `docs/adr/0003-blind-gold-sealing.md` before changing anything here; the
+than a policy. Read `docs/adr/0004-blind-gold-sealing.md` before changing anything here; the
 decision it records is breakdown plan §8 Q6, which is CONFIRMED and is not reopened by code.
 
 THE FOUR PROPERTIES THIS MODULE IS RESPONSIBLE FOR
@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 #: The ONE environment variable that may carry the private-key file path. Assembled from parts; the
-#: literal is spelled only in docs/adr/0003-blind-gold-sealing.md. See the module header.
+#: literal is spelled only in docs/adr/0004-blind-gold-sealing.md. See the module header.
 BLIND_PRIVATE_PATH_ENV = "_".join(("EVAL", "BLIND", "KEY", "FILE"))
 
 RECIPIENT_FILENAME = "blind-recipient.pub"

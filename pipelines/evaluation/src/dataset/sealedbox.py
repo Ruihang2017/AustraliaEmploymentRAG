@@ -10,7 +10,7 @@ question once, in `pipelines/corpus-builder/src/manifest/ed25519.py`: implement 
 primitive, and pin it with the standard vectors. The bytes this module produces ARE
 `crypto_box_seal` bytes — `nacl.public.SealedBox(private).decrypt(sealed)` opens them unchanged on
 the Founder's machine — so the confirmed decision is preserved and no §8 Q6 writeback is required.
-The route is recorded in `docs/adr/0003-blind-gold-sealing.md` (Consequences).
+The route is recorded in `docs/adr/0004-blind-gold-sealing.md` (Consequences).
 
 WHAT THIS IS NOT. It is **not** a general cryptographic library and must not be reused as one.
 

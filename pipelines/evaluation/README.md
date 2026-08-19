@@ -14,7 +14,7 @@ Blind case content and gold exist here **only as ciphertext**, sealed to a commi
 recipient key whose private half the Founder alone holds. Sealing needs only the public half, so an
 authorised authoring agent can seal without ever being able to open. The decision, its custody
 model, its rejected alternatives and its consequences are recorded in
-[`docs/adr/0003-blind-gold-sealing.md`](../../docs/adr/0003-blind-gold-sealing.md), which records
+[`docs/adr/0004-blind-gold-sealing.md`](../../docs/adr/0004-blind-gold-sealing.md), which records
 breakdown plan §8 **Q6** (confirmed) rather than reopening it.
 
 The private-key file path arrives through **one environment variable, named in that ADR** — there is

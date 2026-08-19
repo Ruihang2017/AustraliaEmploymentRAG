@@ -1,4 +1,4 @@
-# ADR 0003 — Blind gold sealing, isolation and key custody
+# ADR 0004 — Blind gold sealing, isolation and key custody
 
 - **Status:** Accepted
 - **Owner:** `21-evaluation-600` (`GOLD-01`)
