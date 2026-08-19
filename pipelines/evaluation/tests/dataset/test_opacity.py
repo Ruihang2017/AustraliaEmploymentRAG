@@ -61,6 +61,25 @@ def test_json_dumps_with_default_str_raises(sealed: SealedCase) -> None:
         json.dumps(sealed, default=str)
 
 
+def test_bare_json_dumps_refuses_and_names_only_the_type(sealed: SealedCase) -> None:
+    """A plain `json.dumps(sealed)` also refuses — but with the ENCODER's `TypeError`.
+
+    The acceptance item asks for `BlindMaterialNotRenderable`, and this is the one call where the
+    wrapper cannot supply it: `json` decides an object is unserialisable by TYPE, without ever
+    consulting the object, and raises before any hook of ours could run. There is no honest way to
+    close that gap from inside `SealedCase`. What matters — and what is asserted here — is the
+    property the item exists for: the call FAILS rather than emitting text, and the message names
+    the class and nothing about the sealed material. `default=str` above is the path that reaches
+    our hook, and it raises the named exception.
+    """
+    with pytest.raises(TypeError) as caught:
+        json.dumps(sealed)
+    message = str(caught.value)
+    assert "SealedCase" in message
+    assert "the blind question nobody may read" not in message
+    assert "EVAL-FED-004" not in message
+
+
 def test_log_record_formatting_raises(sealed: SealedCase) -> None:
     """`logging` is lazy: `__str__` is reached only when the record is actually formatted."""
     record = logging.LogRecord("gold01.opacity", logging.INFO, __file__, 0, "%s", (sealed,), None)

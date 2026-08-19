@@ -10,7 +10,9 @@ prevent.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 
 import dataset_fixtures  # noqa: F401
 import pytest
@@ -33,9 +35,26 @@ def shingles() -> frozenset[str]:
     return leak_shingles([SealedCase("EVAL-FED-004", _PLAINTEXT.encode("utf-8"))])
 
 
-def test_shingles_are_twelve_tokens_long(shingles: frozenset[str]) -> None:
+def test_shingles_are_digests_and_not_blind_text(shingles: frozenset[str]) -> None:
+    """Review finding: the detector held the shingle TEXT, a second copy of blind plaintext.
+
+    A digest compares exactly as well for the equality this detector performs, and reveals nothing
+    on its own — so a traceback, a debugger frame or a stray `print` over the guard's working set no
+    longer publishes the material the guard exists to protect.
+    """
     assert shingles
-    assert all(len(entry.split(" ")) == SHINGLE_LENGTH for entry in shingles)
+    assert all(re.fullmatch(r"[0-9a-f]{64}", entry) for entry in shingles)
+    for word in ("invented", "casual", "employee", "roster", "fortnight"):
+        assert not any(word in entry for entry in shingles)
+
+
+def test_the_digest_is_of_the_normalised_window(shingles: frozenset[str]) -> None:
+    """The count still follows the 12-token window, so the detector's granularity is unchanged."""
+    tokens = _PLAINTEXT.split()
+    expected_windows = len(tokens) - SHINGLE_LENGTH + 1
+    assert len(shingles) == expected_windows
+    first = hashlib.sha256(" ".join(tokens[:SHINGLE_LENGTH]).encode("utf-8")).hexdigest()
+    assert first in shingles
 
 
 def test_a_short_plaintext_produces_no_shingle() -> None:

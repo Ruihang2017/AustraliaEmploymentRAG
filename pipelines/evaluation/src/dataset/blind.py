@@ -353,20 +353,31 @@ def _normalise(text: str) -> list[str]:
 
 
 def _shingles_of(text: str) -> set[str]:
+    """SHA-256 hex digests of the normalised 12-token windows of *text*, never the windows.
+
+    Hashing is the point, not an optimisation. The detector compares a produced artifact against
+    blind plaintext, so whatever it holds in memory is derived from blind content; keeping the
+    shingle TEXT would make the guard's own working set a second copy of the material it exists to
+    protect — one that a traceback, a debugger frame, a core dump or a stray `print` could publish.
+    A digest compares exactly as well for equality (which is all this detector does) and reveals
+    nothing on its own. Plan §4.7; recorded in the ADR's Consequences.
+    """
     tokens = _normalise(text)
     if len(tokens) < SHINGLE_LENGTH:
         return set()
     return {
-        " ".join(tokens[index : index + SHINGLE_LENGTH])
+        hashlib.sha256(" ".join(tokens[index : index + SHINGLE_LENGTH]).encode("utf-8")).hexdigest()
         for index in range(len(tokens) - SHINGLE_LENGTH + 1)
     }
 
 
 def leak_shingles(sealed_cases: Iterable[SealedCase]) -> frozenset[str]:
-    """Normalised 12-token shingles of blind plaintext, IN MEMORY ONLY.
+    """SHA-256 digests of the normalised 12-token shingles of blind plaintext, IN MEMORY ONLY.
 
-    Never write this value, never log it, never put it in a finding message: it is blind content by
-    construction, just in a different shape.
+    The values are digests rather than the shingle text (see `_shingles_of`), which is what keeps
+    this set from being a second in-memory copy of blind plaintext. That does not make it publish-
+    able: a digest set is still derived from blind content and still confirms a guess. Never write
+    it, never log it, never put it in a finding message.
     """
     found: set[str] = set()
     for case in sealed_cases:
