@@ -1,6 +1,6 @@
 # 01-app-data — application database, tenant repositories and job primitives
 
-Sub-PRD for module `01-app-data` (ticket prefix `DATA`, lane `01-app-data`, 10 tickets).
+Sub-PRD for module `01-app-data` (ticket prefix `DATA`, lane `01-app-data`, 11 tickets).
 Parent decomposition: [`docs/prd/breakdown-plan.md`](../breakdown-plan.md) §3, §4, §5.2, §6.2, §7, §8.
 Master spec: [`docs/PRD.md`](../../PRD.md) — AustraliaEmploymentRAG MVP v1.0, revision 2.0, 3 August 2026.
 Epic: `E04-APPDB` (PRD §44.2). Requirement families: SEC-001, REC-001, ANS-003/004, OPS-003,
@@ -123,7 +123,7 @@ remains below are this module's own local questions.
 
 ## Work breakdown
 
-Lane is `01-app-data` and agent is `builder` for all ten tickets (plan §1.1). File-scope paths are
+Lane is `01-app-data` and agent is `builder` for all eleven tickets (plan §1.1). File-scope paths are
 relative to the repository root; the module's outer bound is plan §4's write-owns row —
 `packages/database/**` and `packages/jobs/**`.
 
@@ -139,6 +139,7 @@ relative to the repository root; the module's outer bound is plan §4's write-ow
 | [`DATA-08`](tickets/DATA-08-ephemeral-sqlite-store-expiry-sweeper-backup-exclusion.md) — `ephemeral.sqlite` store, expiry sweeper, backup exclusion | M | `01-app-data` | `packages/database/src/ephemeral/**` | `DATA-03` |
 | [`DATA-09`](tickets/DATA-09-the-eight-database-invariants-property-tests.md) — The eight database invariants + property tests | M | `01-app-data` | `packages/database/src/invariants/**`, `packages/database/test/invariants/**` | `DATA-06`, `DATA-07` |
 | [`DATA-10`](tickets/DATA-10-migrate-suite-is-migration-count-agnostic.md) — Migrate suite asserts framework properties, not the repository’s migration count, so a ticket that adds a migration does not turn it red | M | `01-app-data` | `packages/database/test/migrate/**` (including `test/migrate/fixtures/**`) | — |
+| [`DATA-11`](tickets/DATA-11-tenancy-schema-test-is-table-set-agnostic.md) — The tenancy schema test asserts `DATA-04`’s eight tables, not the whole database’s table set, so a ticket that adds a table does not turn it red | M | `01-app-data` | `packages/database/test/tenancy/**` | — |
 
 Per D8, each ticket may additionally write `packages/database/test/<its own area>/**`
 (`migrate`, `architecture`, `crypto`, `tenancy`, `execution`, `research`, `operations`,
@@ -146,10 +147,14 @@ Per D8, each ticket may additionally write `packages/database/test/<its own area
 
 ### Lane shape (plan §7)
 
-Six waves, peak two lanes — the narrowest module in the plan, and deliberately so:
+Six waves, peak three lanes — but the intrinsic width is still **two**, and the module is still
+the narrowest in the plan, deliberately so. The third lane in wave 1 is not product work: it is
+the two root repair tickets, `DATA-10` and `DATA-11`, which own only test areas, do not block
+each other, and exist to unblock the serial chain rather than to widen it. Waves 2–6 are
+unchanged at two:
 
 ```text
-wave 1: DATA-01 | DATA-10
+wave 1: DATA-01 | DATA-10 | DATA-11
 wave 2: DATA-02 | DATA-03
 wave 3: DATA-04 | DATA-08
 wave 4: DATA-05
@@ -181,7 +186,7 @@ Every edge below is drawn in plan §6.2 and mirrored in the tickets' `blocks` fr
 
 ## Acceptance — what makes the whole module done
 
-The module is done when all ten tickets are `done` and the following hold on the default branch.
+The module is done when all eleven tickets are `done` and the following hold on the default branch.
 Every item is machine-checkable unless tagged otherwise.
 
 1. `pnpm test` is green, including `packages/database` and `packages/jobs`. No Rust or Python is
@@ -220,6 +225,24 @@ Every item is machine-checkable unless tagged otherwise.
    tenant/PII/security and retention impact, rollback path, known gaps).
 
 ## Changelog
+
+- **v0.9 — 2026-08-19** — adds `DATA-11` to the ticket set: count 10 → 11 in all three places it
+  is stated (the sub-PRD header line, the Work-breakdown preamble and the Acceptance line), a
+  work-breakdown row, and **wave 1** alongside `DATA-01` and `DATA-10` — it is `blocked_by: []`
+  and blocks `DATA-05`–`DATA-07`, so it precedes the three remaining schema-group tickets.
+  `DATA-11` (*The tenancy schema test asserts `DATA-04`’s eight tables, not the whole database’s
+  table set*) repairs `DATA-04`’s `test/tenancy/schema.test.ts`, which compares the whole of
+  `sqlite_master` at head against `DATA-04`’s eight PRD §35.4 tables and so turns red when
+  `DATA-05` adds the six PRD §35.6 execution tables its own File-scope authorises — the same
+  defect class `DATA-10` repaired in `DATA-01`’s `test/migrate/**`, and one `DATA-06` and
+  `DATA-07` would each hit again (ten and eleven further tables, neither owning a path under
+  `test/tenancy/**`). Consequently the wave-1 line now carries **three** entries and the lane-shape
+  summary reads *peak three lanes*, with the qualification that the intrinsic width is unchanged at
+  two: both extra lanes are root repair tickets owning test areas only. Resolves `DATA-11`’s
+  **Q-D11-B**, which asked whether this README gains the row now or at the next module pass.
+  Bookkeeping only — no change to scope, goals/non-goals, decisions D1–D14, any other ticket’s row
+  or dependency edges (only `DATA-05`’s `blocked_by` gains `DATA-11`, in that ticket’s own file),
+  the §35.8 invariants or PRD traceability.
 
 - **v0.8 — 2026-08-19** — open question **M-Q11** moves to **resolved**, by `DATA-10` (*Migrate
   suite asserts framework properties, not the repository's migration count*), merged to `main` in
