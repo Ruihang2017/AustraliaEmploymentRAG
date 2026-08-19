@@ -1,0 +1,3 @@
+# Sub-PRD D8 migration records land here, written by `migrate --from <v> --to <v>`.
+# PRD §43.2: "When an official source changes, a formal dataset migration links old/new gold; past
+# reports stay reproducible." There are none yet because there are no cases yet.

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/dataset-migration.schema.json",
+  "title": "Dataset migration record",
+  "description": "Links old gold to new gold across a dataset version boundary. PRD §43.2: 'When an official source changes, a formal dataset migration links old/new gold; past reports stay reproducible.' Without this record a past report's gold citations become unresolvable and the report stops being reproducible, which is the whole reason the record exists.",
+  "$comment": "CLASSIFICATION is PRD §43.4's regression-classification vocabulary, spelled out here because packages/contracts publishes no family for it — ChangeType (PRD §8.8) is the monitoring change taxonomy and is a different thing. This is dataset-own vocabulary fixed by GOLD-01 deliverable 5, not a second copy of a canonical enum. VOCABULARY: inside the subset contracts.jsonschema_min implements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from_version", "to_version", "created_at", "reason", "approved_by", "classification", "mappings"],
+  "properties": {
+    "from_version": { "type": "string", "pattern": "^v[0-9]+$" },
+    "to_version": { "type": "string", "pattern": "^v[0-9]+$" },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §14.3's reason. Content-free with respect to blind material: it says what changed upstream, never what a blind case asks."
+    },
+    "approved_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §43.4's founder approval for changing an expected output."
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "CODE",
+        "CORPUS",
+        "GOLD_DATA",
+        "PROMPT",
+        "MODEL_PROFILE",
+        "PRODUCT_AMBIGUITY",
+        "SOURCE_LIMITATION"
+      ],
+      "description": "PRD §43.4's classification of what caused the change."
+    },
+    "mappings": {
+      "type": "array",
+      "description": "Per-case old -> new gold. A case whose expected output changed with no mapping here fails VERSIONED_CORRECTIONS.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "old_gold", "new_gold"],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$"
+          },
+          "old_gold": {
+            "type": "array",
+            "description": "The gold authorities as they stood in from_version, kept so a past report resolves.",
+            "items": { "$ref": "gold-authority.schema.json" }
+          },
+          "new_gold": {
+            "type": "array",
+            "description": "The gold authorities as they stand in to_version.",
+            "items": { "$ref": "gold-authority.schema.json" }
+          },
+          "note": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

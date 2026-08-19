@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/dataset-version.schema.json",
+  "title": "Dataset version registry",
+  "description": "One dataset version: what every case's content hashed to, and who approved it. PRD §14.3: 'Formal dataset corrections create a new version and reason; they are not edited invisibly.' PRD §43.4: agents may not 'fix' a failing gold case by changing expected output without a versioned founder-approved reason. VERSIONED_CORRECTIONS compares the composed dataset against this registry, so an edit with no new version is a FAIL rather than a silent rewrite of history.",
+  "$comment": "CONTENT HASH IS OVER CANONICAL JSON, NOT FILE BYTES. `core.autocrlf` is true on the maintainer's platform, so a file's bytes differ between Windows and Linux checkouts while its data does not; hashing the parsed document's canonical JSON form (sorted keys, no whitespace, UTF-8) is what makes a version registry reproducible across platforms. The sealed-envelope digest is over the decoded ciphertext bytes, which no checkout ever rewrites. VOCABULARY: inside the subset contracts.jsonschema_min implements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "created_at", "approved_by", "reason", "cases"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$",
+      "description": "The dataset version id, matching case.dataset_version."
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$"
+    },
+    "approved_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRD §43.4's founder approval. A version with no approver is not a correction, it is an invisible edit."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this version exists. PRD §14.3 requires the reason, not merely the version."
+    },
+    "content_hash_salt": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32,128}$",
+      "description": "The per-version key for a BLIND case's `blind_content_sha256`. A blind case's content identity cannot be its ciphertext digest (a re-seal of identical plaintext changes it) and must not be a plain hash of the plaintext (that is a guess-confirmation oracle over blind content), so `seal` writes a KEYED blake2b digest under this salt and `VERSIONED_CORRECTIONS` compares those. Carried forward unchanged by `version new` — two versions with different salts have incomparable blind digests, which the check reports as UNRESOLVED rather than as a correction. Committed, not secret: it is a change detector, not a credential.",
+      "$comment": "Rotating this value makes every blind digest incomparable with the previous version's on purpose; that is a Founder decision recorded in the version's `reason`."
+    },
+    "supersedes": {
+      "type": "string",
+      "pattern": "^v[0-9]+$",
+      "description": "The version this one replaces, absent for the first version."
+    },
+    "cases": {
+      "type": "array",
+      "description": "One row per case in this version. Empty for the initial v1 registry, which exists so the ten authoring tickets add entries through the CLI rather than by hand-editing.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "split", "primary_category", "content_sha256"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^EVAL-(FED|AWD|AGR|PAY|STE|WHS|ADJ|CAS|TMP|SAF)-[0-9]{3}$"
+          },
+          "split": { "type": "string", "enum": ["DEVELOPMENT", "VALIDATION", "BLIND"] },
+          "primary_category": { "type": "string", "minLength": 1 },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 of the case's canonical JSON form — for a BLIND case, of its sidecar."
+          },
+          "expected_output_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 over the expected-output members only (expected_answer_status, acceptable_statuses, gold_authorities, required/optional/prohibited_claims, expected_clarifications, expected_refusal_reason). A change here additionally requires a migration record (PRD §43.4), which is why it is hashed separately."
+          },
+          "envelope_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 of the sealed ciphertext, for a BLIND case. Absent for a visible case. INFORMATIONAL ONLY: it changes on every re-seal of identical plaintext, so it is never used as a content identity — see `blind_content_sha256`."
+          },
+          "blind_content_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "The keyed blake2b digest of the sealed PLAINTEXT under this registry's `content_hash_salt`, written by `seal` (the only step that holds blind plaintext). This is a BLIND case's content identity: it survives a re-seal, and it moves when the sealed case is corrected, which is what makes PRD §14.3's 'not edited invisibly' checkable for blind cases at all. A row without it is reported UNRESOLVED by VERSIONED_CORRECTIONS, never passed over."
+          }
+        }
+      }
+    }
+  }
+}

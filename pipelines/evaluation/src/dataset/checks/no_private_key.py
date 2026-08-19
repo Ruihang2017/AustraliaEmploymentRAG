@@ -1,0 +1,118 @@
+"""`no_private_key` — no private sealing material anywhere in this module's trees (sub-PRD D2).
+
+(The check's id is upper-case at run time; it is written here in its module-name form because the
+repository's required secret scan matches credential-shaped upper-case NAMES in every git-tracked
+file outside `docs/**`, and this id matches. The id itself is assembled once, in
+`findings.PRIVATE_MATERIAL_CHECK_ID`, which explains the constraint in full.)
+
+The private half of the blind-dataset pair lives in the Founder's password manager or equivalent
+offline encrypted storage, and never in git, CI, ordinary environment configuration or any agent
+environment (breakdown plan §8 Q6 item 12). This check is the mechanical half of that statement:
+whatever anyone intends, a committed private key fails the build.
+
+Three shapes are refused:
+  * a PEM private-key header — the shape the repository secret scanner also matches;
+  * a mapping member that carries private scalar material by name, QUOTED OR NOT: JSON writes
+    `"private_scalar_base64":` and YAML writes `private_scalar_base64:`, and this module scans
+    `.yaml`/`.yml` as well as `.json`, so requiring the quotes would have left the guard blind in
+    exactly the file types where such a key lands by accident;
+  * a `blind-recipient.pub` that has been given a private member.
+
+The header literal is ASSEMBLED FROM PARTS. `.github/workflows/checks/secret-scan.mjs` scans every
+git-tracked file for it and is a required check, so a source file that spelled it out contiguously
+would fail CI on this very branch. Same trick, same reason, as
+`pipelines/corpus-builder/tests/manifest/test_no_private_keys_committed.py` and the repository's own
+`tools/tests/secret-scan.test.mjs`.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Iterable
+
+from ..findings import PRIVATE_MATERIAL_CHECK_ID, Finding
+from ..model import Dataset
+from ..paths import EVALS_DIR, PACKAGE_ROOT
+from . import CheckContext
+
+_ID = PRIVATE_MATERIAL_CHECK_ID
+
+_HEADER = re.compile("-{5}" + "BEGIN" + r"[A-Z ]*" + "PRIVATE" + " " + "KEY" + "-{5}")
+#: The member NAMES that carry private scalar material, assembled from parts for the same reason
+#: the header literal is (see this module's docstring).
+_MEMBER_NAMES = (
+    "private" + "_scalar_base64",
+    "private" + "_key_b64",
+    "seed" + "_b64",
+    "secret" + "_key_b64",
+)
+#: Matched whether or not the name is quoted.
+#:
+#: The earlier pattern required JSON-style double quotes, which meant an ordinary YAML mapping key
+#: — `private_scalar_base64: <value>`, the idiomatic form, and the form an accidental paste takes —
+#: was not caught in a `.yaml`/`.yml` file. That is the wrong way round: the scanned suffix list
+#: includes YAML precisely because a case or sidecar file is where such a key would land by
+#: accident, and the guard was blind to the file types most likely to carry one. A trailing `:` or
+#: `"` is required so this matches a KEY rather than any prose that happens to name one, and the
+#: name may be quoted with either kind of quote.
+_MEMBER = re.compile(
+    r"""(?:^|[\s{,\[])['"]?(?:""" + "|".join(_MEMBER_NAMES) + r""")['"]?\s*:""",
+    re.MULTILINE,
+)
+_SKIP_DIRS = frozenset({"__pycache__", ".pytest_cache", "node_modules", ".venv", "target", ".git"})
+_MAX_BYTES = 4 * 1024 * 1024
+
+
+def check(dataset: Dataset, context: CheckContext) -> list[Finding]:
+    del context
+    roots = [dataset.root, EVALS_DIR, PACKAGE_ROOT]
+    seen: set[Path] = set()
+    files: list[Path] = []
+    for root in roots:
+        if not Path(root).is_dir():
+            continue
+        for path in sorted(Path(root).rglob("*")):
+            if path in seen or not path.is_file() or path.is_symlink():
+                continue
+            if any(part in _SKIP_DIRS for part in path.parts):
+                continue
+            seen.add(path)
+            files.append(path)
+    return guard_private_material(files)
+
+
+def guard_private_material(files: Iterable[Path]) -> list[Finding]:
+    """The key-less scan, shared with `blind.guard()` so `guard-blind` runs exactly this rule."""
+    findings: list[Finding] = []
+    for path in files:
+        try:
+            if path.stat().st_size > _MAX_BYTES:
+                continue
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if _HEADER.search(text):
+            findings.append(
+                Finding(
+                    _ID,
+                    "FAIL",
+                    "<repository>",
+                    None,
+                    "the file carries a private-key header; the seal key is never in this "
+                    "repository, in CI or in an agent environment (sub-PRD D2, D22)",
+                    str(path),
+                )
+            )
+        if _MEMBER.search(text) and path.suffix in (".json", ".pub", ".yaml", ".yml"):
+            findings.append(
+                Finding(
+                    _ID,
+                    "FAIL",
+                    "<repository>",
+                    None,
+                    "the file carries a mapping member that names private key material",
+                    str(path),
+                )
+            )
+    return findings

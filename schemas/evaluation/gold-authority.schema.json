@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taxrag.local/schema/evaluation/gold-authority.schema.json",
+  "title": "Gold authority",
+  "description": "One immutable corpus citation a case's answer must rest on. PRD §43.2 fixes the member names exactly: {document_id, version_id, node_id, citation_role, required}. PRD §15.3 requires citations to target DocumentVersion + NodeVersion + exact offsets, so quote_start/quote_end are the optional pinpoints.",
+  "$comment": "VOCABULARY. Authored strictly inside the subset `contracts.jsonschema_min` (CRPS-01) implements — no minItems, maxItems, uniqueItems, format, propertyNames or patternProperties, because that engine raises UnsupportedKeywordError on an unknown keyword and a schema it cannot fully enforce must never be reported as satisfied. Constraints those keywords would express live in pipelines/evaluation/src/dataset/checks/**, each with its own finding id and its own negative fixture. IDENTITY. Prefixes are CRPS-01's, as the corpus is actually built: legal_document.id is doc_<uuidv7>, document_version.id is dv_<uuidv7>, node_version.id is nv_<uuidv7>. node_id is the NodeVersion id (nv_) and not the DocumentNode id (node_), because PRD §15.3 pins citations to a NodeVersion. CITATION ROLE. Deliberately no enum literal: packages/contracts publishes the canonical CitationRole family (PRD §15.5) and PRD §45.2 forbids a second copy, so GOLD_SHAPE enforces membership from that export at check time.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["document_id", "version_id", "node_id", "citation_role", "required"],
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "pattern": "^doc_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "legal_document.id in the pinned evaluation CorpusRelease (CRPS-01 identity)."
+    },
+    "version_id": {
+      "type": "string",
+      "pattern": "^dv_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "document_version.id — the immutable version the answer is true of."
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^nv_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "node_version.id — PRD §15.3's NodeVersion target, not the DocumentNode id."
+    },
+    "citation_role": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A member of the canonical CitationRole family (PRD §15.5), enforced by GOLD_SHAPE from the packages/contracts export. Never restated here."
+    },
+    "required": {
+      "type": "boolean",
+      "description": "true when a correct answer must cite this authority; PRD §43.3 Recall@10 is computed over the required gold nodes."
+    },
+    "quote_start": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional pinpoint: inclusive character offset into node_version.canonical_text (PRD §15.3 'exact offsets')."
+    },
+    "quote_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional pinpoint: exclusive character offset. GOLD_SHAPE requires quote_end > quote_start when both are present."
+    }
+  },
+  "dependentRequired": {
+    "quote_start": ["quote_end"],
+    "quote_end": ["quote_start"]
+  }
+}
