@@ -151,6 +151,9 @@ def build_fixture_tree(
     duplicate_question_between: tuple[str, str] | None = None,
     drop_envelope_for: str | None = None,
     corrupt_envelope_for: str | None = None,
+    sidecar_digest_mismatch_for: str | None = None,
+    sidecar_without_digest_for: str | None = None,
+    wrong_algorithm_for: str | None = None,
     extra_sidecar_field: str | None = None,
     plaintext_under_blind: str | None = None,
     unsealed_plaintext_in: str | None = None,
@@ -345,6 +348,14 @@ def build_fixture_tree(
         }
         if extra_sidecar_field == identifier:
             sidecar["question"] = "a field that carries content and is not on the allowlist"
+        if sidecar_digest_mismatch_for == identifier:
+            # The shape of a swapped or restored envelope: the sidecar describes a slot whose
+            # sealed material is not the material sitting beside it.
+            sidecar["envelope_digest"] = "0" * 64
+        if sidecar_without_digest_for == identifier:
+            del sidecar["envelope_digest"]
+        if wrong_algorithm_for == identifier:
+            envelope["algorithm"] = "rot13"
         _write_yaml(blind_dir / f"{identifier}.sidecar.yaml", sidecar)
         registry_row = {
             "id": identifier,

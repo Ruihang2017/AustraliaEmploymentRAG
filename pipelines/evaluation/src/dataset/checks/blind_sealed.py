@@ -16,6 +16,14 @@ construction no private key exists.
 
 Note the direction of (a): it is an allowlist of filenames, not a denylist of suspicious ones. A
 denylist would pass every plaintext file whose name nobody predicted.
+
+(c) and (e) are stated as TWO comparisons on purpose, and both halves are enforced here rather than
+only in `check()`: the envelope must agree with itself, AND the sidecar must agree with the
+envelope. The second is what detects a swapped, restored or hand-edited envelope — the sidecar is
+the only description of a blind slot anyone without the key can read, so metadata that has come
+apart from its sealed material is precisely the failure a key-less guard exists to catch. A guard
+that ran the weaker half of a rule its own docstring claimed would be worse than one that claimed
+less.
 """
 
 from __future__ import annotations
@@ -202,9 +210,14 @@ def guard_blind_paths(
 
     findings: list[Finding] = []
     allowlist = _allowlist(schemas_dir or SCHEMAS_DIR)
+    #: case id -> the digest computed from the envelope's OWN ciphertext bytes.
     digests: dict[str, str] = {}
+    #: case id -> (path, the digest the sidecar claims, or None when it names none). Collected
+    #: rather than checked in place because a sidecar may be read before its envelope.
+    claimed: dict[str, tuple[Path, str | None]] = {}
     sidecars: dict[str, Path] = {}
     envelopes: dict[str, Path] = {}
+    categories_by_case: dict[str, str] = {}
 
     for path in files:
         parts = path.parts
@@ -231,11 +244,15 @@ def guard_blind_paths(
         if name.endswith(SIDECAR_SUFFIX):
             case_id = name[: -len(SIDECAR_SUFFIX)]
             sidecars[case_id] = path
-            findings.extend(_guard_sidecar_allowlist(category, case_id, path, allowlist))
+            categories_by_case.setdefault(case_id, category)
+            sidecar_findings, declared = _guard_sidecar(category, case_id, path, allowlist)
+            findings.extend(sidecar_findings)
+            claimed[case_id] = (path, declared)
             continue
         if name.endswith(ENVELOPE_SUFFIX):
             case_id = name[: -len(ENVELOPE_SUFFIX)]
             envelopes[case_id] = path
+            categories_by_case.setdefault(case_id, category)
             try:
                 document = json.loads(path.read_text(encoding="utf-8"))
                 ciphertext = base64.b64decode(document["ciphertext_b64"], validate=True)
@@ -256,6 +273,19 @@ def guard_blind_paths(
                         str(path),
                     )
                 )
+            if document.get("algorithm") != _ALGORITHM:
+                # Rule (e) of this module's docstring, enforced in the key-less guard as well.
+                findings.append(
+                    Finding(
+                        _ID,
+                        "FAIL",
+                        category,
+                        case_id,
+                        f"envelope algorithm is not {_ALGORITHM}; the primitive belongs to a "
+                        "CONFIRMED decision (breakdown plan §8 Q6, sub-PRD D22)",
+                        str(path),
+                    )
+                )
             digests[case_id] = digest
             continue
         findings.append(
@@ -270,7 +300,44 @@ def guard_blind_paths(
             )
         )
 
-    del digests
+    # The sidecar <-> envelope cross-check, which is half of what makes the sidecar trustworthy:
+    # the sidecar is the only description of a blind slot anyone can read, so a sidecar pointing at
+    # a digest its envelope does not have means the metadata and the sealed material have come
+    # apart — a swapped, restored or hand-edited envelope. `check()` above performs the same
+    # comparison for a composed dataset; `guard-blind` runs over a raw checkout with nothing
+    # composed and must not be the weaker of the two (deliverable 12 check 10).
+    for case_id in sorted(claimed):
+        sidecar_path, declared = claimed[case_id]
+        actual = digests.get(case_id)
+        if actual is None:
+            # No readable envelope: already reported as a missing or unreadable envelope below or
+            # above. Reporting it twice would say nothing new.
+            continue
+        category = categories_by_case.get(case_id, "<blind>")
+        if declared is None:
+            findings.append(
+                Finding(
+                    _ID,
+                    "FAIL",
+                    category,
+                    case_id,
+                    "the blind sidecar names no envelope_digest, so nothing ties it to the sealed "
+                    "material it describes",
+                    str(sidecar_path),
+                )
+            )
+        elif declared != actual:
+            findings.append(
+                Finding(
+                    _ID,
+                    "FAIL",
+                    category,
+                    case_id,
+                    "the sidecar's envelope_digest does not match the envelope's ciphertext",
+                    str(sidecar_path),
+                )
+            )
+
     for case_id in sorted(set(sidecars) - set(envelopes)):
         findings.append(
             Finding(_ID, "FAIL", "<blind>", case_id, "the BLIND case has no sealed envelope", str(sidecars[case_id]))
@@ -282,21 +349,28 @@ def guard_blind_paths(
     return findings
 
 
-def _guard_sidecar_allowlist(
+def _guard_sidecar(
     category: str, case_id: str, path: Path, allowlist: set[str]
-) -> list[Finding]:
-    """Read the sidecar with the YAML subset reader; a sidecar that will not parse is itself a FAIL."""
+) -> tuple[list[Finding], str | None]:
+    """Read one sidecar. Returns `(findings, the envelope_digest it declares)`.
+
+    A sidecar that will not parse is itself a FAIL, and declares nothing. The parse failure is
+    reported by CODE only — never by quoting the file, which under a `blind/` path would be the
+    plaintext this whole module exists to keep sealed.
+    """
     from .. import yaml_min
 
     try:
         document = yaml_min.load_path(path)
     except (OSError, yaml_min.YamlError):
-        return [Finding(_ID, "FAIL", category, case_id, "the blind sidecar is unreadable", str(path))]
+        return [Finding(_ID, "FAIL", category, case_id, "the blind sidecar is unreadable", str(path))], None
     if not isinstance(document, dict):
-        return [Finding(_ID, "FAIL", category, case_id, "the blind sidecar is not a mapping", str(path))]
+        return [Finding(_ID, "FAIL", category, case_id, "the blind sidecar is not a mapping", str(path))], None
+    declared = document.get("envelope_digest")
+    declared = declared if isinstance(declared, str) and declared else None
     extra = sorted(set(document) - allowlist)
     if not extra:
-        return []
+        return [], declared
     return [
         Finding(
             _ID,
@@ -306,4 +380,4 @@ def _guard_sidecar_allowlist(
             f"sidecar carries {len(extra)} non-allowlisted field(s): {', '.join(extra)}",
             str(path),
         )
-    ]
+    ], declared

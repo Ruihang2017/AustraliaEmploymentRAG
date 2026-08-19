@@ -51,6 +51,39 @@ def test_a_sidecar_with_a_non_allowlisted_field_fails(dataset_tree) -> None:
     assert any(f.case_id == "EVAL-FED-004" and "non-allowlisted field" in f.message for f in found)
 
 
+def test_a_sidecar_pointing_at_the_wrong_envelope_fails(dataset_tree) -> None:
+    """Review finding (high): the key-less guard computed envelope digests and threw them away.
+
+    The sidecar is the only description of a blind slot anyone without the key can read, so a
+    sidecar whose `envelope_digest` does not name the envelope beside it means the metadata and the
+    sealed material have come apart — a swapped, restored or hand-edited envelope. `check()` made
+    this comparison for a composed dataset; `guard-blind`, the control that runs on a raw checkout
+    in ordinary CI, did not, which is exactly the wrong way round.
+    """
+    found = guard(dataset_tree(sidecar_digest_mismatch_for="EVAL-FED-004"))
+    assert any(
+        f.check_id == "BLIND_SEALED"
+        and f.case_id == "EVAL-FED-004"
+        and "sidecar's envelope_digest does not match" in f.message
+        for f in found
+    )
+
+
+def test_a_sidecar_with_no_envelope_digest_fails(dataset_tree) -> None:
+    found = guard(dataset_tree(sidecar_without_digest_for="EVAL-FED-004"))
+    assert any(
+        f.case_id == "EVAL-FED-004" and "names no envelope_digest" in f.message for f in found
+    )
+
+
+def test_an_envelope_sealed_with_another_primitive_fails(dataset_tree) -> None:
+    """Rule (e) of the module docstring — also documented but not enforced in the key-less half."""
+    found = guard(dataset_tree(wrong_algorithm_for="EVAL-FED-004"))
+    assert any(
+        f.case_id == "EVAL-FED-004" and "envelope algorithm is not" in f.message for f in found
+    )
+
+
 def test_a_private_key_shaped_file_fails(dataset_tree) -> None:
     found = guard(dataset_tree(private_key_file_in="federal-core"))
     assert any(f.check_id == PRIVATE_MATERIAL_CHECK_ID for f in found)
@@ -64,6 +97,9 @@ def test_a_private_key_shaped_file_fails(dataset_tree) -> None:
         {"drop_envelope_for": "EVAL-FED-004"},
         {"corrupt_envelope_for": "EVAL-FED-004"},
         {"extra_sidecar_field": "EVAL-FED-004"},
+        {"sidecar_digest_mismatch_for": "EVAL-FED-004"},
+        {"sidecar_without_digest_for": "EVAL-FED-004"},
+        {"wrong_algorithm_for": "EVAL-FED-004"},
         {"private_key_file_in": "federal-core"},
     ],
 )
