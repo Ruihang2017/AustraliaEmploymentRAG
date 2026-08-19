@@ -26,6 +26,11 @@ from typing import Any
 from dataset import blind, yaml_min
 from dataset.model import content_sha256
 
+#: The fixture registry's per-version key for a BLIND case's `blind_content_sha256`. A fixed value
+#: (not `os.urandom`) so a fixture tree is reproducible; it is a change-detection key, not a secret,
+#: and the private half of nothing depends on it.
+FIXTURE_SALT = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+
 #: (slug, code, development, validation, blind)
 CATEGORIES: tuple[tuple[str, str, int, int, int], ...] = (
     ("federal-core", "FED", 2, 1, 1),
@@ -155,6 +160,12 @@ def build_fixture_tree(
     requirement_shaped_id_for: str | None = None,
     edit_question_of: str | None = None,
     edit_expected_output_of: str | None = None,
+    # --- BLIND correction detection (the sealed half of VERSIONED_CORRECTIONS) -------------------
+    reseal_blind_for: str | None = None,
+    edit_blind_plaintext_of: str | None = None,
+    edit_blind_sidecar_of: str | None = None,
+    unsalted_blind_seal_for: str | None = None,
+    blind_correction_of: str | None = None,
     register_version: bool = True,
     canary: str | None = None,
     missing_trap_floor: str | None = None,
@@ -277,20 +288,41 @@ def build_fixture_tree(
         clone["primary_category"] = duplicate_id_into
         _write_yaml(root / "cases" / duplicate_id_into / f"{source['id']}.yaml", clone)
 
-    for row in _BLIND:
-        slug = row["slug"]
-        identifier = case_id(row["code"], row["n"])
-        blind_dir = root / "cases" / slug / "blind"
-        blind_dir.mkdir(parents=True, exist_ok=True)
-        plaintext = yaml_min.dump(blind_plaintext(row)).encode("utf-8")
-        envelope, _ciphertext = blind.seal(
-            plaintext,
+    def _seal_blind(identifier: str, document: dict[str, Any], *, salt: str | None) -> dict[str, Any]:
+        return blind.seal(
+            yaml_min.dump(document).encode("utf-8"),
             recipient_public,
             case_id=identifier,
             recipient_key_id=recipient_key_id,
             blind_dataset_major_version=1,
             sealer="evaluation-author-agent",
             sealed_at="2026-08-19T00:00:00Z",
+            content_salt=salt,
+        )[0]
+
+    def _sidecar_digest(document: dict[str, Any]) -> str:
+        """The registry's `content_sha256` for a sidecar: metadata WITHOUT the envelope digest.
+
+        Mirrors `model.BlindSidecar.content_sha256`, and the mirroring is deliberate — a fixture
+        that hashed the sidecar whole would make a re-seal look like a correction, which is exactly
+        the false alarm the production rule avoids.
+        """
+        return content_sha256({name: value for name, value in document.items() if name != "envelope_digest"})
+
+    blind_documents: dict[str, dict[str, Any]] = {}
+    blind_directories: dict[str, Path] = {}
+    for row in _BLIND:
+        slug = row["slug"]
+        identifier = case_id(row["code"], row["n"])
+        blind_dir = root / "cases" / slug / "blind"
+        blind_dir.mkdir(parents=True, exist_ok=True)
+        blind_directories[identifier] = blind_dir
+        plaintext_document = blind_plaintext(row)
+        blind_documents[identifier] = plaintext_document
+        envelope = _seal_blind(
+            identifier,
+            plaintext_document,
+            salt=None if unsalted_blind_seal_for == identifier else FIXTURE_SALT,
         )
         if corrupt_envelope_for == identifier:
             raw = bytearray(base64.b64decode(envelope["ciphertext_b64"]))
@@ -314,19 +346,45 @@ def build_fixture_tree(
         if extra_sidecar_field == identifier:
             sidecar["question"] = "a field that carries content and is not on the allowlist"
         _write_yaml(blind_dir / f"{identifier}.sidecar.yaml", sidecar)
-        registry_rows.append(
-            {
-                "id": identifier,
-                "split": "BLIND",
-                "primary_category": slug,
-                "content_sha256": content_sha256(sidecar),
-                "envelope_sha256": envelope["ciphertext_sha256"],
-            }
-        )
+        registry_row = {
+            "id": identifier,
+            "split": "BLIND",
+            "primary_category": slug,
+            "content_sha256": _sidecar_digest(sidecar),
+            "envelope_sha256": envelope["ciphertext_sha256"],
+        }
+        if envelope.get("blind_content_sha256"):
+            registry_row["blind_content_sha256"] = envelope["blind_content_sha256"]
+        registry_rows.append(registry_row)
         if drop_envelope_for != identifier:
             (blind_dir / f"{identifier}.envelope.json").write_text(
                 json.dumps(envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
+
+        # --- post-registration blind edits ------------------------------------------------------
+        # Everything below happens AFTER the row above was recorded, which is what makes it an
+        # unversioned change rather than part of the baseline.
+        if reseal_blind_for == identifier:
+            # Byte-identical plaintext, fresh ephemeral key: the ciphertext and its digest move,
+            # the keyed content digest does not. This must NOT be reported as a correction.
+            resealed = _seal_blind(identifier, plaintext_document, salt=FIXTURE_SALT)
+            sidecar["envelope_digest"] = resealed["ciphertext_sha256"]
+            _write_yaml(blind_dir / f"{identifier}.sidecar.yaml", sidecar)
+            (blind_dir / f"{identifier}.envelope.json").write_text(
+                json.dumps(resealed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        if edit_blind_plaintext_of == identifier:
+            corrected = dict(plaintext_document)
+            corrected["required_claims"] = ["a different expected claim, sealed with no new version"]
+            resealed = _seal_blind(identifier, corrected, salt=FIXTURE_SALT)
+            sidecar["envelope_digest"] = resealed["ciphertext_sha256"]
+            _write_yaml(blind_dir / f"{identifier}.sidecar.yaml", sidecar)
+            (blind_dir / f"{identifier}.envelope.json").write_text(
+                json.dumps(resealed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        if edit_blind_sidecar_of == identifier:
+            sidecar["latency_class"] = "EXTENDED"
+            _write_yaml(blind_dir / f"{identifier}.sidecar.yaml", sidecar)
 
     if plaintext_under_blind is not None:
         target = root / "cases" / plaintext_under_blind / "blind" / "leaked-case.yaml"
@@ -374,9 +432,55 @@ def build_fixture_tree(
                 "created_at": "2026-08-19T00:00:00Z",
                 "approved_by": "founder",
                 "reason": "synthetic fixture baseline",
+                "content_hash_salt": FIXTURE_SALT,
                 "cases": sorted(registry_rows, key=lambda row: row["id"]),
             },
         )
+        if blind_correction_of is not None:
+            # A blind correction done PROPERLY except for the migration record: the plaintext is
+            # re-sealed, the sidecar carries a change_reason, and `version new` cut v2 with the new
+            # keyed digest. The only rule left outstanding is PRD §43.2's old->new gold link, which
+            # a blind case always needs because nothing outside the ciphertext can show that the
+            # expected output stayed put.
+            identifier = blind_correction_of
+            blind_dir = blind_directories[identifier]
+            corrected_plaintext = dict(blind_documents[identifier])
+            corrected_plaintext["required_claims"] = ["a corrected blind claim"]
+            corrected_plaintext["change_reason"] = "corrected after review"
+            resealed = _seal_blind(identifier, corrected_plaintext, salt=FIXTURE_SALT)
+            sidecar_path = blind_dir / f"{identifier}.sidecar.yaml"
+            corrected_sidecar = yaml_min.load_path(sidecar_path)
+            corrected_sidecar["change_reason"] = "corrected after review"
+            corrected_sidecar["envelope_digest"] = resealed["ciphertext_sha256"]
+            _write_yaml(sidecar_path, corrected_sidecar)
+            (blind_dir / f"{identifier}.envelope.json").write_text(
+                json.dumps(resealed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            v2_rows = []
+            for row in registry_rows:
+                if row["id"] != identifier:
+                    v2_rows.append(dict(row))
+                    continue
+                v2_rows.append(
+                    {
+                        **row,
+                        "content_sha256": _sidecar_digest(corrected_sidecar),
+                        "envelope_sha256": resealed["ciphertext_sha256"],
+                        "blind_content_sha256": resealed["blind_content_sha256"],
+                    }
+                )
+            _write_json(
+                root / "splits" / "dataset-versions" / "v2.json",
+                {
+                    "version": "v2",
+                    "created_at": "2026-08-20T00:00:00Z",
+                    "approved_by": "founder",
+                    "reason": "corrected blind case after review",
+                    "supersedes": "v1",
+                    "content_hash_salt": FIXTURE_SALT,
+                    "cases": sorted(v2_rows, key=lambda row: row["id"]),
+                },
+            )
         if edit_expected_output_of is not None:
             # The correction WAS versioned — `version new` was run — so the only rule still
             # outstanding is the migration record. That is what this negative fixture isolates:
@@ -403,6 +507,7 @@ def build_fixture_tree(
                     "approved_by": "founder",
                     "reason": "corrected after review",
                     "supersedes": "v1",
+                    "content_hash_salt": FIXTURE_SALT,
                     "cases": sorted(v2_rows, key=lambda row: row["id"]),
                 },
             )

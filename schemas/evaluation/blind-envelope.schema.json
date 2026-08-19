@@ -62,6 +62,11 @@
       "type": "string",
       "minLength": 1,
       "description": "The evaluation-author agent or operator that sealed the material. Sealing needs only the public key, so this is never the key custodian."
+    },
+    "blind_content_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "The keyed blake2b digest of the sealed PLAINTEXT under the dataset version's `content_hash_salt`, written by `seal` — the one step that legitimately holds blind plaintext. It is the case's content identity across a re-seal (`ciphertext_sha256` is not: a fresh ephemeral key changes it even when the plaintext did not), and it is what lets VERSIONED_CORRECTIONS refuse an invisible edit to a BLIND case. Keyed and salted rather than a plain hash, so it is a change detector and not a guess-confirmation oracle over blind content; see docs/adr/0004-blind-gold-sealing.md."
     }
   }
 }

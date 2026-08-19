@@ -27,6 +27,12 @@
       "minLength": 1,
       "description": "Why this version exists. PRD §14.3 requires the reason, not merely the version."
     },
+    "content_hash_salt": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32,128}$",
+      "description": "The per-version key for a BLIND case's `blind_content_sha256`. A blind case's content identity cannot be its ciphertext digest (a re-seal of identical plaintext changes it) and must not be a plain hash of the plaintext (that is a guess-confirmation oracle over blind content), so `seal` writes a KEYED blake2b digest under this salt and `VERSIONED_CORRECTIONS` compares those. Carried forward unchanged by `version new` — two versions with different salts have incomparable blind digests, which the check reports as UNRESOLVED rather than as a correction. Committed, not secret: it is a change detector, not a credential.",
+      "$comment": "Rotating this value makes every blind digest incomparable with the previous version's on purpose; that is a Founder decision recorded in the version's `reason`."
+    },
     "supersedes": {
       "type": "string",
       "pattern": "^v[0-9]+$",
@@ -59,7 +65,12 @@
           "envelope_sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$",
-            "description": "SHA-256 of the sealed ciphertext, for a BLIND case. Absent for a visible case."
+            "description": "SHA-256 of the sealed ciphertext, for a BLIND case. Absent for a visible case. INFORMATIONAL ONLY: it changes on every re-seal of identical plaintext, so it is never used as a content identity — see `blind_content_sha256`."
+          },
+          "blind_content_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "The keyed blake2b digest of the sealed PLAINTEXT under this registry's `content_hash_salt`, written by `seal` (the only step that holds blind plaintext). This is a BLIND case's content identity: it survives a re-seal, and it moves when the sealed case is corrected, which is what makes PRD §14.3's 'not edited invisibly' checkable for blind cases at all. A row without it is reported UNRESOLVED by VERSIONED_CORRECTIONS, never passed over."
           }
         }
       }

@@ -3,5 +3,6 @@
   "created_at": "2026-08-19T00:00:00Z",
   "approved_by": "founder",
   "reason": "Initial dataset version, deliberately empty. GOLD-05 … GOLD-14 add entries through `version new`, never by hand-editing: PRD §14.3 makes a correction a new version with a reason, and a hand edit here is exactly the invisible change that rule exists to prevent.",
+  "content_hash_salt": "81d3176019e5198140273d969378e6d2182d3be14bf5a18ca6c03d22ab8b6ce8",
   "cases": []
 }

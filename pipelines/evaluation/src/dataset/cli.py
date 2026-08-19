@@ -201,6 +201,12 @@ def _hash(args, root: Path, out) -> int:
             }
             if sidecar.envelope is not None:
                 row["envelope_sha256"] = sidecar.envelope.ciphertext_sha256
+                # Copied from the envelope, never recomputed: only `seal` holds the plaintext this
+                # digest is taken over. An envelope sealed without a salt has none, and the row is
+                # written without one so VERSIONED_CORRECTIONS reports it UNRESOLVED rather than
+                # inventing an identity for content it cannot see.
+                if sidecar.envelope.blind_content_sha256:
+                    row["blind_content_sha256"] = sidecar.envelope.blind_content_sha256
             rows.append(row)
     if args.format == "json":
         print(json.dumps({"cases": rows}, indent=2), file=out)
@@ -236,6 +242,21 @@ def _seal(args, root: Path, out, err) -> int:
         print(f"cannot read the recipient public key: {type(error).__name__}", file=err)
         return 2
 
+    # The salt keys the only change detector a BLIND case can have (blind.blind_content_digest).
+    # Refusing here rather than sealing without one is deliberate: an envelope with no content
+    # digest can never be shown to have been corrected, and a sealing path that quietly produced
+    # them would make PRD §14.3 unenforceable for exactly the split it matters most for.
+    latest = compose(root).latest_version()
+    salt = latest.content_hash_salt() if latest is not None else None
+    if salt is None:
+        print(
+            "refusing to seal: the latest dataset-version registry records no content_hash_salt, "
+            "so a sealed case would carry no content identity and VERSIONED_CORRECTIONS could "
+            "never detect a correction to it (sub-PRD D8; PRD §14.3).",
+            file=err,
+        )
+        return 2
+
     target = root / "cases" / args.category / "blind"
     sealed_count = 0
     for path in sorted(Path(args.input_dir).glob("*.yaml")):
@@ -251,6 +272,7 @@ def _seal(args, root: Path, out, err) -> int:
             recipient_key_id=key_id,
             blind_dataset_major_version=major,
             sealer=args.sealer,
+            content_salt=salt,
         )
         blind.write_sealed(target, case_id, envelope)
         _write_sidecar(target, case_id, document, envelope["ciphertext_sha256"])
@@ -325,6 +347,12 @@ def _version_new(args, root: Path, out, err) -> int:
             }
             if sidecar.envelope is not None:
                 row["envelope_sha256"] = sidecar.envelope.ciphertext_sha256
+                # Copied from the envelope, never recomputed: only `seal` holds the plaintext this
+                # digest is taken over. An envelope sealed without a salt has none, and the row is
+                # written without one so VERSIONED_CORRECTIONS reports it UNRESOLVED rather than
+                # inventing an identity for content it cannot see.
+                if sidecar.envelope.blind_content_sha256:
+                    row["blind_content_sha256"] = sidecar.envelope.blind_content_sha256
             rows.append(row)
 
     document = {
@@ -334,6 +362,13 @@ def _version_new(args, root: Path, out, err) -> int:
         "reason": args.reason,
         "cases": sorted(rows, key=lambda row: row["id"]),
     }
+    # Carried forward unchanged, never regenerated: a new salt would make every BLIND case's
+    # content digest incomparable with the previous version's, i.e. it would erase the very
+    # correction history this registry exists to keep. Rotation is a Founder decision made by
+    # editing the salt deliberately and saying so in the version's reason.
+    salt = latest.content_hash_salt() if latest is not None else None
+    if salt is not None:
+        document["content_hash_salt"] = salt
     if latest is not None:
         document["supersedes"] = latest.version
     target = root / "splits" / "dataset-versions" / f"{version_id}.json"

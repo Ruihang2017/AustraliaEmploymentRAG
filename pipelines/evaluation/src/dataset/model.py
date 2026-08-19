@@ -198,6 +198,11 @@ class SealedEnvelope:
     sealer: str
     path: Path
     raw: Mapping[str, Any] = field(repr=False)
+    #: The keyed, salted digest of the sealed PLAINTEXT, written by `blind.seal` — the only value
+    #: that identifies blind content across a re-seal. Empty when the envelope predates it or was
+    #: sealed without a salt, which `VERSIONED_CORRECTIONS` reports as UNRESOLVED rather than
+    #: treating as "unchanged". See `blind.blind_content_digest`.
+    blind_content_sha256: str = ""
 
     @classmethod
     def from_mapping(cls, raw: Mapping[str, Any], path: Path) -> "SealedEnvelope":
@@ -207,6 +212,7 @@ class SealedEnvelope:
             recipient_key_id=raw.get("recipient_key_id", ""),
             blind_dataset_major_version=raw.get("blind_dataset_major_version", 0),
             ciphertext_sha256=raw.get("ciphertext_sha256", ""),
+            blind_content_sha256=raw.get("blind_content_sha256", ""),
             byte_length=raw.get("byte_length", 0),
             sealed_at=raw.get("sealed_at", ""),
             sealer=raw.get("sealer", ""),
@@ -231,7 +237,17 @@ class BlindSidecar:
         return "BLIND"
 
     def content_sha256(self) -> str:
-        return content_sha256(self.raw)
+        """The sidecar's METADATA identity — deliberately excluding `envelope_digest`.
+
+        `envelope_digest` is the sha256 of the ciphertext, and every seal draws a fresh ephemeral
+        key, so it changes when nothing about the case changed. Including it would make the version
+        registry report a correction on every re-seal (a false alarm that trains a reader to bump
+        the version reflexively) while still saying nothing about the plaintext, which is what a
+        correction actually moves. The plaintext identity is `SealedEnvelope.blind_content_sha256`,
+        a keyed salted digest only `seal` can compute; the two are checked separately by
+        `VERSIONED_CORRECTIONS`.
+        """
+        return content_sha256({name: value for name, value in self.raw.items() if name != "envelope_digest"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,6 +280,15 @@ class DatasetVersion:
     reason: str
     path: Path
     raw: Mapping[str, Any] = field(repr=False)
+
+    def content_hash_salt(self) -> str | None:
+        """The per-version key for `blind.blind_content_digest`, or `None` when none was recorded.
+
+        `None` is never repaired with a default: a silently invented salt would make every blind
+        digest disagree with every other, which reads as a correction on every case.
+        """
+        salt = self.raw.get("content_hash_salt")
+        return salt if isinstance(salt, str) and salt else None
 
     def rows(self) -> dict[str, Mapping[str, Any]]:
         entries = self.raw.get("cases")

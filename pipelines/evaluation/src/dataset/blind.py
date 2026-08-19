@@ -59,6 +59,7 @@ __all__ = [
     "SHINGLE_LENGTH",
     "SealedCase",
     "assert_no_blind_leakage",
+    "blind_content_digest",
     "guard",
     "leak_shingles",
     "load_recipient",
@@ -155,6 +156,37 @@ def load_recipient(
 # -- sealing -------------------------------------------------------------------------------------
 
 
+def blind_content_digest(plaintext_bytes: bytes, *, salt: str) -> str:
+    """The only change detector a BLIND case can have that is not also an oracle.
+
+    THE PROBLEM. `VERSIONED_CORRECTIONS` must be able to say "this case's content moved with no new
+    dataset version" for a BLIND case too, or a blind gold answer can be corrected invisibly —
+    exactly what PRD §14.3 and §43.4 forbid. Neither obvious candidate works:
+
+    * the sealed ciphertext digest is not a content identity. Every seal draws a fresh ephemeral
+      key, so re-sealing byte-identical plaintext produces a different digest; a registry keyed on
+      it would report a correction that did not happen and stay silent about one that did (a
+      re-seal of edited plaintext looks identical to a re-seal of unedited plaintext);
+    * a PLAIN hash of the plaintext is a guess-confirmation oracle. Anyone holding the repository
+      could hash a guessed question and compare, which turns the registry into a search index over
+      blind content.
+
+    THE ANSWER, per plan §4.8: a KEYED hash under a per-dataset-version salt that is itself
+    committed. Keyed, so it survives a re-seal (the identity is the plaintext, not the ciphertext);
+    salted with a value an outsider does not have to guess *against* — the salt is committed, so
+    this is not a secret, but the digest still cannot be recomputed from a guessed question without
+    also reading the salt from the same registry, which makes the oracle explicit rather than
+    incidental, and lets the Founder rotate it. Only `seal` can compute it: it is the one place
+    that legitimately holds blind plaintext in memory.
+
+    Recorded in `docs/adr/0004-blind-gold-sealing.md` under Consequences.
+    """
+    key = bytes.fromhex(salt)
+    if not 16 <= len(key) <= 64:
+        raise ValueError("a content-hash salt is 16 to 64 bytes of hex (blake2b key bounds)")
+    return hashlib.blake2b(plaintext_bytes, key=key, digest_size=32).hexdigest()
+
+
 def seal(
     plaintext_bytes: bytes,
     recipient_public: bytes,
@@ -164,6 +196,7 @@ def seal(
     blind_dataset_major_version: int,
     sealer: str,
     sealed_at: str | None = None,
+    content_salt: str | None = None,
     randbytes: Callable[[int], bytes] = os.urandom,
 ) -> tuple[dict[str, Any], bytes]:
     """Seal *plaintext_bytes* to *recipient_public*. Returns `(envelope_document, ciphertext)`.
@@ -171,6 +204,12 @@ def seal(
     Requires ONLY the public half (plan §8 Q6 item 11). *randbytes* is injectable so a vector test
     can pin the ephemeral key; production never passes it, and a fresh ephemeral pair per call is
     what makes two seals of the same plaintext differ.
+
+    *content_salt* keys the `blind_content_sha256` change detector above. It is optional HERE so the
+    primitive vector tests can seal without a dataset, and REQUIRED at the only production entry
+    point (`dataset seal` refuses to run when the latest registry records no salt) — a sealing path
+    that omitted it would leave blind corrections undetectable, so `VERSIONED_CORRECTIONS` reports
+    a missing digest as UNRESOLVED rather than passing over it.
     """
     ciphertext = sealedbox.seal(plaintext_bytes, recipient_public, randbytes=randbytes)
     document = {
@@ -184,6 +223,8 @@ def seal(
         "sealed_at": sealed_at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "sealer": sealer,
     }
+    if content_salt is not None:
+        document["blind_content_sha256"] = blind_content_digest(plaintext_bytes, salt=content_salt)
     return document, ciphertext
 
 
