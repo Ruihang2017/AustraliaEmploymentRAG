@@ -105,7 +105,28 @@ def test_split_disjoint_fails_when_one_id_is_in_two_splits(dataset_tree) -> None
 
 
 def test_no_near_duplicates_passes(dataset_tree) -> None:
-    assert findings_for(dataset_tree(), "NO_NEAR_DUPLICATES") == []
+    """"Passes" = no FAIL. The two blind-involving split pairs are reported UNRESOLVED.
+
+    A BLIND question exists here only as ciphertext, so no key-less run can compare it against a
+    visible one. Reporting nothing for those pairs would let `verify` present a clean result for a
+    comparison it never made — and a development question that also sits in the blind set is the
+    one leak that makes the entire blind split worthless. Same discipline as `GOLD_RESOLVES`
+    without `--release` (sub-PRD D11).
+    """
+    found = findings_for(dataset_tree(), "NO_NEAR_DUPLICATES")
+    assert severities(found) <= {"UNRESOLVED"}
+    pairs = sorted(f.message.split("split pair ")[1].split(" was not")[0] for f in found)
+    assert pairs == ["DEVELOPMENT / BLIND", "VALIDATION / BLIND"]
+
+
+def test_no_near_duplicates_reports_nothing_when_there_are_no_blind_slots(dataset_tree) -> None:
+    """A pair that cannot exist is not a pair that could not be checked."""
+    root = dataset_tree()
+    for envelope in root.rglob("*.envelope.json"):
+        envelope.unlink()
+    for sidecar in root.rglob("*.sidecar.yaml"):
+        sidecar.unlink()
+    assert findings_for(root, "NO_NEAR_DUPLICATES") == []
 
 
 def test_no_near_duplicates_fails_on_a_question_shared_across_splits(dataset_tree) -> None:

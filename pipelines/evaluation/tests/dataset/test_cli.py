@@ -61,7 +61,16 @@ def test_verify_exits_non_zero_on_the_declared_unresolved_findings(dataset_tree)
     assert payload["ok"] is False
     assert payload["counts"]["FAIL"] == 0
     assert payload["counts"]["UNRESOLVED"] > 0
-    assert {f["check_id"] for f in payload["findings"]} == {"SCHEMA_VALID", "GOLD_RESOLVES"}
+    # THREE checks report UNRESOLVED on a correct key-less run, and the set is closed on purpose:
+    # SCHEMA_VALID (no canonical Jurisdiction family), GOLD_RESOLVES (no --release pinned) and
+    # NO_NEAR_DUPLICATES (the two blind-involving split pairs cannot be compared without the
+    # private key). A fourth appearing here means something new became unverifiable and nobody
+    # said so.
+    assert {f["check_id"] for f in payload["findings"]} == {
+        "SCHEMA_VALID",
+        "GOLD_RESOLVES",
+        "NO_NEAR_DUPLICATES",
+    }
 
 
 @pytest.mark.skipif(not FIXTURE_RELEASE.is_dir(), reason="the CRPS-08 fixture release is absent")
