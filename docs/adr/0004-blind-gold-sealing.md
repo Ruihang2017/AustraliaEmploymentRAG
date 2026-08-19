@@ -149,6 +149,43 @@ test that inspects the placeholder itself passes `allow_placeholder=True`. Witho
 "it protects nothing" property above would depend on somebody reading a comment, which is the class
 of control this ADR exists to reject.
 
+### Implementation consequence 4 — a BLIND case's content identity is a salted keyed digest
+
+**D8** requires a correction to be a new version with a reason, and PRD §43.4 forbids "fixing" a gold
+case by changing expected output. Enforcing that for a *sealed* case needs a value that identifies
+its content — and the two obvious candidates are both wrong:
+
+| Candidate | Why not |
+|---|---|
+| The sealed ciphertext digest (`ciphertext_sha256`). | Every seal draws a fresh ephemeral key, so re-sealing byte-identical plaintext changes it. A registry keyed on it reports a correction that did not happen, and cannot distinguish a re-seal of edited plaintext from a re-seal of unedited plaintext. |
+| A plain hash of the plaintext. | A guess-confirmation oracle. Anyone with the repository could hash a guessed question and compare, turning the version registry into a search index over blind content. |
+
+So `seal` — the one step that legitimately holds blind plaintext — writes
+`blind_content_sha256`: a **keyed** blake2b digest under a per-dataset-version `content_hash_salt`
+that the registry itself carries. Keyed, so the identity is the plaintext and survives a re-seal;
+salted, so it is a change detector rather than a value anyone can recompute from a guess alone. The
+salt is committed and is **not** a secret — rotating it makes every blind digest incomparable with
+the previous version's, which is a Founder decision recorded in that version's `reason`.
+
+Two consequences follow, and both are enforced rather than documented: `dataset seal` **refuses to
+run** against a registry with no salt (an envelope with no content identity could never be shown to
+have been corrected), and `VERSIONED_CORRECTIONS` reports a missing digest as `UNRESOLVED` — never a
+pass. A blind correction also always requires a migration record, because nothing outside the
+ciphertext can establish that the expected output stayed put.
+
+The sidecar's own hash deliberately **excludes** `envelope_digest` for the same reason: metadata
+identity must not move when only the ciphertext does.
+
+### Implementation consequence 5 — the leak detector stores hashed shingles
+
+`leak_shingles()` returns **sha256 digests** of the normalised 12-token windows, not the windows
+themselves. Otherwise the guard's own working set would be a second in-memory copy of the blind
+plaintext it exists to protect — one that a traceback, a debugger frame or a stray `print` could
+publish. Equality is all the detector performs, and a digest compares exactly as well. The digest set
+is still derived from blind content and is still never written, logged or put in a finding; when a
+hit is found, the offending artifact is deleted first and the exception names the path and the hit
+count only, never the matched text.
+
 ## Review trigger
 
 Any change to **who may hold the private key**, **who may start a blind stage**, or **the sealing

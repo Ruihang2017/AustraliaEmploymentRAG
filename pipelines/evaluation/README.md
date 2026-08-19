@@ -54,7 +54,7 @@ python -m dataset verify --complete
 | Subcommand | What it does |
 |---|---|
 | `verify [--category <slug> \| --complete] [--release <dir>] [--format json\|text]` | Runs the checks below. |
-| `seal --category <slug> --in <dir>` | Reads an untracked authoring directory, writes envelopes + allowlisted sidecars. Never echoes content. Needs only the public key. |
+| `seal --category <slug> --in <dir>` | Reads an untracked authoring directory, writes envelopes + allowlisted sidecars. Never echoes content. Needs only the public key. **Refuses** when the latest dataset-version registry records no `content_hash_salt` — see the correction rule below. |
 | `guard-blind` | The key-less repository guard (checks 10 and 11). |
 | `hash [--category <slug>]` | Each case's canonical content digest. |
 | `version new --reason <text> --approved-by <name>` | Cuts a dataset version (sub-PRD **D8**). The authoring tickets use this; nobody hand-edits a registry. |
@@ -75,7 +75,7 @@ content in any format, on any stream.
 | 6 | `STRATIFICATION_MET` | each category satisfies its own `stratification.yaml` | §43.1 |
 | 7 | `GOLD_SHAPE` | well-formed corpus ids, a permitted `citation_role`, and at least one `required: true` authority unless the case is `OUT_OF_SCOPE` or a PII rejection | §43.2, §43.3 |
 | 8 | `GOLD_RESOLVES` | with `--release`, every gold id resolves in the pinned release via `CRPS-02`'s verifier + a read-only corpus read; without one, `UNRESOLVED` — never `pass` | §43.2, §40.9 |
-| 9 | `VERSIONED_CORRECTIONS` | content that moved needs a new version and a reason; a changed **expected output** additionally needs a migration record | §14.3, §43.4 |
+| 9 | `VERSIONED_CORRECTIONS` | content that moved needs a new version and a reason; a changed **expected output** additionally needs a migration record. **Blind cases are checked too**, twice: sidecar metadata against the registry, and the sealed plaintext against the registry's keyed `blind_content_sha256` | §14.3, §43.4 |
 | 10 | `BLIND_SEALED` | every `BLIND` case is exactly one envelope + one sidecar, digests agree, and no plaintext exists under any `blind/` path | §14.3, §43.1, **D1** |
 | 11 | `no_private_key` [^1] | no private-key material anywhere in this module's trees | **D2** |
 | 12 | `COMPLETE_DATASET` (`--complete`) | totals equal the allocation exactly, and every product surface and answer status is represented | §14.1, §43.1 |
@@ -92,7 +92,10 @@ literal. Same trick, same reason, as the private-key-file environment variable.
 ## Two things that will look like bugs and are not
 
 **1. `verify` exits non-zero on a dataset with nothing wrong with it.** `UNRESOLVED` is never counted
-as a pass (sub-PRD **D11**), and two findings stand by design:
+as a pass (sub-PRD **D11**), and three findings stand by design:
+
+- `BLIND_PAIR_UNCOMPARABLE` — the two split pairs involving `BLIND` cannot be compared without the
+  private key (see item 2 below).
 
 - `JURISDICTION_VOCABULARY_UNRESOLVED` — `packages/contracts` publishes no `Jurisdiction` family, so
   `jurisdictions` can only be shape-checked. The fix is a docs PR against `FND-03`, **never** a
@@ -106,11 +109,17 @@ as a pass (sub-PRD **D11**), and two findings stand by design:
 Do **not** repair either by defaulting a check to pass. Assert finding **ids** in your tests, not the
 exit code.
 
-**2. `NO_NEAR_DUPLICATES` does not compare blind cases against visible ones.** It cannot: a blind
-question exists here only as ciphertext, and no key-less check can read it. That is the same boundary
-the ADR records — the authoring tickets verify blind *slots*, never content. The comparison is
-possible in exactly one place, a Founder-started blind stage, which passes opened material in
-`CheckContext.opened_blind`.
+**2. `NO_NEAR_DUPLICATES` does not compare blind cases against visible ones — and says so.** It
+cannot: a blind question exists here only as ciphertext, and no key-less check can read it. That is
+the same boundary the ADR records — the authoring tickets verify blind *slots*, never content. The
+comparison is possible in exactly one place, a Founder-started blind stage, which passes opened
+material in `CheckContext.opened_blind`.
+
+So a key-less run emits **one `UNRESOLVED` per blind-involving split pair** (`DEVELOPMENT / BLIND`
+and `VALIDATION / BLIND`) rather than nothing. Silence would let `verify` present a clean result for
+a comparison it never made, and a development question that also sits in the blind set is the single
+leak that makes the whole blind split worthless. A correct dataset therefore produces no `FAIL` from
+this check — which is what "passes" means for a check that reports what it could not see.
 
 ## Constraints the authoring tickets (`GOLD-05` … `GOLD-14`) inherit
 
@@ -128,6 +137,15 @@ possible in exactly one place, a Founder-started blind stage, which passes opene
 - **YAML is a restricted subset.** `yaml_min` refuses anchors, aliases, tags, non-empty flow
   collections, multiple documents and tabs — loudly, never silently. Write block mappings and block
   sequences.
+- **Correcting a BLIND case is versioned exactly like a visible one.** `seal` records
+  `blind_content_sha256` — a blake2b digest of the plaintext KEYED by the registry's
+  `content_hash_salt` — and that, not the ciphertext digest, is the case's content identity: a
+  re-seal of unchanged plaintext is not a correction, and a re-seal of changed plaintext is. So a
+  blind correction needs a new dataset version, a `change_reason` on the sidecar, and **always** a
+  migration record (nothing outside the ciphertext can show that expected output stayed put). The
+  salt is carried forward by `version new` and is committed, not secret; it exists so the registry
+  is a change detector rather than a guess-confirmation oracle over blind content. See
+  `docs/adr/0004-blind-gold-sealing.md`, implementation consequence 4.
 
 ## Why this package is stdlib-only
 
