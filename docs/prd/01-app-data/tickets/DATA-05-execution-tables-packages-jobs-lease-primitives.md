@@ -7,7 +7,7 @@ size: L
 agent: builder
 status: draft
 date: 2026-08-03
-blocked_by: [DATA-04]
+blocked_by: [DATA-04, DATA-11]
 blocks: [DATA-06, DATA-07, RUNT-03, RUNT-04]
 ---
 
@@ -327,3 +327,10 @@ Offline; no network, no worker process, no provider.
    the PRD §18.5 guarantee ("one observable answer and no duplicate charge"), that falsifies a PRD
    architecture statement, not a local detail. Stop, escalate for re-review, and update the PRD
    through the product-change path (PRD §45.5) before introducing any external queue.
+
+## Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| v1.0 | 2026-08-03 | Initial ticket (`/breakdown-prd`). |
+| v1.1 | 2026-08-19 | **The six tables this ticket authorises break a test it does not own; the repair is `DATA-11`, which is added to `blocked_by`.** Adding `packages/database/migrations/20260819030229_execution.sql` — exactly what this ticket's File-scope authorises, creating the six PRD §35.6 tables `job`, `job_event`, `outbox_event`, `retrieval_run`, `retrieval_candidate` and `model_execution` — turns **one test red**, and it is in `DATA-04`'s area: `packages/database/test/tenancy/schema.test.ts` *"creates exactly the eight PRD §35.4 tables and nothing else"* reads the whole of `sqlite_master` after every shipped migration and asserts it equals `DATA-04`'s eight tenancy tables (`expect(tables).toEqual(PRD_TABLES)`, `schema.test.ts:98`), so the six added names arrive as a diff against an exhaustive expectation. That assertion encodes *"this database contains exactly these eight tables"* — a claim no ticket downstream of `DATA-04` can keep true, because every table-group ticket adds its tables to the same `app.sqlite` by design (sub-PRD **D2**, **D4**). `packages/database/test/tenancy/**` is **`DATA-04`'s declared write-owns** (*"this ticket's own test area, sub-PRD D8"*) and appears nowhere in this ticket's write-owns — which are `packages/database/test/execution/**` and `packages/jobs/**` — so it is **not** `DATA-05`'s to repair: sub-PRD **D8**, *"No ticket writes into another ticket's test directory."* That is the same boundary a Reviewer enforced on `DATA-04` in review round 4, taking it to the 2-bounce cap on 2026-08-18 (`DATA-04` changelog v1.2), and this Builder correctly refused to touch it. The repair is the new **[DATA-11 — The tenancy schema test asserts `DATA-04`'s eight tables, not the whole database's table set](DATA-11-tenancy-schema-test-is-table-set-agnostic.md)**, authored in `01-app-data` on 2026-08-19, which replaces the exhaustive `sqlite_master` comparison with a superset/subset assertion over the eight while keeping every column, key, constraint and index property at full strength; `DATA-11` is added to this ticket's `blocked_by` so `DATA-05` merges after it and lands green. It is a **general** repair rather than a one-off because `DATA-06` (ten `*_research.sql` tables, write-owns `test/research/**`) and `DATA-07` (eleven `*_operations.sql` tables, write-owns `test/operations/**`) add tables to the same database and own no path under `test/tenancy/**`, so each hits the identical break and none of the three may fix it. **`DATA-05`'s own work is otherwise complete and green on `ticket/DATA-05` @ `8143e8d`**: `packages/jobs` is 3 files / 19 tests passing, and `packages/database/test/execution/**` passes in full including the contended suites — 20 concurrent admissions resolving to 1 `CREATED` + 19 `EXISTING`, 8 claimers over 4 jobs yielding exactly one owner each, and 100 concurrent `appendJobEvent` calls producing sequences 1..100 with no gap and no duplicate. Its diff is **34 files, every one inside its declared File-scope** (`git diff --name-only main...ticket/DATA-05`), with no path under `packages/database/test/tenancy/`. No id, title, other frontmatter field, File-scope entry, Non-goal, deliverable, acceptance item or test-plan step is changed by this revision. |
