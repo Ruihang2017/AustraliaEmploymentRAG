@@ -377,6 +377,35 @@ def build_fixture_tree(
                 "cases": sorted(registry_rows, key=lambda row: row["id"]),
             },
         )
+        if edit_expected_output_of is not None:
+            # The correction WAS versioned — `version new` was run — so the only rule still
+            # outstanding is the migration record. That is what this negative fixture isolates:
+            # without the v2 registry the tree would fail for the invisible-edit reason instead,
+            # and a negative fixture that fails for the wrong reason proves nothing.
+            corrected = dict(documents[edit_expected_output_of])
+            v2_rows = []
+            for row in registry_rows:
+                if row["id"] != edit_expected_output_of:
+                    v2_rows.append(dict(row))
+                    continue
+                v2_rows.append(
+                    {
+                        **row,
+                        "content_sha256": content_sha256(corrected),
+                        "expected_output_sha256": _expected_output_digest(corrected),
+                    }
+                )
+            _write_json(
+                root / "splits" / "dataset-versions" / "v2.json",
+                {
+                    "version": "v2",
+                    "created_at": "2026-08-20T00:00:00Z",
+                    "approved_by": "founder",
+                    "reason": "corrected after review",
+                    "supersedes": "v1",
+                    "cases": sorted(v2_rows, key=lambda row: row["id"]),
+                },
+            )
     return root
 
 
