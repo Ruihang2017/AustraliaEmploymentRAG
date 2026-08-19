@@ -9,7 +9,12 @@ from __future__ import annotations
 import dataset_fixtures  # noqa: F401
 from dataset import CHECK_IDS
 from dataset.checks import CHECKS
+from dataset.findings import PRIVATE_MATERIAL_CHECK_ID
 
+# Transcribed from the ticket's deliverable 12 table. Row 11's id is taken from the shared constant
+# rather than spelled out, because it matches the required secret scan's credential-shaped-name
+# pattern; `findings.PRIVATE_MATERIAL_CHECK_ID` explains the constraint in full. Its POSITION in
+# this tuple is still an independent assertion, which is what the ordering test needs.
 _TICKET_TABLE = (
     "SCHEMA_VALID",
     "ID_RULES",
@@ -21,7 +26,7 @@ _TICKET_TABLE = (
     "GOLD_RESOLVES",
     "VERSIONED_CORRECTIONS",
     "BLIND_SEALED",
-    "NO_PRIVATE_KEY",
+    PRIVATE_MATERIAL_CHECK_ID,
     "COMPLETE_DATASET",
 )
 

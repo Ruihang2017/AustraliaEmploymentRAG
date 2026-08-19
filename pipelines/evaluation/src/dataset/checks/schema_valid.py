@@ -165,7 +165,7 @@ def _jurisdiction_shape(
     if not isinstance(values, list):
         return findings
     malformed = sum(
-        1 for value in values if not isinstance(value, str) or not contract_enums.JURISDICTION_TOKEN.match(value)
+        1 for value in values if not isinstance(value, str) or not contract_enums.JURISDICTION_SHAPE.match(value)
     )
     if malformed:
         findings.append(

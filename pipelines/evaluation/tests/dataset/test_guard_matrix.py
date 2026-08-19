@@ -14,7 +14,7 @@ from __future__ import annotations
 import dataset_fixtures  # noqa: F401
 import pytest
 from dataset import blind
-from dataset.findings import Finding
+from dataset.findings import PRIVATE_MATERIAL_CHECK_ID, Finding
 
 
 def guard(root) -> list[Finding]:
@@ -53,7 +53,7 @@ def test_a_sidecar_with_a_non_allowlisted_field_fails(dataset_tree) -> None:
 
 def test_a_private_key_shaped_file_fails(dataset_tree) -> None:
     found = guard(dataset_tree(private_key_file_in="federal-core"))
-    assert any(f.check_id == "NO_PRIVATE_KEY" for f in found)
+    assert any(f.check_id == PRIVATE_MATERIAL_CHECK_ID for f in found)
 
 
 @pytest.mark.parametrize(

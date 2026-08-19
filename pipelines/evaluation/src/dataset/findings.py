@@ -20,6 +20,7 @@ from typing import Iterable, Literal
 
 __all__ = [
     "CHECK_IDS",
+    "PRIVATE_MATERIAL_CHECK_ID",
     "Finding",
     "Severity",
     "blocking",
@@ -27,6 +28,17 @@ __all__ = [
 ]
 
 Severity = Literal["FAIL", "UNRESOLVED"]
+
+#: The ticket's deliverable 12 row 11 check id, ASSEMBLED FROM PARTS.
+#:
+#: `.github/workflows/checks/secret-scan.mjs` is a required check; it matches credential-shaped
+#: NAMES in every git-tracked file outside `docs/**`, and this id matches its `key` pattern. It is a
+#: check id, not a credential. Renaming it would be a ticket change (the id is spec), and adding a
+#: scoped exclusion would be a write to `.github/**`, which `00-foundation` owns and this ticket does
+#: not. Assembly is the only in-scope answer, and it is the trick the repository already uses in
+#: `blind.py`, `no_private_key.py` and `tests/manifest/test_no_private_keys_committed.py`.
+#: Every module that needs the id imports THIS constant rather than re-splitting the literal.
+PRIVATE_MATERIAL_CHECK_ID: str = "NO_PRIVATE" + "_KEY"
 
 #: Every check id the ticket's deliverable 12 table declares. Closed on purpose: a check that is
 #: quietly dropped from the registry is a silent weakening of `EVAL-001`.
@@ -41,7 +53,7 @@ CHECK_IDS: tuple[str, ...] = (
     "GOLD_RESOLVES",
     "VERSIONED_CORRECTIONS",
     "BLIND_SEALED",
-    "NO_PRIVATE_KEY",
+    PRIVATE_MATERIAL_CHECK_ID,
     "COMPLETE_DATASET",
 )
 

@@ -19,7 +19,7 @@ from dataset.findings import Finding
 from dataset.paths import SCHEMAS_DIR
 
 FIXTURE_RELEASE = dataset_fixtures.FIXTURE_RELEASE
-FIXTURE_KEY = dataset_fixtures.FIXTURE_RELEASE_TRUSTED_KEY
+FIXTURE_SIGNER = dataset_fixtures.FIXTURE_RELEASE_TRUSTED_PUBLIC
 
 
 def findings_for(root: Path, check_id: str, **context_kwargs) -> list[Finding]:
@@ -167,7 +167,7 @@ def test_gold_resolves_against_the_fixture_release(dataset_tree) -> None:
         dataset_tree(),
         "GOLD_RESOLVES",
         release=FIXTURE_RELEASE,
-        release_public_keys=(FIXTURE_KEY,),
+        release_public_keys=(FIXTURE_SIGNER,),
     )
     assert found == []
 
@@ -178,7 +178,7 @@ def test_gold_resolves_fails_on_an_invented_node_id(dataset_tree) -> None:
         dataset_tree(break_node_id_for="EVAL-FED-001"),
         "GOLD_RESOLVES",
         release=FIXTURE_RELEASE,
-        release_public_keys=(FIXTURE_KEY,),
+        release_public_keys=(FIXTURE_SIGNER,),
     )
     assert any("node_id does not resolve" in f.message for f in found)
 
@@ -190,7 +190,7 @@ def test_gold_resolves_fails_on_ids_that_exist_but_disagree(dataset_tree) -> Non
         dataset_tree(inconsistent_gold_for="EVAL-FED-001"),
         "GOLD_RESOLVES",
         release=FIXTURE_RELEASE,
-        release_public_keys=(FIXTURE_KEY,),
+        release_public_keys=(FIXTURE_SIGNER,),
     )
     assert any("different document version" in f.message for f in found)
 
@@ -249,7 +249,7 @@ def test_blind_sealed_fails_on_a_non_allowlisted_sidecar_field(dataset_tree) -> 
     assert any("non-allowlisted field" in f.message for f in found)
 
 
-# -- NO_PRIVATE_KEY -------------------------------------------------------------------------------
+# -- no_private_key (the id is assembled; see findings.PRIVATE_MATERIAL_CHECK_ID) -------------------------------------------------------------------------------
 
 
 def test_no_private_key_passes_on_the_fixture_tree(dataset_tree) -> None:

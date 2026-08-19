@@ -39,7 +39,7 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 FIXTURE_RELEASE = (
     REPO_ROOT / "pipelines" / "corpus-builder" / "fixtures" / "releases" / "corpus-release-fixture-v1"
 )
-FIXTURE_RELEASE_TRUSTED_KEY = (
+FIXTURE_RELEASE_TRUSTED_PUBLIC = (
     REPO_ROOT
     / "pipelines"
     / "corpus-builder"

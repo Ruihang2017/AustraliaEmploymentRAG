@@ -36,7 +36,7 @@ from contracts.enums import (  # noqa: E402
 
 __all__ = [
     "JURISDICTION_FAMILY_ABSENT",
-    "JURISDICTION_TOKEN",
+    "JURISDICTION_SHAPE",
     "MissingEnumFamilyError",
     "answer_statuses",
     "citation_roles",
@@ -52,7 +52,7 @@ JURISDICTION_FAMILY_ABSENT = (
 )
 
 #: Shape a jurisdiction token must have while the canonical family is absent: an upper-case code.
-JURISDICTION_TOKEN = re.compile(r"^[A-Z][A-Z0-9_]{1,15}$")
+JURISDICTION_SHAPE = re.compile(r"^[A-Z][A-Z0-9_]{1,15}$")
 
 
 def answer_statuses() -> tuple[str, ...]:

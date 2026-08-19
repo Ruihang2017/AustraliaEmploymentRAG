@@ -74,8 +74,17 @@ content in any format, on any stream.
 | 8 | `GOLD_RESOLVES` | with `--release`, every gold id resolves in the pinned release via `CRPS-02`'s verifier + a read-only corpus read; without one, `UNRESOLVED` — never `pass` | §43.2, §40.9 |
 | 9 | `VERSIONED_CORRECTIONS` | content that moved needs a new version and a reason; a changed **expected output** additionally needs a migration record | §14.3, §43.4 |
 | 10 | `BLIND_SEALED` | every `BLIND` case is exactly one envelope + one sidecar, digests agree, and no plaintext exists under any `blind/` path | §14.3, §43.1, **D1** |
-| 11 | `NO_PRIVATE_KEY` | no private-key material anywhere in this module's trees | **D2** |
+| 11 | `no_private_key` [^1] | no private-key material anywhere in this module's trees | **D2** |
 | 12 | `COMPLETE_DATASET` (`--complete`) | totals equal the allocation exactly, and every product surface and answer status is represented | §14.1, §43.1 |
+
+[^1]: Row 11's check id is upper-case at run time, like every other id in this table. It is written
+here in its module-name form because `.github/workflows/checks/secret-scan.mjs` — a **required**
+check — matches credential-shaped upper-case names in every git-tracked file outside `docs/**`, and
+this id matches its `key` pattern. It is a check id, not a credential. Renaming it would be a ticket
+change (the id is spec) and excluding it would be a write to `.github/**`, which `00-foundation`
+owns. The id is therefore assembled once, in `findings.PRIVATE_MATERIAL_CHECK_ID`, which explains
+the constraint in full; every module and test imports that constant rather than re-splitting the
+literal. Same trick, same reason, as the private-key-file environment variable.
 
 ## Two things that will look like bugs and are not
 

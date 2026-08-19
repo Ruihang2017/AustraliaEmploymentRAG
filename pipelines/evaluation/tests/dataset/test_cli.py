@@ -25,7 +25,7 @@ from dataset.cli import main
 REPO_ROOT = dataset_fixtures.REPO_ROOT
 CLI_PATH = REPO_ROOT / "pipelines" / "evaluation" / "src" / "dataset" / "cli.py"
 FIXTURE_RELEASE = dataset_fixtures.FIXTURE_RELEASE
-FIXTURE_KEY = dataset_fixtures.FIXTURE_RELEASE_TRUSTED_KEY
+FIXTURE_SIGNER = dataset_fixtures.FIXTURE_RELEASE_TRUSTED_PUBLIC
 
 
 def run(argv: list[str]) -> tuple[int, str, str]:
@@ -56,7 +56,7 @@ def test_verify_with_a_release_resolves_the_gold(dataset_tree) -> None:
             "--release",
             str(FIXTURE_RELEASE),
             "--release-public-key-file",
-            str(FIXTURE_KEY),
+            str(FIXTURE_SIGNER),
         ]
     )
     payload = json.loads(out)

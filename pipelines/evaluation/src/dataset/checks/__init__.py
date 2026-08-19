@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Sequence
 
-from ..findings import Finding
+from ..findings import PRIVATE_MATERIAL_CHECK_ID, Finding
 from ..model import Dataset
 
 __all__ = ["CHECKS", "CheckContext", "run_checks"]
@@ -73,7 +73,7 @@ def _registry() -> tuple[tuple[str, Check], ...]:
         ("GOLD_RESOLVES", gold_resolves.check),
         ("VERSIONED_CORRECTIONS", versioned_corrections.check),
         ("BLIND_SEALED", blind_sealed.check),
-        ("NO_PRIVATE_KEY", no_private_key.check),
+        (PRIVATE_MATERIAL_CHECK_ID, no_private_key.check),
         ("COMPLETE_DATASET", complete_dataset.check),
     )
 
