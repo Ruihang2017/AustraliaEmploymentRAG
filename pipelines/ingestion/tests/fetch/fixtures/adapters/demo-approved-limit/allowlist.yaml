@@ -1,0 +1,10 @@
+# The PRD 37.4 "source-specific approved limit" pair, used by the size tests. The number is tiny so
+# the suite moves KiB rather than MiB (R14).
+group_id: DEMO-APPROVED-LIMIT
+schemes: [https]
+hosts:
+  - host: bulk.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]
+    approved_max_bytes: 4096
+    approved_max_bytes_reason: "synthetic bulk artifact fixture; PRD 37.4 approved limit"

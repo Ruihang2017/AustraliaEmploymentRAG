@@ -1,0 +1,5 @@
+# Negative control for yaml_min: a tab character is refused rather than guessed at.
+group_id: DEMO-BAD-INDENT
+schemes: [https]
+hosts:
+	- host: docs.example.test

@@ -1,0 +1,8 @@
+# deny_paths is evaluated AFTER path_prefixes and wins.
+group_id: DEMO-DENY-PATHS
+schemes: [https]
+hosts:
+  - host: docs.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]
+deny_paths: ["/private/", "/admin"]

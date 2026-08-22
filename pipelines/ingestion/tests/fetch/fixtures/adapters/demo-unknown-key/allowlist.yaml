@@ -1,0 +1,9 @@
+# Negative control: an unknown top-level key is rejected (additionalProperties: false), so a typo
+# in an adapter's allowlist can never be silently ignored.
+group_id: DEMO-UNKNOWN-KEY
+schemes: [https]
+hosts:
+  - host: docs.example.test
+    include_subdomains: false
+    path_prefixes: ["/"]
+surprise: yes-please
